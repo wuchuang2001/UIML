@@ -5,15 +5,21 @@
 #include "config.h"
 
 //各种电机编码值与角度的换算
-#define MOTO_M6020_DGR2CODE(dgr) ((int32_t)(dgr*22.7528f)) //8191/360
-#define MOTO_M6020_CODE2DGR(code) ((float)(code/22.7528f))
+#define M6020_DGR2CODE(dgr) ((int32_t)(dgr*22.7528f)) //8191/360
+#define M6020_CODE2DGR(code) ((float)(code/22.7528f))
 
 typedef struct _M6020
 {
 	Motor motor;
 	
 	float reductionRatio;
-	uint16_t id;
+	struct
+	{
+		uint16_t id[2];
+		char* canX[2];
+		uint8_t sendBits;
+	}canInfo;
+	Ctrler ctrler;
 	
 	int16_t angle,speed;
 	
