@@ -38,37 +38,37 @@ typedef struct _Chassis
 	
 }Chassis;
 
-void Chassis_DataCallback(const char* topic, SoftBusFrame* frame, void* userData);
+void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
 Chassis chassis={0};
 
 void Chassis_Init(ConfItem* dict)
 {
 	//任务间隔
-	chassis.taskInterval = Conf_GetValue(dict, "chassis/taskInterval", uint8_t, 2);
+	chassis.taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
 	//底盘尺寸信息（用于解算轮速）
-	chassis.info.wheelbase = Conf_GetValue(dict, "chassis/info/wheelbase", float, 0);
-	chassis.info.wheeltrack = Conf_GetValue(dict, "chassis/info/wheeltrack", float, 0);
-	chassis.info.wheelRadius = Conf_GetValue(dict, "chassis/info/wheelRadius", float, 76);
-	chassis.info.offsetX = Conf_GetValue(dict, "chassis/info/offsetX", float, 0);
-	chassis.info.offsetY = Conf_GetValue(dict, "chassis/info/offsetY", float, 0);
+	chassis.info.wheelbase = Conf_GetValue(dict, "info/wheelbase", float, 0);
+	chassis.info.wheeltrack = Conf_GetValue(dict, "info/wheeltrack", float, 0);
+	chassis.info.wheelRadius = Conf_GetValue(dict, "info/wheelRadius", float, 76);
+	chassis.info.offsetX = Conf_GetValue(dict, "info/offsetX", float, 0);
+	chassis.info.offsetY = Conf_GetValue(dict, "info/offsetY", float, 0);
 	//移动参数初始化
-	chassis.move.maxVx = Conf_GetValue(dict, "chassis/move/offsetX", float, 2000);
-	chassis.move.maxVy = Conf_GetValue(dict, "chassis/move/offsetX", float, 2000);
-	chassis.move.maxVw = Conf_GetValue(dict, "chassis/move/offsetX", float, 2);
-	float xAcc = Conf_GetValue(dict, "chassis/move/xAcc", float, 1000);
-	float yAcc = Conf_GetValue(dict, "chassis/move/yAcc", float, 1000);
+	chassis.move.maxVx = Conf_GetValue(dict, "move/offsetX", float, 2000);
+	chassis.move.maxVy = Conf_GetValue(dict, "move/offsetX", float, 2000);
+	chassis.move.maxVw = Conf_GetValue(dict, "move/offsetX", float, 2);
+	float xAcc = Conf_GetValue(dict, "move/xAcc", float, 1000);
+	float yAcc = Conf_GetValue(dict, "move/yAcc", float, 1000);
 	Slope_Init(&chassis.move.xSlope,CHASSIS_ACC2SLOPE(xAcc),0);
 	Slope_Init(&chassis.move.ySlope,CHASSIS_ACC2SLOPE(yAcc),0);
-	Motor_Init(chassis.motors[0], Conf_GetPtr(dict, "chassis/motorFL", ConfItem));
-	Motor_Init(chassis.motors[1], Conf_GetPtr(dict, "chassis/motorFR", ConfItem));
-	Motor_Init(chassis.motors[2], Conf_GetPtr(dict, "chassis/motorBL", ConfItem));
-	Motor_Init(chassis.motors[3], Conf_GetPtr(dict, "chassis/motorBR", ConfItem));
+	chassis.motors[0] = Motor_Init(Conf_GetPtr(dict, "motorFL", ConfItem));
+	chassis.motors[1] = Motor_Init(Conf_GetPtr(dict, "motorFR", ConfItem));
+	chassis.motors[2] = Motor_Init(Conf_GetPtr(dict, "motorBL", ConfItem));
+	chassis.motors[3] = Motor_Init(Conf_GetPtr(dict, "motorBR", ConfItem));
 	for(uint8_t i = 0; i<4; i++)
 	{
-		chassis.motors[i]->changeCtrler(chassis.motors[i], speed);
+		chassis.motors[i]->changeMode(chassis.motors[i], MOTOR_SPEED_MODE);
 	}
-	SoftBus_Subscribe(NULL, Chassis_DataCallback, "chassis");
+	SoftBus_Subscribe(NULL, Chassis_SoftBusCallback, "chassis");
 }
 
 
@@ -120,7 +120,7 @@ void Chassis_TaskCallback(void const * argument)
 	}
 }
 
-void Chassis_DataCallback(const char* topic, SoftBusFrame* frame, void* userData)
+void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 //	if(!strcmp(topic, "chassis"))
 //	{

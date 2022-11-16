@@ -1,17 +1,19 @@
 #include "M2006.h"
 #include "softbus.h"
 
+Motor* M2006_Init(ConfItem* dict);
+
 void M2006_StartStatAngle(Motor *motor);
 void M2006_StatAngle(Motor* motor);
 void M2006_CtrlerCalc(Motor* motor, float reference);
-void M2006_ChangeCtrler(Motor* motor, Ctrler ctrler);
+void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode);
 
 void M2006_Update(M2006* m2006,uint8_t* data);
 void M2006_PIDInit(M2006* m2006, ConfItem* dict);
 
-void m2006DataCallback(const char* topic, SoftBusFrame* frame, void* userData)
+void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-	M2006* m2006 = (M2006*)userData;
+	M2006* m2006 = (M2006*)bindData;
 	if(!strcmp(topic, m2006->canInfo.canX[0]))
 	{
 		uint8_t* data = (uint8_t*)frame->data;
@@ -22,14 +24,15 @@ void m2006DataCallback(const char* topic, SoftBusFrame* frame, void* userData)
 	}
 }
 
-void M2006_Init(Motor* motor, ConfItem* dict)
+Motor* M2006_Init(ConfItem* dict)
 {
-	M2006* m2006 = (M2006*)motor;
+	M2006* m2006 = pvPortMalloc(sizeof(M2006));
+	memset(m2006,0,sizeof(M2006));
 	
-	motor->ctrlerCalc = M2006_CtrlerCalc;
-	motor->changeCtrler = M2006_ChangeCtrler;
-	motor->startStatAngle = M2006_StartStatAngle;
-	motor->statAngle = M2006_StatAngle;
+	m2006->motor.ctrlerCalc = M2006_CtrlerCalc;
+	m2006->motor.changeMode = M2006_ChangeMode;
+	m2006->motor.startStatAngle = M2006_StartStatAngle;
+	m2006->motor.statAngle = M2006_StatAngle;
 	
 	m2006->reductionRatio = 36;
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
@@ -44,9 +47,11 @@ void M2006_Init(Motor* motor, ConfItem* dict)
 	MOTOR_STRCAT_PORT(receive, "Receive");
 	m2006->canInfo.canX[0] = receive;
 	m2006->canInfo.canX[1] = send;
-	m2006->ctrler = torque;
+	m2006->mode = MOTOR_TORQUE_MODE;
 	M2006_PIDInit(m2006, dict);
-	SoftBus_Subscribe(m2006, m2006DataCallback, m2006->canInfo.canX[0]);
+	SoftBus_Subscribe(m2006, M2006_SoftBusCallback, m2006->canInfo.canX[0]);
+
+	return (Motor*)m2006;
 }
 
 void M2006_PIDInit(M2006* m2006, ConfItem* dict)
@@ -105,38 +110,40 @@ void M2006_CtrlerCalc(Motor* motor, float reference)
 {
 	M2006* m2006 = (M2006*)motor;
 	int16_t output;
-	if(m2006->ctrler == speed)
+	if(m2006->mode == MOTOR_SPEED_MODE)
 	{
 		PID_SingleCalc(&m2006->speedPID, reference*m2006->reductionRatio, m2006->speed);
 		output = m2006->speedPID.output;
 	}
-	else if(m2006->ctrler == angle)
+	else if(m2006->mode == MOTOR_ANGLE_MODE)
 	{
 		PID_CascadeCalc(&m2006->anglePID, reference, m2006->totalAngle, m2006->speed);
 		output = m2006->anglePID.output;
 	}
-	else if(m2006->ctrler == torque)
+	else if(m2006->mode == MOTOR_TORQUE_MODE)
 	{
 		output = (int16_t)reference;
 	}
-	SoftBus_PublishMap(m2006->canInfo.canX[1],{{"id", &m2006->canInfo.id[1], sizeof(uint32_t)},
-																						 {"bits", &m2006->canInfo.sendBits, sizeof(uint8_t)},
-																						 {"data", &output, sizeof(int16_t)}});
+	SoftBus_PublishMap(m2006->canInfo.canX[1],{
+		{"id", &m2006->canInfo.id[1], sizeof(uint32_t)},
+		{"bits", &m2006->canInfo.sendBits, sizeof(uint8_t)},
+		{"data", &output, sizeof(int16_t)}
+	});
 }
 
-void M2006_ChangeCtrler(Motor* motor, Ctrler ctrler)
+void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M2006* m2006 = (M2006*)motor;
-	if(m2006->ctrler == speed)
+	if(m2006->mode == MOTOR_SPEED_MODE)
 	{
 		PID_Clear(&m2006->speedPID);
 	}
-	else if(m2006->ctrler == angle)
+	else if(m2006->mode == MOTOR_ANGLE_MODE)
 	{
 		PID_Clear(&m2006->anglePID.inner);
 		PID_Clear(&m2006->anglePID.outer);
 	}
-	m2006->ctrler = ctrler;
+	m2006->mode = mode;
 }
 
 //更新电机数据(可能进行滤波)

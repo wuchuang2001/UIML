@@ -1,7 +1,11 @@
 #include "config.h"
 #include "sysConf.h"
 #include "cmsis_os.h"
-#include "chassisMcNamm.h"
+
+//声明服务模块回调函数
+#define SERVICE(service,callback,priority) extern void callback(void const *);
+SERVICE_LIST
+#undef SERVICE
 
 typedef enum
 {
@@ -44,7 +48,7 @@ void StartDefaultTask(void const * argument)
 {
 	#define SERVICE(service,callback,priority) \
 		osThreadDef(service, callback, priority, 0, 128); \
-		serviceTaskHandle[service] = osThreadCreate(osThread(service), conf);
+		serviceTaskHandle[service] = osThreadCreate(osThread(service), Conf_GetPtr(systemConfig,#service,void));
 	SERVICE_LIST
 	#undef SERVICE
 	vTaskDelete(NULL);

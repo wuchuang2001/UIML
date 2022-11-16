@@ -1,17 +1,19 @@
 #include "M3508.h"
 #include "softbus.h"
 
+Motor* M3508_Init(ConfItem* dict);
+
 void M3508_StartStatAngle(Motor *motor);
 void M3508_StatAngle(Motor* motor);
 void M3508_CtrlerCalc(Motor* motor, float reference);
-void M3508_ChangeCtrler(Motor* motor, Ctrler ctrler);
+void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode);
 
 void M3508_Update(M3508* m3508,uint8_t* data);
 void M3508_PIDInit(M3508* m3508, ConfItem* dict);
 
-void m3508DataCallback(const char* topic, SoftBusFrame* frame, void* userData)
+void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-	M3508* m3508 = (M3508*)userData;
+	M3508* m3508 = (M3508*)bindData;
 	if(!strcmp(topic, m3508->canInfo.canX[0]))
 	{
 		uint8_t* data = (uint8_t*)frame->data;
@@ -22,14 +24,15 @@ void m3508DataCallback(const char* topic, SoftBusFrame* frame, void* userData)
 	}
 }
 
-void M3508_Init(Motor* motor, ConfItem* dict)
+Motor* M3508_Init(ConfItem* dict)
 {
-	M3508* m3508 = (M3508*)motor;
+	M3508* m3508 = pvPortMalloc(sizeof(M3508));
+	memset(m3508,0,sizeof(M3508));
 	
-	motor->ctrlerCalc = M3508_CtrlerCalc;
-	motor->changeCtrler = M3508_ChangeCtrler;
-	motor->startStatAngle = M3508_StartStatAngle;
-	motor->statAngle = M3508_StatAngle;
+	m3508->motor.ctrlerCalc = M3508_CtrlerCalc;
+	m3508->motor.changeMode = M3508_ChangeMode;
+	m3508->motor.startStatAngle = M3508_StartStatAngle;
+	m3508->motor.statAngle = M3508_StatAngle;
 	
 	m3508->reductionRatio = 19;
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
@@ -44,9 +47,11 @@ void M3508_Init(Motor* motor, ConfItem* dict)
 	MOTOR_STRCAT_PORT(receive, "Receive");
 	m3508->canInfo.canX[0] = receive;
 	m3508->canInfo.canX[1] = send;
-	m3508->ctrler = torque;
+	m3508->mode = MOTOR_TORQUE_MODE;
 	M3508_PIDInit(m3508, dict);
-	SoftBus_Subscribe(m3508, m3508DataCallback, m3508->canInfo.canX[0]);
+	SoftBus_Subscribe(m3508, M3508_SoftBusCallback, m3508->canInfo.canX[0]);
+
+	return (Motor*)m3508;
 }
 
 void M3508_PIDInit(M3508* m3508, ConfItem* dict)
@@ -105,38 +110,40 @@ void M3508_CtrlerCalc(Motor* motor, float reference)
 {
 	M3508* m3508 = (M3508*)motor;
 	int16_t output;
-	if(m3508->ctrler == speed)
+	if(m3508->mode == MOTOR_SPEED_MODE)
 	{
 		PID_SingleCalc(&m3508->speedPID, reference*m3508->reductionRatio, m3508->speed);
 		output = m3508->speedPID.output;
 	}
-	else if(m3508->ctrler == angle)
+	else if(m3508->mode == MOTOR_ANGLE_MODE)
 	{
 		PID_CascadeCalc(&m3508->anglePID, reference, m3508->totalAngle, m3508->speed);
 		output = m3508->anglePID.output;
 	}
-	else if(m3508->ctrler == torque)
+	else if(m3508->mode == MOTOR_TORQUE_MODE)
 	{
 		output = (int16_t)reference;
 	}
-	SoftBus_PublishMap(m3508->canInfo.canX[1],{{"id", &m3508->canInfo.id[1], sizeof(uint32_t)},
-																						 {"bits", &m3508->canInfo.sendBits, sizeof(uint8_t)},
-																						 {"data", &output, sizeof(int16_t)}});
+	SoftBus_PublishMap(m3508->canInfo.canX[1],{
+		{"id", &m3508->canInfo.id[1], sizeof(uint32_t)},
+		{"bits", &m3508->canInfo.sendBits, sizeof(uint8_t)},
+		{"data", &output, sizeof(int16_t)}
+	});
 }
 
-void M3508_ChangeCtrler(Motor* motor, Ctrler ctrler)
+void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M3508* m3508 = (M3508*)motor;
-	if(m3508->ctrler == speed)
+	if(m3508->mode == MOTOR_SPEED_MODE)
 	{
 		PID_Clear(&m3508->speedPID);
 	}
-	else if(m3508->ctrler == angle)
+	else if(m3508->mode == MOTOR_ANGLE_MODE)
 	{
 		PID_Clear(&m3508->anglePID.inner);
 		PID_Clear(&m3508->anglePID.outer);
 	}
-	m3508->ctrler = ctrler;
+	m3508->mode = mode;
 }
 
 //更新电机数据(可能进行滤波)

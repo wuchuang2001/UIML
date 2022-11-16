@@ -23,7 +23,7 @@ typedef struct{
 }TopicNode;//topic节点
 
 typedef struct{
-    void* userData;
+    void* bindData;
     SoftBusCallback callback;
 }CallbackNode;//hash节点
 
@@ -38,7 +38,7 @@ int8_t SoftBus_Init()
     return Vector_Init(hashList,HashNode);
 }
 
-int8_t SoftBus_Subscribe(void* userData, SoftBusCallback callback, const char* topic)
+int8_t SoftBus_Subscribe(void* bindData, SoftBusCallback callback, const char* topic)
 {
 	if(!topic || !callback)
 		return -2;
@@ -56,28 +56,28 @@ int8_t SoftBus_Subscribe(void* userData, SoftBusCallback callback, const char* t
 			{
 				if(strcmp(topicCpy, topicNode->topic) == 0)//匹配到已有topic注册回调函数
 				{
-					return Vector_PushBack(topicNode->callbackNodes, ((CallbackNode){userData, callback}));
+					return Vector_PushBack(topicNode->callbackNodes, ((CallbackNode){bindData, callback}));
 				}
 			}
 			Vector callbackV = Vector_Create(CallbackNode);//未匹配到topic产生hash冲突，在该hash节点处添加一个topic节点解决hash冲突
-			Vector_PushBack(callbackV, ((CallbackNode){userData, callback}));
+			Vector_PushBack(callbackV, ((CallbackNode){bindData, callback}));
 			return Vector_PushBack(hashNode->topicNodes,((TopicNode){topicCpy, callbackV}));
 		}
 	}
 	Vector callbackV = Vector_Create(CallbackNode);//新的hash节点
-	Vector_PushBack(callbackV, ((CallbackNode){userData, callback}));
+	Vector_PushBack(callbackV, ((CallbackNode){bindData, callback}));
 	Vector topicV = Vector_Create(TopicNode);
 	Vector_PushBack(topicV, ((TopicNode){topicCpy, callbackV}));
 	return Vector_PushBack(hashList, ((HashNode){hash, topicV}));
 }
 
-int8_t _SoftBus_MultiSubscribe(void* userData, SoftBusCallback callback, uint16_t topicsNum, char** topics)
+int8_t _SoftBus_MultiSubscribe(void* bindData, SoftBusCallback callback, uint16_t topicsNum, char** topics)
 {
 	if(!topics || !topicsNum || !callback)
 		return -2;
 	for (uint16_t i = 0; i < topicsNum; i++)
 	{
-		uint8_t retval = SoftBus_Subscribe(userData, callback, topics[i]); //逐个订阅话题
+		uint8_t retval = SoftBus_Subscribe(bindData, callback, topics[i]); //逐个订阅话题
 		if(retval)
 			return retval;
 	}
@@ -118,7 +118,7 @@ void _SoftBus_Publish(const char* topic, SoftBusFrame* frame)
 				{
 					Vector_ForEach(topicNode->callbackNodes, callbackNode, CallbackNode)
 					{
-						(*(callbackNode->callback))(topic, frame, callbackNode->userData);
+						(*(callbackNode->callback))(topic, frame, callbackNode->bindData);
 					}
 					break;
 				}

@@ -19,7 +19,7 @@ typedef struct _M2006
 		char* canX[2];
 		uint8_t sendBits;
 	}canInfo;
-	Ctrler ctrler;
+	MotorCtrlMode mode;
 	
 	int16_t angle,speed;
 	
@@ -31,7 +31,5 @@ typedef struct _M2006
 	CascadePID anglePID;//½Ç¶Èpid£¬´®¼¶
 	
 }M2006;
-
-void M2006_Init(Motor* motor, ConfItem* dict);
 
 #endif

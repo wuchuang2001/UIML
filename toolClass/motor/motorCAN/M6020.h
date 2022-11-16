@@ -19,7 +19,7 @@ typedef struct _M6020
 		char* canX[2];
 		uint8_t sendBits;
 	}canInfo;
-	Ctrler ctrler;
+	MotorCtrlMode mode;
 	
 	int16_t angle,speed;
 	
@@ -31,7 +31,5 @@ typedef struct _M6020
 	CascadePID anglePID;//½Ç¶Èpid£¬´®¼¶
 	
 }M6020;
-
-void M6020_Init(Motor* motor, ConfItem* dict);
 
 #endif

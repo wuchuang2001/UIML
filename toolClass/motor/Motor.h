@@ -14,20 +14,20 @@
 
 typedef enum
 {
-	torque,
-	speed,
-	angle
-}Ctrler;
+	MOTOR_TORQUE_MODE,
+	MOTOR_SPEED_MODE,
+	MOTOR_ANGLE_MODE
+}MotorCtrlMode;
 
 typedef struct _Motor
 {
-	void (*changeCtrler)(struct _Motor* motor, Ctrler ctrlerType);
+	void (*changeMode)(struct _Motor* motor, MotorCtrlMode mode);
 	void (*ctrlerCalc)(struct _Motor* motor,float reference);
 	
 	void (*startStatAngle)(struct _Motor* motor);
 	void (*statAngle)(struct _Motor* motor);
 }Motor;
 
-void Motor_Init(Motor* motor, ConfItem* dict);
+Motor* Motor_Init(ConfItem* dict);
 
 #endif

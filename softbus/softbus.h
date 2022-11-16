@@ -15,10 +15,10 @@ typedef struct{
 	uint16_t length;
 }SoftBusItem;//数据字段
 
-typedef void (*SoftBusCallback)(const char* topic, SoftBusFrame* frame, void* userData);//回调函数指针
+typedef void (*SoftBusCallback)(const char* topic, SoftBusFrame* frame, void* bindData);//回调函数指针
 
 //操作函数声明(不直接调用，应使用下方define定义的接口)
-int8_t _SoftBus_MultiSubscribe(void* userData, SoftBusCallback callback, uint16_t topicsNum, char** topics);
+int8_t _SoftBus_MultiSubscribe(void* bindData, SoftBusCallback callback, uint16_t topicsNum, char** topics);
 void _SoftBus_Publish(const char* topic, SoftBusFrame* frame);
 void _SoftBus_PublishMap(const char* topic, uint16_t itemNum, SoftBusItem* items);
 
@@ -29,7 +29,7 @@ void _SoftBus_PublishMap(const char* topic, uint16_t itemNum, SoftBusItem* items
 	@retval 0:成功 -1:堆空间不足 -2:参数为空
 	@note 回调函数的形式应为void callback(const char* topic, SoftBusFrame* frame)
 */
-int8_t SoftBus_Subscribe(void* userData, SoftBusCallback callback, const char* topic);
+int8_t SoftBus_Subscribe(void* bindData, SoftBusCallback callback, const char* topic);
 
 /*
 	@brief 订阅软总线上的多个话题
