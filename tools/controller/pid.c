@@ -1,6 +1,6 @@
 /****************PID运算****************/
 
-#include "PID.h"
+#include "pid.h"
 
 //初始化pid参数
 void PID_Init(PID *pid,float p,float i,float d,float maxI,float maxOut)

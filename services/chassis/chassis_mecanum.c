@@ -2,7 +2,7 @@
 #include "slope.h"
 #include "config.h"
 #include "softbus.h"
-#include "Motor.h"
+#include "motor.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
 

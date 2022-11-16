@@ -1,4 +1,4 @@
-#include "Motor.h"
+#include "motor.h"
 
 //子类列表，每一项格式为(类型名,初始化函数名)
 #define MOTOR_CHILD_LIST \

@@ -1,5 +1,5 @@
 #include "config.h"
-#include "sysConf.h"
+#include "sys_conf.h"
 #include "cmsis_os.h"
 
 //声明服务模块回调函数
