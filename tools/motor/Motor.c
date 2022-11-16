@@ -7,7 +7,7 @@
 	MOTOR_TYPE("M6020",M6020_Init)
 
 //内部函数声明
-void Motor_CtrlerCalc(Motor* motor, float reference);
+void Motor_SetTarget(Motor* motor, float targetValue);
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode ctrlerType);
 void Motor_StartStatAngle(Motor* motor);
 void Motor_StatAngle(Motor* motor);
@@ -40,15 +40,15 @@ void Motor_InitDefault(Motor* motor)
 {
 	if(!motor->changeMode)
 		motor->changeMode = Motor_ChangeCtrler;
-	if(!motor->ctrlerCalc)
-		motor->ctrlerCalc = Motor_CtrlerCalc;
+	if(!motor->setTarget)
+		motor->setTarget = Motor_SetTarget;
 	if(!motor->startStatAngle)
 		motor->startStatAngle = Motor_StartStatAngle;
 	if(!motor->statAngle)
 		motor->statAngle = Motor_StatAngle;
 }
 
-void Motor_CtrlerCalc(Motor* motor, float reference) { }
+void Motor_SetTarget(Motor* motor, float targetValue) { }
 
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode mode) { }
 

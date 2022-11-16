@@ -1,14 +1,14 @@
-#ifndef _M2006_H_
-#define _M2006_H_
+#ifndef _M3508_H_
+#define _M3508_H_
 #include "Motor.h"
 #include "PID.h"
 #include "config.h"
 
-//各种电机编码值与角度的换算	
-#define M2006_DGR2CODE(dgr) ((int32_t)(dgr*819.1f)) //36*8191/360
-#define M2006_CODE2DGR(code) ((float)(code/819.1f))
+//各种电机编码值与角度的换算
+#define M3508_DGR2CODE(dgr) ((int32_t)(dgr*436.9263f)) //3591/187*8191/360
+#define M3508_CODE2DGR(code) ((float)(code/436.9263f))
 
-typedef struct _M2006
+typedef struct _M3508
 {
 	Motor motor;
 	
@@ -27,9 +27,11 @@ typedef struct _M2006
 	
 	int32_t totalAngle;//累计转过的编码器值
 	
+	float  targetValue;//目标值(速度/角度(编码器值))
+	
 	PID speedPID;//速度pid(单级)
 	CascadePID anglePID;//角度pid，串级
 	
-}M2006;
+}M3508;
 
 #endif

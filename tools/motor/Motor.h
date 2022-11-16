@@ -22,7 +22,7 @@ typedef enum
 typedef struct _Motor
 {
 	void (*changeMode)(struct _Motor* motor, MotorCtrlMode mode);
-	void (*ctrlerCalc)(struct _Motor* motor,float reference);
+	void (*setTarget)(struct _Motor* motor,float targetValue);
 	
 	void (*startStatAngle)(struct _Motor* motor);
 	void (*statAngle)(struct _Motor* motor);

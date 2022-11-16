@@ -1,4 +1,4 @@
-#include "chassisMecanum.h"
+#include "chassis_mecanum.h"
 #include "slope.h"
 #include "config.h"
 #include "softbus.h"
@@ -113,7 +113,7 @@ void Chassis_TaskCallback(void const * argument)
 		
 		for(uint8_t i = 0; i<4; i++)
 		{
-			chassis.motors[i]->ctrlerCalc(chassis.motors[i], wheelRPM[i]);
+			chassis.motors[i]->setTarget(chassis.motors[i], wheelRPM[i]);
 		}
 		
 		osDelayUntil(&tick,chassis.taskInterval);

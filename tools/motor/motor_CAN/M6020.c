@@ -5,11 +5,12 @@ Motor* M6020_Init(ConfItem* dict);
 
 void M6020_StartStatAngle(Motor *motor);
 void M6020_StatAngle(Motor* motor);
-void M6020_CtrlerCalc(Motor* motor, float reference);
+void M6020_SetTarget(Motor* motor, float targetValue);
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode);
 
 void M6020_Update(M6020* m6020,uint8_t* data);
 void M6020_PIDInit(M6020* m6020, ConfItem* dict);
+void M6020_CtrlerCalc(M6020* m6020, float reference);
 
 void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
@@ -24,12 +25,19 @@ void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 	}
 }
 
+void M6020_TimerCallback(void const *argument)
+{
+	M6020* m6020 = pvTimerGetTimerID((TimerHandle_t)argument); 
+	M6020_CtrlerCalc(m6020, m6020->targetValue);
+}
+
+
 Motor* M6020_Init(ConfItem* dict)
 {
-	M6020* m6020 = pvPortMalloc(sizeof(M6020));
+	M6020* m6020 = MOTOR_MALLOC_PORT(sizeof(M6020));
 	memset(m6020,0,sizeof(M6020));
 	
-	m6020->motor.ctrlerCalc = M6020_CtrlerCalc;
+	m6020->motor.setTarget = M6020_SetTarget;
 	m6020->motor.changeMode = M6020_ChangeMode;
 	m6020->motor.startStatAngle = M6020_StartStatAngle;
 	m6020->motor.statAngle = M6020_StatAngle;
@@ -106,9 +114,8 @@ void M6020_StatAngle(Motor* motor)
 	m6020->lastAngle=m6020->angle;
 }
 
-void M6020_CtrlerCalc(Motor* motor, float reference)
+void M6020_CtrlerCalc(M6020* m6020, float reference)
 {
-	M6020* m6020 = (M6020*)motor;
 	int16_t output;
 	if(m6020->mode == MOTOR_SPEED_MODE)
 	{
@@ -129,6 +136,19 @@ void M6020_CtrlerCalc(Motor* motor, float reference)
 		{"bits", &m6020->canInfo.sendBits, sizeof(uint8_t)},
 		{"data", &output, sizeof(int16_t)}
 	});
+}
+
+void M6020_SetTarget(Motor* motor, float targetValue)
+{
+	M6020* m6020 = (M6020*)motor;
+	if(m6020->mode == MOTOR_ANGLE_MODE)
+	{
+		m6020->targetValue = M6020_DGR2CODE(targetValue);
+	}
+	else 
+	{
+		m6020->targetValue = targetValue;
+	}
 }
 
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode)
