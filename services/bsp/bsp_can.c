@@ -4,110 +4,186 @@
 
 #include "can.h"
 
-#define BSP_MALLOC_PORT(len) pvPortMalloc(len)
-#define BSP_FREE_PORT(ptr) vPortFree(ptr)
-
-typedef struct
-{
+//CAN句柄信息
+typedef struct {
 	CAN_HandleTypeDef* hcan;
-	char* name;
-	uint8_t isSlave;
-	uint8_t** txBuffer;
-	uint8_t txIdNum;
+	uint8_t number; //canX中的X
 }CANInfo;
 
-typedef struct
-{
-	CANInfo* canInfo;
-	uint8_t canNUm;
-	uint8_t taskInterval;
-}CAN;
+//循环发送缓冲区
+typedef struct {
+	CANInfo* canInfo; //指向所绑定的CANInfo
+	uint16_t frameID;
+	uint8_t* data;
+}CANRepeatBuffer;
 
+//本CAN服务数据
+typedef struct {
+	CANInfo* canList;
+	uint8_t canNum;
+	CANRepeatBuffer* repeatBuffers;
+	uint8_t bufferNum;
+	uint8_t initFinished;
+}CANService;
+
+CANService canService = {0};
+
+void BSP_CAN_InitInfo(CANInfo* info, ConfItem* dict);
+void BSP_CAN_InitHardware(CANInfo* info);
+void BSP_CAN_InitRepeatBuffer(CANRepeatBuffer* buffer, ConfItem* dict);
 void BSP_CAN_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
-uint8_t BSP_CAN_SendData(CAN_HandleTypeDef* hcan,uint32_t StdId,uint8_t data[8]);
-
-CAN can = {0};
+uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t StdId,uint8_t* data);
 
 //can接收结束中断
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
+	if(!canService.initFinished)
+		return;
+
 	CAN_RxHeaderTypeDef header;
-  uint8_t rx_data[10];
+	uint8_t rx_data[8];
 	
-	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &header, rx_data+2);
-	*(uint16_t*)rx_data = header.StdId;
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &header, rx_data);
 	
-	for(uint8_t i = 0; i < can.canNUm; i++)
+	for(uint8_t i = 0; i < canService.canNum; i++)
 	{
-		if(hcan->Instance == can.canInfo[i].hcan->Instance)
+		CANInfo* canInfo = &canService.canList[i];
+		if(hcan == canInfo->hcan)
 		{
-			SoftBus_PublishMap("canReceive",{
-				{can.canInfo[i].name, rx_data, 10}
+			uint16_t frameID = header.StdId;
+			SoftBus_PublishMap("/can/recv",{
+				{"can-x", &canInfo->number, sizeof(uint8_t)},
+				{"id", &frameID, sizeof(uint16_t)},
+				{"data", rx_data, 8}
 			});
 		}
 	}
 }
 
-//can初始化，在while(1)前调用
-void BSP_CAN_Init(ConfItem* dict)
+//系统定时器回调
+void BSP_CAN_TimerCallback(void const *argument)
 {
-	can.taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
-	uint8_t num = Conf_GetValue(dict, "canNum", uint8_t, 0);
-	can.canInfo = (CANInfo*)BSP_MALLOC_PORT(num*sizeof(CANInfo));
-	for(uint8_t i = 0; i < num; ++i)
-	{
-		can.canInfo[i].hcan = Conf_GetPtr(dict, "hcan", CAN_HandleTypeDef*)[i];
-		can.canInfo[i].name = Conf_GetPtr(dict, "name", char*)[i];
-		can.canInfo[i].isSlave = Conf_GetPtr(dict, "isSlave", uint8_t)[i];
-		can.canInfo[i].txIdNum = Conf_GetPtr(dict, "txIdNum", uint8_t)[i];
-		can.canInfo[i].txBuffer = (uint8_t**)BSP_MALLOC_PORT(can.canInfo[i].txIdNum*sizeof(uint8_t*));
-		for(uint8_t j = 0; j < can.canInfo[i].txIdNum; ++j)
-		{
-			can.canInfo[i].txBuffer[j] = (uint8_t*)BSP_MALLOC_PORT(10*sizeof(uint8_t));
-			*(uint16_t*)can.canInfo[i].txBuffer[j] = Conf_GetPtr(dict, "txId", uint16_t)[j];
-			memset(can.canInfo[i].txBuffer[j]+2,0,8);
-		}
-		
-		//CAN过滤器初始化
-		CAN_FilterTypeDef canFilter = {0};
-		canFilter.FilterActivation = ENABLE;
-		canFilter.FilterMode = CAN_FILTERMODE_IDMASK;
-		canFilter.FilterScale = CAN_FILTERSCALE_32BIT;
-		canFilter.FilterIdHigh = 0x0000;
-		canFilter.FilterIdLow = 0x0000;
-		canFilter.FilterMaskIdHigh = 0x0000;
-		canFilter.FilterMaskIdLow = 0x0000;
-		canFilter.FilterFIFOAssignment = CAN_RX_FIFO0;
-		if(can.canInfo[i].isSlave)
-		{
-			canFilter.SlaveStartFilterBank=14;
-			canFilter.FilterBank = 14;
-		}
-		else
-		{
-			canFilter.FilterBank = 0;
-		}
-		HAL_CAN_ConfigFilter(can.canInfo[i].hcan, &canFilter);
-		//开启CAN
-		HAL_CAN_Start(can.canInfo[i].hcan);
-		HAL_CAN_ActivateNotification(can.canInfo[i].hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-	}
-	can.canNUm = num;//放最后，确保初始化结束后can中断才能读数据
-	SoftBus_Subscribe(NULL, BSP_CAN_SoftBusCallback, "canSend");
+	if(!canService.initFinished)
+		return;
+	CANRepeatBuffer* buffer = pvTimerGetTimerID((TimerHandle_t)argument); 
+	BSP_CAN_SendFrame(buffer->canInfo->hcan, buffer->frameID, buffer->data);
 }
 
-//CAN发送数据
-uint8_t BSP_CAN_SendData(CAN_HandleTypeDef* hcan,uint32_t StdId,uint8_t data[8])
+//初始化CAN信息
+void BSP_CAN_InitInfo(CANInfo* info, ConfItem* dict)
+{
+	info->hcan = Conf_GetPtr(dict, "hcan", CAN_HandleTypeDef);
+	info->number = Conf_GetValue(dict, "can-x", uint8_t, 0);
+}
+
+//初始化硬件参数
+void BSP_CAN_InitHardware(CANInfo* info)
+{
+	//CAN过滤器初始化
+	CAN_FilterTypeDef canFilter = {0};
+	canFilter.FilterActivation = ENABLE;
+	canFilter.FilterMode = CAN_FILTERMODE_IDMASK;
+	canFilter.FilterScale = CAN_FILTERSCALE_32BIT;
+	canFilter.FilterIdHigh = 0x0000;
+	canFilter.FilterIdLow = 0x0000;
+	canFilter.FilterMaskIdHigh = 0x0000;
+	canFilter.FilterMaskIdLow = 0x0000;
+	canFilter.FilterFIFOAssignment = CAN_RX_FIFO0;
+	if(info->number != 1)
+	{
+		canFilter.SlaveStartFilterBank=14;
+		canFilter.FilterBank = 14;
+	}
+	else
+	{
+		canFilter.FilterBank = 0;
+	}
+	HAL_CAN_ConfigFilter(info->hcan, &canFilter);
+	//开启CAN
+	HAL_CAN_Start(info->hcan);
+	HAL_CAN_ActivateNotification(info->hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
+
+//初始化循环发送缓冲区
+void BSP_CAN_InitRepeatBuffer(CANRepeatBuffer* buffer, ConfItem* dict)
+{
+	uint8_t canX = Conf_GetValue(dict, "can-x", uint8_t, 0);
+	for(uint8_t i = 0; i < canService.canNum; ++i)
+		if(canService.canList[i].number == canX)
+			buffer->canInfo = &canService.canList[i];
+
+	buffer->frameID = Conf_GetValue(dict, "id", uint16_t, 0x00);
+	buffer->data = pvPortMalloc(8);
+
+	uint16_t sendInterval = Conf_GetValue(dict, "interval", uint16_t, 100);
+	osTimerDef(CAN, BSP_CAN_TimerCallback);
+	osTimerStart(osTimerCreate(osTimer(CAN), osTimerPeriodic, buffer), sendInterval);
+}
+
+void BSP_CAN_Init(ConfItem* dict)
+{
+	//计算用户配置的can数量
+	canService.canNum = 0;
+	for(uint8_t num = 0; ; num++)
+	{
+		char confName[] = "cans/_";
+		confName[5] = num + '0';
+		if(Conf_ItemExist(dict, confName))
+			canService.canNum++;
+		else
+			break;
+	}
+	//初始化各can信息
+	canService.canList = pvPortMalloc(canService.canNum * sizeof(CANInfo));
+	for(uint8_t num = 0; num < canService.canNum; num++)
+	{
+		char confName[] = "cans/_";
+		confName[5] = num + '0';
+		BSP_CAN_InitInfo(&canService.canList[num], Conf_GetPtr(dict, confName, ConfItem));
+	}
+	//初始化CAN硬件参数
+	for(uint8_t num = 0; num < canService.canNum; num++)
+	{
+		BSP_CAN_InitHardware(&canService.canList[num]);
+	}
+	//计算用户配置的循环发送缓冲区数量
+	canService.bufferNum = 0;
+	for(uint8_t num = 0; ; num++)
+	{
+		char confName[] = "repeat-buffers/_";
+		confName[15] = num + '0';
+		if(Conf_ItemExist(dict, confName))
+			canService.bufferNum++;
+		else
+			break;
+	}
+	//初始化各循环缓冲区
+	canService.repeatBuffers = pvPortMalloc(canService.bufferNum * sizeof(CANRepeatBuffer));
+	for(uint8_t num = 0; num < canService.bufferNum; num++)
+	{
+		char confName[] = "repeat-buffers/_";
+		confName[15] = num + '0';
+		BSP_CAN_InitRepeatBuffer(&canService.repeatBuffers[num], Conf_GetPtr(dict, confName, ConfItem));
+	}
+
+	SoftBus_Subscribe(NULL, BSP_CAN_SoftBusCallback, "/can/set-buf");
+	SoftBus_Subscribe(NULL, BSP_CAN_SoftBusCallback, "/can/send-once");
+
+	canService.initFinished = 1;
+}
+
+//CAN发送数据帧
+uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t StdId,uint8_t data[8])
 {
 	CAN_TxHeaderTypeDef tx_header;
-	
+
 	tx_header.StdId = StdId;
-  tx_header.IDE   = CAN_ID_STD;
-  tx_header.RTR   = CAN_RTR_DATA;
-  tx_header.DLC   = 8;
+	tx_header.IDE   = CAN_ID_STD;
+	tx_header.RTR   = CAN_RTR_DATA;
+	tx_header.DLC   = 8;
 	
 	uint8_t retVal=HAL_CAN_AddTxMessage(hcan, &tx_header, data, (uint32_t*)CAN_TX_MAILBOX0);
-	
+
 	return retVal;
 }
 
@@ -115,72 +191,72 @@ uint8_t BSP_CAN_SendData(CAN_HandleTypeDef* hcan,uint32_t StdId,uint8_t data[8])
 void BSP_CAN_TaskCallback(void const * argument)
 {
 	BSP_CAN_Init((ConfItem*)argument);
-	TickType_t tick = xTaskGetTickCount();
-	while(1)
-	{
-		for(uint8_t i = 0; i < can.canNUm; ++i)
-		{
-			for(uint8_t j = 0; j < can.canInfo[i].txIdNum; ++j)
-			{
-				BSP_CAN_SendData(can.canInfo[i].hcan, *(uint16_t*)can.canInfo[i].txBuffer[j], can.canInfo[i].txBuffer[j]+2);
-			}
-		}
-		osDelayUntil(&tick,can.taskInterval);
-	}
+	vTaskDelete(NULL);
 }
 
+//软总线回调
 void BSP_CAN_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-//	if(!strcmp(topic, "canSend"))
-//	{
-		const SoftBusItem* item = SoftBus_GetItem(frame, "canX");
-		if(item)
-		{
-			char* canName = (char*)item->data;
-			for(uint8_t i = 0; i < can.canNUm; ++i)
-			{
-				if(!strcmp(can.canInfo[i].name, canName))
-				{
-					item = SoftBus_GetItem(frame, "id");
-					if(item)
-					{
-						uint16_t canId = *(uint16_t*)item->data;
-						for(uint8_t j = 0; j < can.canInfo[i].txIdNum; ++j)
-						{
-							if(canId == *(uint16_t*)can.canInfo[i].txBuffer[j])
-							{
-								item = SoftBus_GetItem(frame, "bits");
-								if(item)
-								{
-									uint8_t setBits = *(uint8_t*)item->data;
-									item = SoftBus_GetItem(frame, "data");
-									if(item)
-									{
-										uint8_t* datas = (uint8_t*)item->data;
-										uint8_t num = 0;
-										for(uint8_t k = 0; k < 8; ++k)
-										{
-											if(setBits & 1)
-											{
-												can.canInfo[i].txBuffer[j][2+k] = datas[num];
-												++num;
-											}
-											else if(!setBits)
-											{
-												break;
-											}
-											setBits >>= 1;
-										}
-									}
-								}
-							}
-							break;
-						}
-					}
-				}
-				break;
-			}
-		}
+	if(!strcmp(topic, "/can/set-buf"))
+	{
+		const SoftBusItem* item = NULL;
+
+		item = SoftBus_GetItem(frame, "can-x");
+		if(!item)
+			return;
+		uint8_t canX = *(uint8_t*)item->data;
+
+		item = SoftBus_GetItem(frame, "id");
+		if(!item)
+			return;
+		uint16_t frameID = *(uint16_t*)item->data;
+
+		item = SoftBus_GetItem(frame, "pos");
+		if(!item)
+			return;
+		uint8_t startIndex = *(uint8_t*)item->data;
+
+		item = SoftBus_GetItem(frame, "len");
+		if(!item)
+			return;
+		uint8_t length = *(uint8_t*)item->data;
+
+		item = SoftBus_GetItem(frame, "data");
+		if(!item)
+			return;
+		uint8_t* data = item->data;
 		
-//	}
+		for(uint8_t i = 0; i < canService.bufferNum; i++)
+		{
+			CANRepeatBuffer* buffer = &canService.repeatBuffers[i];
+			if(buffer->canInfo->number == canX && buffer->frameID == frameID)
+				memcpy(buffer->data + startIndex, data, length);
+		}
+	}
+	else if(!strcmp(topic, "/can/send-once"))
+	{
+		const SoftBusItem* item = NULL;
+
+		item = SoftBus_GetItem(frame, "can-x");
+		if(!item)
+			return;
+		uint8_t canX = *(uint8_t*)item->data;
+
+		item = SoftBus_GetItem(frame, "id");
+		if(!item)
+			return;
+		uint16_t frameID = *(uint16_t*)item->data;
+
+		item = SoftBus_GetItem(frame, "data");
+		if(!item)
+			return;
+		uint8_t* data = item->data;
+
+		for(uint8_t i = 0; i < canService.canNum; i++)
+		{
+			CANInfo* info = &canService.canList[i];
+			if(info->number == canX);
+				BSP_CAN_SendFrame(info->hcan, frameID, data);
+		}
+	}
 }

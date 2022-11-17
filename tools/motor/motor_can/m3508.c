@@ -14,9 +14,9 @@ typedef struct _M3508
 	float reductionRatio;
 	struct
 	{
-		uint16_t id[2];
-		char* canX;
-		uint8_t sendBits;
+		uint16_t sendID,recvID;
+		uint8_t canX;
+		uint8_t bufIndex;
 	}canInfo;
 	MotorCtrlMode mode;
 	
@@ -47,15 +47,20 @@ void M3508_CtrlerCalc(M3508* m3508, float reference);
 void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	M3508* m3508 = (M3508*)bindData;
-	const SoftBusItem* item = SoftBus_GetItem(frame, m3508->canInfo.canX);
+
+	const SoftBusItem* item = NULL;
+
+	item = SoftBus_GetItem(frame, "can-x");
+	if(!item || *(uint8_t*)item->data != m3508->canInfo.canX)
+		return;
+
+	item = SoftBus_GetItem(frame, "id");
+	if(!item || *(uint16_t*)item->data != m3508->canInfo.recvID)
+		return;
+		
+	item = SoftBus_GetItem(frame, "data");
 	if(item)
-	{
-		uint8_t* data = (uint8_t*)item->data;
-		if(m3508->canInfo.id[0] == *(uint16_t*)data)
-		{
-			M3508_Update(m3508, data+2);
-		}
-	}
+		M3508_Update(m3508, item->data);
 }
 
 void M3508_TimerCallback(void const *argument)
@@ -77,15 +82,14 @@ Motor* M3508_Init(ConfItem* dict)
 	m3508->reductionRatio = 19;
 	
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
-	m3508->canInfo.id[0] = id+0x200;
-	m3508->canInfo.id[1] = (m3508->canInfo.id[0]<0x205)?0x200:0x1FF;
-	id = (id-1)%4;
-	m3508->canInfo.sendBits =  1<<(2*id-2) | 1<<(2*id-1);
-	m3508->canInfo.canX = Conf_GetPtr(dict, "canX", char);
+	m3508->canInfo.recvID = id + 0x200;
+	m3508->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
+	m3508->canInfo.bufIndex =  (id - 1) * 2;
+	m3508->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
 	
 	m3508->mode = MOTOR_TORQUE_MODE;
 	M3508_PIDInit(m3508, dict);
-	SoftBus_Subscribe(m3508, M3508_SoftBusCallback, "canReceive");
+	SoftBus_Subscribe(m3508, M3508_SoftBusCallback, "/can/recv");
 
 	return (Motor*)m3508;
 }
@@ -142,10 +146,11 @@ void M3508_CtrlerCalc(M3508* m3508, float reference)
 	{
 		output = (int16_t)reference;
 	}
-	SoftBus_PublishMap("canSend",{
-		{"canX", m3508->canInfo.canX, 5},
-		{"id", &m3508->canInfo.id[1], sizeof(uint32_t)},
-		{"bits", &m3508->canInfo.sendBits, sizeof(uint8_t)},
+	SoftBus_PublishMap("/can/set-buf",{
+		{"can-x", &m3508->canInfo.canX, sizeof(uint8_t)},
+		{"id", &m3508->canInfo.sendID, sizeof(uint16_t)},
+		{"pos", &m3508->canInfo.bufIndex, sizeof(uint8_t)},
+		{"len", &(uint8_t){2}, sizeof(uint8_t)},
 		{"data", &output, sizeof(int16_t)}
 	});
 }

@@ -19,6 +19,9 @@ osThreadId serviceTaskHandle[serviceNum];
 
 void* _Conf_GetValue(ConfItem* dict, const char* name)
 {
+	if(!dict)
+		return NULL;
+
 	char *sep=NULL;
 
 	do{

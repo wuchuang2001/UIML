@@ -14,9 +14,9 @@ typedef struct _M2006
 	float reductionRatio;
 	struct
 	{
-		uint16_t id[2];
-		char* canX;
-		uint8_t sendBits;
+		uint16_t sendID,recvID;
+		uint8_t canX;
+		uint8_t bufIndex;
 	}canInfo;
 	MotorCtrlMode mode;
 	
@@ -47,15 +47,20 @@ void M2006_CtrlerCalc(M2006* m2006, float reference);
 void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	M2006* m2006 = (M2006*)bindData;
-	const SoftBusItem* item = SoftBus_GetItem(frame, m2006->canInfo.canX);
+
+	const SoftBusItem* item = NULL;
+
+	item = SoftBus_GetItem(frame, "can-x");
+	if(!item || *(uint8_t*)item->data != m2006->canInfo.canX)
+		return;
+
+	item = SoftBus_GetItem(frame, "id");
+	if(!item || *(uint16_t*)item->data != m2006->canInfo.recvID)
+		return;
+		
+	item = SoftBus_GetItem(frame, "data");
 	if(item)
-	{
-		uint8_t* data = (uint8_t*)item->data;
-		if(m2006->canInfo.id[0] == *(uint16_t*)data)
-		{
-			M2006_Update(m2006, data+2);
-		}
-	}
+		M2006_Update(m2006, item->data);
 }
 
 void M2006_TimerCallback(void const *argument)
@@ -77,15 +82,14 @@ Motor* M2006_Init(ConfItem* dict)
 	m2006->reductionRatio = 36;
 	
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
-	m2006->canInfo.id[0] = id+0x200;
-	m2006->canInfo.id[1] = (m2006->canInfo.id[0]<0x205)?0x200:0x1FF;
-	id = (id-1)%4;
-	m2006->canInfo.sendBits =  1<<(2*id-2) | 1<<(2*id-1);
-	m2006->canInfo.canX = Conf_GetPtr(dict, "canX", char);
+	m2006->canInfo.recvID = id + 0x200;
+	m2006->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
+	m2006->canInfo.bufIndex =  (id - 1) * 2;
+	m2006->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
 	
 	m2006->mode = MOTOR_TORQUE_MODE;
 	M2006_PIDInit(m2006, dict);
-	SoftBus_Subscribe(m2006, M2006_SoftBusCallback, "canReceive");
+	SoftBus_Subscribe(m2006, M2006_SoftBusCallback, "/can/recv");
 	
 	osTimerDef(M2006, M2006_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);
@@ -145,10 +149,11 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 	{
 		output = (int16_t)reference;
 	}
-	SoftBus_PublishMap("canSend",{
-		{"canX", m2006->canInfo.canX, 5},
-		{"id", &m2006->canInfo.id[1], sizeof(uint32_t)},
-		{"bits", &m2006->canInfo.sendBits, sizeof(uint8_t)},
+	SoftBus_PublishMap("/can/set-buf",{
+		{"can-x", &m2006->canInfo.canX, sizeof(uint8_t)},
+		{"id", &m2006->canInfo.sendID, sizeof(uint16_t)},
+		{"pos", &m2006->canInfo.bufIndex, sizeof(uint8_t)},
+		{"len", &(uint8_t){2}, sizeof(uint8_t)},
 		{"data", &output, sizeof(int16_t)}
 	});
 }

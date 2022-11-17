@@ -14,9 +14,9 @@ typedef struct _M6020
 	float reductionRatio;
 	struct
 	{
-		uint16_t id[2];
-		char* canX;
-		uint8_t sendBits;
+		uint16_t sendID,recvID;
+		uint8_t canX;
+		uint8_t bufIndex;
 	}canInfo;
 	MotorCtrlMode mode;
 	
@@ -47,15 +47,19 @@ void M6020_CtrlerCalc(M6020* m6020, float reference);
 void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	M6020* m6020 = (M6020*)bindData;
-	const SoftBusItem* item = SoftBus_GetItem(frame, m6020->canInfo.canX);
+	const SoftBusItem* item = NULL;
+
+	item = SoftBus_GetItem(frame, "can-x");
+	if(!item || *(uint8_t*)item->data != m6020->canInfo.canX)
+		return;
+
+	item = SoftBus_GetItem(frame, "id");
+	if(!item || *(uint16_t*)item->data != m6020->canInfo.recvID)
+		return;
+		
+	item = SoftBus_GetItem(frame, "data");
 	if(item)
-	{
-		uint8_t* data = (uint8_t*)item->data;
-		if(m6020->canInfo.id[0] == *(uint16_t*)data)
-		{
-			M6020_Update(m6020, data+2);
-		}
-	}
+		M6020_Update(m6020, item->data);
 }
 
 void M6020_TimerCallback(void const *argument)
@@ -78,15 +82,14 @@ Motor* M6020_Init(ConfItem* dict)
 	m6020->reductionRatio = 1;
 	
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
-	m6020->canInfo.id[0] = id+0x200;
-	m6020->canInfo.id[1] = (m6020->canInfo.id[0]<0x205)?0x1FF:0x2FF;
-	id = (id-1)%4;
-	m6020->canInfo.sendBits =  1<<(2*id-2) | 1<<(2*id-1);
-	m6020->canInfo.canX = Conf_GetPtr(dict, "canX", char);
+	m6020->canInfo.recvID = id + 0x200;
+	m6020->canInfo.sendID = (id <= 4) ? 0x1FF : 0x2FF;
+	m6020->canInfo.bufIndex =  (id - 1) * 2;
+	m6020->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
 	
 	m6020->mode = MOTOR_TORQUE_MODE;
 	M6020_PIDInit(m6020, dict);
-	SoftBus_Subscribe(m6020, M6020_SoftBusCallback, "canReceive");
+	SoftBus_Subscribe(m6020, M6020_SoftBusCallback, "/can/recv");
 
 	return (Motor*)m6020;
 }
@@ -143,10 +146,11 @@ void M6020_CtrlerCalc(M6020* m6020, float reference)
 	{
 		output = (int16_t)reference;
 	}
-	SoftBus_PublishMap("canSend",{
-		{"canX", m6020->canInfo.canX, 5},
-		{"id", &m6020->canInfo.id[1], sizeof(uint32_t)},
-		{"bits", &m6020->canInfo.sendBits, sizeof(uint8_t)},
+	SoftBus_PublishMap("/can/set-buf",{
+		{"can-x", &m6020->canInfo.canX, sizeof(uint8_t)},
+		{"id", &m6020->canInfo.sendID, sizeof(uint16_t)},
+		{"pos", &m6020->canInfo.bufIndex, sizeof(uint8_t)},
+		{"len", &(uint8_t){2}, sizeof(uint8_t)},
 		{"data", &output, sizeof(int16_t)}
 	});
 }
