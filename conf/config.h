@@ -1,3 +1,4 @@
+//<<< Use Configuration Wizard in Context Menu >>>
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
@@ -16,8 +17,9 @@ typedef struct {
 
 void* _Conf_GetValue(ConfItem* dict, const char* name);
 
-#define Conf_ItemExist(dict,name) (_Conf_GetValue((dict),(#name))!=NULL)
-#define Conf_GetPtr(dict,name,type) ((type*)_Conf_GetValue((dict),(#name)))
-#define Conf_GetValue(dict,name,type,def) (_Conf_GetValue((dict),(#name))?(*(type*)(_Conf_GetValue((dict),(#name)))):(def))
+#define Conf_ItemExist(dict,name) (_Conf_GetValue((dict),(name))!=NULL)
+#define Conf_GetPtr(dict,name,type) ((type*)_Conf_GetValue((dict),(name)))
+#define Conf_GetValue(dict,name,type,def) (_Conf_GetValue((dict),(name))?(*(type*)(_Conf_GetValue((dict),(name)))):(def))
 
 #endif
+// <<< end of configuration section >>>

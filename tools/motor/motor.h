@@ -9,8 +9,6 @@
 
 #define MOTOR_MALLOC_PORT(len) pvPortMalloc(len)
 #define MOTOR_FREE_PORT(ptr) vPortFree(ptr)
-#define MOTOR_STRLEN_PORT(str) strlen(str)
-#define MOTOR_STRCAT_PORT(str1,str2) strcat((str1),(str2))
 
 typedef enum
 {

@@ -3,13 +3,13 @@
 #include "pid.h"
 
 //初始化pid参数
-void PID_Init(PID *pid,float p,float i,float d,float maxI,float maxOut)
+void PID_Init(PID *pid, ConfItem* conf)
 {
-	pid->kp=p;
-	pid->ki=i;
-	pid->kd=d;
-	pid->maxIntegral=maxI;
-	pid->maxOutput=maxOut;
+	pid->kp=Conf_GetValue(conf, "p", float, 0);
+	pid->ki=Conf_GetValue(conf, "i", float, 0);
+	pid->kd=Conf_GetValue(conf, "d", float, 0);
+	pid->maxIntegral=Conf_GetValue(conf, "maxI", float, 0);
+	pid->maxOutput=Conf_GetValue(conf, "maxOut", float, 0);
 	pid->deadzone=0;
 }
 
