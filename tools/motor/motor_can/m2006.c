@@ -39,11 +39,58 @@ void M2006_StartStatAngle(Motor *motor);
 void M2006_StatAngle(Motor* motor);
 void M2006_SetTarget(Motor* motor, float targetValue);
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode);
+void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
 void M2006_Update(M2006* m2006,uint8_t* data);
 void M2006_PIDInit(M2006* m2006, ConfItem* dict);
 void M2006_CtrlerCalc(M2006* m2006, float reference);
 
+//软件定时器回调函数
+void M2006_TimerCallback(void const *argument)
+{
+	M2006* m2006 = pvTimerGetTimerID((TimerHandle_t)argument); 
+	M2006_CtrlerCalc(m2006, m2006->targetValue);
+}
+
+Motor* M2006_Init(ConfItem* dict)
+{
+	//分配子类内存空间
+	M2006* m2006 = MOTOR_MALLOC_PORT(sizeof(M2006));
+	memset(m2006,0,sizeof(M2006));
+	//子类多态
+	m2006->motor.setTarget = M2006_SetTarget;
+	m2006->motor.changeMode = M2006_ChangeMode;
+	m2006->motor.startStatAngle = M2006_StartStatAngle;
+	m2006->motor.statAngle = M2006_StatAngle;
+	//电机减速比
+	m2006->reductionRatio = 36;
+	//初始化电机绑定can信息
+	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
+	m2006->canInfo.recvID = id + 0x200;
+	m2006->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
+	m2006->canInfo.bufIndex =  (id - 1) * 2;
+	m2006->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
+	//设置电机默认模式为扭矩模式
+	m2006->mode = MOTOR_TORQUE_MODE;
+	//初始化电机pid
+	M2006_PIDInit(m2006, dict);
+	//订阅can信息
+	SoftBus_Subscribe(m2006, M2006_SoftBusCallback, "/can/recv");
+	//开启软件定时器
+	osTimerDef(M2006, M2006_TimerCallback);
+	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);
+
+	return (Motor*)m2006;
+}
+//初始化pid
+void M2006_PIDInit(M2006* m2006, ConfItem* dict)
+{
+	PID_Init(&m2006->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
+	PID_Init(&m2006->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
+	PID_Init(&m2006->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
+	PID_SetMaxOutput(&m2006->anglePID.outer, m2006->anglePID.outer.maxOutput*m2006->reductionRatio);
+}
+//软总线回调函数
 void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	M2006* m2006 = (M2006*)bindData;
@@ -61,48 +108,6 @@ void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 	item = SoftBus_GetItem(frame, "data");
 	if(item)
 		M2006_Update(m2006, item->data);
-}
-
-void M2006_TimerCallback(void const *argument)
-{
-	M2006* m2006 = pvTimerGetTimerID((TimerHandle_t)argument); 
-	M2006_CtrlerCalc(m2006, m2006->targetValue);
-}
-
-Motor* M2006_Init(ConfItem* dict)
-{
-	M2006* m2006 = MOTOR_MALLOC_PORT(sizeof(M2006));
-	memset(m2006,0,sizeof(M2006));
-	
-	m2006->motor.setTarget = M2006_SetTarget;
-	m2006->motor.changeMode = M2006_ChangeMode;
-	m2006->motor.startStatAngle = M2006_StartStatAngle;
-	m2006->motor.statAngle = M2006_StatAngle;
-	
-	m2006->reductionRatio = 36;
-	
-	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
-	m2006->canInfo.recvID = id + 0x200;
-	m2006->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
-	m2006->canInfo.bufIndex =  (id - 1) * 2;
-	m2006->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
-	
-	m2006->mode = MOTOR_TORQUE_MODE;
-	M2006_PIDInit(m2006, dict);
-	SoftBus_Subscribe(m2006, M2006_SoftBusCallback, "/can/recv");
-	
-	osTimerDef(M2006, M2006_TimerCallback);
-	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);
-
-	return (Motor*)m2006;
-}
-
-void M2006_PIDInit(M2006* m2006, ConfItem* dict)
-{
-	PID_Init(&m2006->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
-	PID_Init(&m2006->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
-	PID_Init(&m2006->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
-	PID_SetMaxOutput(&m2006->anglePID.outer, m2006->anglePID.outer.maxOutput*m2006->reductionRatio);
 }
 
 //开始统计电机累计角度
@@ -131,13 +136,13 @@ void M2006_StatAngle(Motor* motor)
 	//记录角度
 	m2006->lastAngle=m2006->angle;
 }
-
+//控制器根据模式计算输出
 void M2006_CtrlerCalc(M2006* m2006, float reference)
 {
 	int16_t output;
 	if(m2006->mode == MOTOR_SPEED_MODE)
 	{
-		PID_SingleCalc(&m2006->speedPID, reference*m2006->reductionRatio, m2006->speed);
+		PID_SingleCalc(&m2006->speedPID, reference, m2006->speed);
 		output = m2006->speedPID.output;
 	}
 	else if(m2006->mode == MOTOR_ANGLE_MODE)
@@ -149,6 +154,7 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 	{
 		output = (int16_t)reference;
 	}
+	//发布can信息
 	SoftBus_PublishMap("/can/set-buf",{
 		{"can-x", &m2006->canInfo.canX, sizeof(uint8_t)},
 		{"id", &m2006->canInfo.sendID, sizeof(uint16_t)},
@@ -157,7 +163,7 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 		{"data", &output, sizeof(int16_t)}
 	});
 }
-
+//设置电机期望值
 void M2006_SetTarget(Motor* motor, float targetValue)
 {
 	M2006* m2006 = (M2006*)motor;
@@ -165,12 +171,16 @@ void M2006_SetTarget(Motor* motor, float targetValue)
 	{
 		m2006->targetValue = M2006_DGR2CODE(targetValue);
 	}
-	else 
+	else if(m2006->mode == MOTOR_SPEED_MODE)
+	{
+		m2006->targetValue = targetValue*m2006->reductionRatio;
+	}
+	else
 	{
 		m2006->targetValue = targetValue;
 	}
 }
-
+//切换电机模式
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M2006* m2006 = (M2006*)motor;

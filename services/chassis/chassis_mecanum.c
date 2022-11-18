@@ -31,50 +31,15 @@ typedef struct _Chassis
 		Slope xSlope,ySlope; //斜坡
 	}move;
 	
-	float relativeAngle; //云台与底盘的偏离角，单位度
+	float relativeAngle; //与底盘的偏离角，单位度
 	
 	uint8_t taskInterval;
 	
 }Chassis;
 
+void Chassis_Init(Chassis* chassis, ConfItem* dict);
+void Chassis_UpdateSlope(Chassis* chassis);
 void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
-
-void Chassis_Init(Chassis* chassis, ConfItem* dict)
-{
-	//任务间隔
-	chassis->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
-	//底盘尺寸信息（用于解算轮速）
-	chassis->info.wheelbase = Conf_GetValue(dict, "info/wheelbase", float, 0);
-	chassis->info.wheeltrack = Conf_GetValue(dict, "info/wheeltrack", float, 0);
-	chassis->info.wheelRadius = Conf_GetValue(dict, "info/wheelRadius", float, 76);
-	chassis->info.offsetX = Conf_GetValue(dict, "info/offsetX", float, 0);
-	chassis->info.offsetY = Conf_GetValue(dict, "info/offsetY", float, 0);
-	//移动参数初始化
-	chassis->move.maxVx = Conf_GetValue(dict, "move/offsetX", float, 2000);
-	chassis->move.maxVy = Conf_GetValue(dict, "move/offsetX", float, 2000);
-	chassis->move.maxVw = Conf_GetValue(dict, "move/offsetX", float, 2);
-	float xAcc = Conf_GetValue(dict, "move/xAcc", float, 1000);
-	float yAcc = Conf_GetValue(dict, "move/yAcc", float, 1000);
-	Slope_Init(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, xAcc),0);
-	Slope_Init(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, yAcc),0);
-	chassis->motors[0] = Motor_Init(Conf_GetPtr(dict, "motorFL", ConfItem));
-	chassis->motors[1] = Motor_Init(Conf_GetPtr(dict, "motorFR", ConfItem));
-	chassis->motors[2] = Motor_Init(Conf_GetPtr(dict, "motorBL", ConfItem));
-	chassis->motors[3] = Motor_Init(Conf_GetPtr(dict, "motorBR", ConfItem));
-	for(uint8_t i = 0; i<4; i++)
-	{
-		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
-	}
-	SoftBus_Subscribe(chassis, Chassis_SoftBusCallback, "chassis");
-}
-
-
-//更新斜坡计算速度
-void Chassis_UpdateSlope(Chassis* chassis)
-{
-	Slope_NextVal(&chassis->move.xSlope);
-	Slope_NextVal(&chassis->move.ySlope);
-}
 
 //底盘任务回调函数
 void Chassis_TaskCallback(void const * argument)
@@ -116,6 +81,46 @@ void Chassis_TaskCallback(void const * argument)
 		
 		osDelayUntil(&tick,chassis.taskInterval);
 	}
+}
+
+void Chassis_Init(Chassis* chassis, ConfItem* dict)
+{
+	//任务间隔
+	chassis->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
+	//底盘尺寸信息（用于解算轮速）
+	chassis->info.wheelbase = Conf_GetValue(dict, "info/wheelbase", float, 0);
+	chassis->info.wheeltrack = Conf_GetValue(dict, "info/wheeltrack", float, 0);
+	chassis->info.wheelRadius = Conf_GetValue(dict, "info/wheelRadius", float, 76);
+	chassis->info.offsetX = Conf_GetValue(dict, "info/offsetX", float, 0);
+	chassis->info.offsetY = Conf_GetValue(dict, "info/offsetY", float, 0);
+	//移动参数初始化
+	chassis->move.maxVx = Conf_GetValue(dict, "move/maxVx", float, 2000);
+	chassis->move.maxVy = Conf_GetValue(dict, "move/maxVy", float, 2000);
+	chassis->move.maxVw = Conf_GetValue(dict, "move/maxVw", float, 2);
+	//底盘加速度初始化
+	float xAcc = Conf_GetValue(dict, "move/xAcc", float, 1000);
+	float yAcc = Conf_GetValue(dict, "move/yAcc", float, 1000);
+	Slope_Init(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, xAcc),0);
+	Slope_Init(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, yAcc),0);
+	//底盘电机初始化
+	chassis->motors[0] = Motor_Init(Conf_GetPtr(dict, "motorFL", ConfItem));
+	chassis->motors[1] = Motor_Init(Conf_GetPtr(dict, "motorFR", ConfItem));
+	chassis->motors[2] = Motor_Init(Conf_GetPtr(dict, "motorBL", ConfItem));
+	chassis->motors[3] = Motor_Init(Conf_GetPtr(dict, "motorBR", ConfItem));
+	//设置底盘电机为速度模式
+	for(uint8_t i = 0; i<4; i++)
+	{
+		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
+	}
+	SoftBus_Subscribe(chassis, Chassis_SoftBusCallback, "chassis");
+}
+
+
+//更新斜坡计算速度
+void Chassis_UpdateSlope(Chassis* chassis)
+{
+	Slope_NextVal(&chassis->move.xSlope);
+	Slope_NextVal(&chassis->move.ySlope);
 }
 
 void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)

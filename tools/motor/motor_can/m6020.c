@@ -39,11 +39,58 @@ void M6020_StartStatAngle(Motor *motor);
 void M6020_StatAngle(Motor* motor);
 void M6020_SetTarget(Motor* motor, float targetValue);
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode);
+void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
 void M6020_Update(M6020* m6020,uint8_t* data);
 void M6020_PIDInit(M6020* m6020, ConfItem* dict);
 void M6020_CtrlerCalc(M6020* m6020, float reference);
 
+//软件定时器回调函数
+void M6020_TimerCallback(void const *argument)
+{
+	M6020* m6020 = pvTimerGetTimerID((TimerHandle_t)argument); 
+	M6020_CtrlerCalc(m6020, m6020->targetValue);
+}
+
+Motor* M6020_Init(ConfItem* dict)
+{
+	//分配子类内存空间
+	M6020* m6020 = MOTOR_MALLOC_PORT(sizeof(M6020));
+	memset(m6020,0,sizeof(M6020));
+	//子类多态
+	m6020->motor.setTarget = M6020_SetTarget;
+	m6020->motor.changeMode = M6020_ChangeMode;
+	m6020->motor.startStatAngle = M6020_StartStatAngle;
+	m6020->motor.statAngle = M6020_StatAngle;
+	//电机减速比
+	m6020->reductionRatio = 1;
+	//初始化电机绑定can信息
+	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
+	m6020->canInfo.recvID = id + 0x200;
+	m6020->canInfo.sendID = (id <= 4) ? 0x1FF : 0x2FF;
+	m6020->canInfo.bufIndex =  (id - 1) * 2;
+	m6020->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
+	//设置电机默认模式为扭矩模式
+	m6020->mode = MOTOR_TORQUE_MODE;
+	//初始化电机pid
+	M6020_PIDInit(m6020, dict);
+	//订阅can信息
+	SoftBus_Subscribe(m6020, M6020_SoftBusCallback, "/can/recv");
+	//开启软件定时器
+	osTimerDef(M6020, M6020_TimerCallback);
+	osTimerStart(osTimerCreate(osTimer(M6020), osTimerPeriodic, m6020), 2);
+
+	return (Motor*)m6020;
+}
+//初始化pid
+void M6020_PIDInit(M6020* m6020, ConfItem* dict)
+{
+	PID_Init(&m6020->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
+	PID_Init(&m6020->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
+	PID_Init(&m6020->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
+	PID_SetMaxOutput(&m6020->anglePID.outer, m6020->anglePID.outer.maxOutput*m6020->reductionRatio);
+}
+//软总线回调函数
 void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	M6020* m6020 = (M6020*)bindData;
@@ -60,46 +107,6 @@ void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 	item = SoftBus_GetItem(frame, "data");
 	if(item)
 		M6020_Update(m6020, item->data);
-}
-
-void M6020_TimerCallback(void const *argument)
-{
-	M6020* m6020 = pvTimerGetTimerID((TimerHandle_t)argument); 
-	M6020_CtrlerCalc(m6020, m6020->targetValue);
-}
-
-
-Motor* M6020_Init(ConfItem* dict)
-{
-	M6020* m6020 = MOTOR_MALLOC_PORT(sizeof(M6020));
-	memset(m6020,0,sizeof(M6020));
-	
-	m6020->motor.setTarget = M6020_SetTarget;
-	m6020->motor.changeMode = M6020_ChangeMode;
-	m6020->motor.startStatAngle = M6020_StartStatAngle;
-	m6020->motor.statAngle = M6020_StatAngle;
-	
-	m6020->reductionRatio = 1;
-	
-	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
-	m6020->canInfo.recvID = id + 0x200;
-	m6020->canInfo.sendID = (id <= 4) ? 0x1FF : 0x2FF;
-	m6020->canInfo.bufIndex =  (id - 1) * 2;
-	m6020->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
-	
-	m6020->mode = MOTOR_TORQUE_MODE;
-	M6020_PIDInit(m6020, dict);
-	SoftBus_Subscribe(m6020, M6020_SoftBusCallback, "/can/recv");
-
-	return (Motor*)m6020;
-}
-
-void M6020_PIDInit(M6020* m6020, ConfItem* dict)
-{
-	PID_Init(&m6020->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
-	PID_Init(&m6020->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
-	PID_Init(&m6020->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
-	PID_SetMaxOutput(&m6020->anglePID.outer, m6020->anglePID.outer.maxOutput*m6020->reductionRatio);
 }
 
 //开始统计电机累计角度
@@ -128,13 +135,13 @@ void M6020_StatAngle(Motor* motor)
 	//记录角度
 	m6020->lastAngle=m6020->angle;
 }
-
+//控制器根据模式计算输出
 void M6020_CtrlerCalc(M6020* m6020, float reference)
 {
 	int16_t output;
 	if(m6020->mode == MOTOR_SPEED_MODE)
 	{
-		PID_SingleCalc(&m6020->speedPID, reference*m6020->reductionRatio, m6020->speed);
+		PID_SingleCalc(&m6020->speedPID, reference, m6020->speed);
 		output = m6020->speedPID.output;
 	}
 	else if(m6020->mode == MOTOR_ANGLE_MODE)
@@ -154,7 +161,7 @@ void M6020_CtrlerCalc(M6020* m6020, float reference)
 		{"data", &output, sizeof(int16_t)}
 	});
 }
-
+//设置电机期望值
 void M6020_SetTarget(Motor* motor, float targetValue)
 {
 	M6020* m6020 = (M6020*)motor;
@@ -162,12 +169,16 @@ void M6020_SetTarget(Motor* motor, float targetValue)
 	{
 		m6020->targetValue = M6020_DGR2CODE(targetValue);
 	}
+	else if(m6020->mode == MOTOR_SPEED_MODE)
+	{
+		m6020->targetValue = targetValue*m6020->reductionRatio;
+	}
 	else 
 	{
 		m6020->targetValue = targetValue;
 	}
 }
-
+//切换电机模式
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M6020* m6020 = (M6020*)motor;

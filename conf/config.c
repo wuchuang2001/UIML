@@ -49,10 +49,12 @@ void* _Conf_GetValue(ConfItem* dict, const char* name)
 
 void StartDefaultTask(void const * argument)
 {
+	//创建其他任务
 	#define SERVICE(service,callback,priority) \
 		osThreadDef(service, callback, priority, 0, 128); \
 		serviceTaskHandle[service] = osThreadCreate(osThread(service), Conf_GetPtr(systemConfig,#service,void));
 	SERVICE_LIST
 	#undef SERVICE
+	//销毁自己
 	vTaskDelete(NULL);
 }

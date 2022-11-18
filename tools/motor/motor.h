@@ -9,14 +9,14 @@
 
 #define MOTOR_MALLOC_PORT(len) pvPortMalloc(len)
 #define MOTOR_FREE_PORT(ptr) vPortFree(ptr)
-
+//模式
 typedef enum
 {
 	MOTOR_TORQUE_MODE,
 	MOTOR_SPEED_MODE,
 	MOTOR_ANGLE_MODE
 }MotorCtrlMode;
-
+//父类，包含所有子类的方法
 typedef struct _Motor
 {
 	void (*changeMode)(struct _Motor* motor, MotorCtrlMode mode);

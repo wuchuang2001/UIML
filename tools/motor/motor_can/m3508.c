@@ -39,11 +39,58 @@ void M3508_StartStatAngle(Motor *motor);
 void M3508_StatAngle(Motor* motor);
 void M3508_SetTarget(Motor* motor, float targetValue);
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode);
+void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
 void M3508_Update(M3508* m3508,uint8_t* data);
 void M3508_PIDInit(M3508* m3508, ConfItem* dict);
 void M3508_CtrlerCalc(M3508* m3508, float reference);
 
+//软件定时器回调函数
+void M3508_TimerCallback(void const *argument)
+{
+	M3508* m3508 = pvTimerGetTimerID((TimerHandle_t)argument); 
+	M3508_CtrlerCalc(m3508, m3508->targetValue);
+}
+
+Motor* M3508_Init(ConfItem* dict)
+{
+	//分配子类内存空间
+	M3508* m3508 = MOTOR_MALLOC_PORT(sizeof(M3508));
+	memset(m3508,0,sizeof(M3508));
+	//子类多态
+	m3508->motor.setTarget = M3508_SetTarget;
+	m3508->motor.changeMode = M3508_ChangeMode;
+	m3508->motor.startStatAngle = M3508_StartStatAngle;
+	m3508->motor.statAngle = M3508_StatAngle;
+	//电机减速比
+	m3508->reductionRatio = 19;
+	//初始化电机绑定can信息
+	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
+	m3508->canInfo.recvID = id + 0x200;
+	m3508->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
+	m3508->canInfo.bufIndex =  (id - 1) * 2;
+	m3508->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
+	//设置电机默认模式为扭矩模式
+	m3508->mode = MOTOR_TORQUE_MODE;
+	//初始化电机pid
+	M3508_PIDInit(m3508, dict);
+	//订阅can信息
+	SoftBus_Subscribe(m3508, M3508_SoftBusCallback, "/can/recv");
+	//开启软件定时器
+	osTimerDef(M3508, M3508_TimerCallback);
+	osTimerStart(osTimerCreate(osTimer(M3508), osTimerPeriodic, m3508), 2);
+
+	return (Motor*)m3508;
+}
+//初始化pid
+void M3508_PIDInit(M3508* m3508, ConfItem* dict)
+{
+	PID_Init(&m3508->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
+	PID_Init(&m3508->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
+	PID_Init(&m3508->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
+	PID_SetMaxOutput(&m3508->anglePID.outer, m3508->anglePID.outer.maxOutput*m3508->reductionRatio);
+}
+//软总线回调函数
 void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	M3508* m3508 = (M3508*)bindData;
@@ -61,45 +108,6 @@ void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 	item = SoftBus_GetItem(frame, "data");
 	if(item)
 		M3508_Update(m3508, item->data);
-}
-
-void M3508_TimerCallback(void const *argument)
-{
-	M3508* m3508 = pvTimerGetTimerID((TimerHandle_t)argument); 
-	M3508_CtrlerCalc(m3508, m3508->targetValue);
-}
-
-Motor* M3508_Init(ConfItem* dict)
-{
-	M3508* m3508 = MOTOR_MALLOC_PORT(sizeof(M3508));
-	memset(m3508,0,sizeof(M3508));
-	
-	m3508->motor.setTarget = M3508_SetTarget;
-	m3508->motor.changeMode = M3508_ChangeMode;
-	m3508->motor.startStatAngle = M3508_StartStatAngle;
-	m3508->motor.statAngle = M3508_StatAngle;
-	
-	m3508->reductionRatio = 19;
-	
-	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
-	m3508->canInfo.recvID = id + 0x200;
-	m3508->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
-	m3508->canInfo.bufIndex =  (id - 1) * 2;
-	m3508->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
-	
-	m3508->mode = MOTOR_TORQUE_MODE;
-	M3508_PIDInit(m3508, dict);
-	SoftBus_Subscribe(m3508, M3508_SoftBusCallback, "/can/recv");
-
-	return (Motor*)m3508;
-}
-
-void M3508_PIDInit(M3508* m3508, ConfItem* dict)
-{
-	PID_Init(&m3508->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
-	PID_Init(&m3508->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
-	PID_Init(&m3508->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
-	PID_SetMaxOutput(&m3508->anglePID.outer, m3508->anglePID.outer.maxOutput*m3508->reductionRatio);
 }
 
 //开始统计电机累计角度
@@ -128,13 +136,13 @@ void M3508_StatAngle(Motor* motor)
 	//记录角度
 	m3508->lastAngle=m3508->angle;
 }
-
+//控制器根据模式计算输出
 void M3508_CtrlerCalc(M3508* m3508, float reference)
 {
 	int16_t output;
 	if(m3508->mode == MOTOR_SPEED_MODE)
 	{
-		PID_SingleCalc(&m3508->speedPID, reference*m3508->reductionRatio, m3508->speed);
+		PID_SingleCalc(&m3508->speedPID, reference, m3508->speed);
 		output = m3508->speedPID.output;
 	}
 	else if(m3508->mode == MOTOR_ANGLE_MODE)
@@ -154,7 +162,7 @@ void M3508_CtrlerCalc(M3508* m3508, float reference)
 		{"data", &output, sizeof(int16_t)}
 	});
 }
-
+//设置电机期望值
 void M3508_SetTarget(Motor* motor, float targetValue)
 {
 	M3508* m3508 = (M3508*)motor;
@@ -162,12 +170,16 @@ void M3508_SetTarget(Motor* motor, float targetValue)
 	{
 		m3508->targetValue = M3508_DGR2CODE(targetValue);
 	}
-	else 
+	else if(m3508->mode == MOTOR_SPEED_MODE)
+	{
+		m3508->targetValue = targetValue*m3508->reductionRatio;
+	}
+	else
 	{
 		m3508->targetValue = targetValue;
 	}
 }
-
+//切换电机模式
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M3508* m3508 = (M3508*)motor;

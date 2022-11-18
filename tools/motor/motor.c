@@ -1,5 +1,6 @@
 #include "motor.h"
 
+//X-MACRO
 //子类列表，每一项格式为(类型名,初始化函数名)
 #define MOTOR_CHILD_LIST \
 	MOTOR_TYPE("M3508",M3508_Init) \
@@ -23,13 +24,13 @@ Motor* Motor_Init(ConfItem* dict)
 	char* motorType = Conf_GetPtr(dict, "type", char);
 
 	Motor *motor = NULL;
-
+	//判断属于哪个子类
 	#define MOTOR_TYPE(name,initFunc) \
 	if(!strcmp(motorType, name)) \
 		motor = initFunc(dict);
 	MOTOR_CHILD_LIST
 	#undef MOTOR_TYPE
-
+	//将子类未定义的方法设置为空函数
 	if(motor)
 		Motor_InitDefault(motor);
 
@@ -48,6 +49,7 @@ void Motor_InitDefault(Motor* motor)
 		motor->statAngle = Motor_StatAngle;
 }
 
+//纯虚函数
 void Motor_SetTarget(Motor* motor, float targetValue) { }
 
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode mode) { }

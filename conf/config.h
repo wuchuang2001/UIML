@@ -1,4 +1,3 @@
-//<<< Use Configuration Wizard in Context Menu >>>
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
@@ -22,4 +21,3 @@ void* _Conf_GetValue(ConfItem* dict, const char* name);
 #define Conf_GetValue(dict,name,type,def) (_Conf_GetValue((dict),(name))?(*(type*)(_Conf_GetValue((dict),(name)))):(def))
 
 #endif
-// <<< end of configuration section >>>
