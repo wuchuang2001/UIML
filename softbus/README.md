@@ -1,127 +1,107 @@
 # 软总线
 
+---
+
 ## 简介
 
-本项目实现了一个软总线，可以用于实现多模块间解耦，使多个模块之间通过订阅、发布话题完成数据交互。
+本项目是一个订阅发布管理模块，以实现多模块间解耦，模块之间可以通过订阅、发布话题进行数据交互
 
-## 包含文件
+---
 
-项目仅包含一对`softbus.c/h`文件，使用前将这两个文件添加至项目中即可
+## 项目文件及依赖项
 
-## 依赖项
+- 本项目文件
+	- `softbus.c/h`
+- 标准库文件
+	- `stdint.h`、`string.h`、`stdlib.h`
+- 其他项目文件
+	- `vector.c/h`：[通用类型变长数组](../tools/universal_vector/README.md)
 
-项目不仅对标准库文件`stdint.h`、`stdlib.h`、`string.h`、`stdarg.h`有依赖，也对`vector.h`有依赖，使用了其中的`malloc`、`free`、`memcpy`、`strlen`以及`Vector`、`uint32_t`等基础类型，用户可以通过修改`softbus.c`中的宏定义进行移植替换
+---
 
-## 发布订阅模式
+## 发布订阅模式简介
 
-在介绍模块接口之前，首先我们先简单介绍一下发布订阅模式。其实在平时生活中发布订阅模式也是非常常见的场景，比如你打开你的微信公众号，你订阅的作者发布的文章，会发给每个订阅者。在这个场景里，微信公众号的作者就是一个Pulisher，而你就是一个Subscriber，这个公众号就是一个Topic，你收到的文章就是一个Message。如下图。
+发布订阅模式是一种数据传输的模式，用于提供不同模块之间的数据传输通道
+
+在这个模式中有两个角色，发送数据的一方称为**发布者**(Pulisher)，接收数据的一方称为**订阅者**(Subscriber)，发布者可以创建多个**话题**(Topic)并在该话题上发布消息，订阅者会关注自己感兴趣的话题，并获取在该话题上所发布的消息
 
 ![发布订阅模式](发布订阅模式.jpg)
 
-其实对于一个Topic不一定只有一个Publisher就以上面的例子来讲不同的作者都可以通过这一个公众号发布Message给所有订阅这个公众号的Subscriber,甚至我们可以简单的理解为Topic就是一个Message的管道，任意一个Publisher都可以通过这个管道传递消息给所有订阅了这个Topic的Subscriber。
+如上图所示，每个发布者/订阅者就是一个模块，一个话题就是一个字符串，每个话题可以视作一个通信管道，发布者通过“发布”操作向管道中写入数据，关注该管道的订阅者就可以收到数据
 
-接下来简单介绍一下该模式的优点
+相较于传统方式中模块间直接调用对方的函数来传递数据，该模式使用字符串话题来标记所传输数据的意义，使得模块间不产生函数依赖和类型依赖，从而不产生文件依赖（无需相互引用对方的文件），以此实现模块间的松耦合
 
-1. 可以将众多需要通信的子系统解耦，每个子系统都可以独立管理。而且即使部分子系统下线了，也不会影响系统消息的整体管理。
-2. 该模式为应用程序提供了关注点分离。每个应用程序都可以专注于其核心功能，而消息传递基础结构负责将消息路由到每个消费者手里。
+---
 
-基于以上优点，软总线使用发布订阅模式进行不同模块之间的数据传输
+## 本模块概念阐述
+
+- **软总线**：是对本模块作用的一种形象描述，系统中的所有模块通过本模块所提供的“订阅/发布”功能进行数据传输，可以将本模块看做系统中的一根“总线”，各个模块挂接在总线上相互传输数据
+	> 注：本软总线与CAN通信等协议有一定相似之处，Topic的作用就类似于CAN数据帧ID，可用于标记数据帧的发送者或作用，订阅者订阅数据就相当于设置过滤器，过滤出总线上所发布的广播数据中感兴趣的部分
+- **数据帧**(Frame)：在总线上所传输的数据是以“数据帧”为单位的，每次发布就是向软总线上发送一个数据帧
+	- 数据帧是一个结构体，包含【数据】和【长度】两个信息
+	- 数据帧分为两种，原始数据帧和映射表数据帧
+    	- **原始数据帧**：数据帧中的数据指针直接指向所传输的数据，使用方便，用于传输简单数据
+    	- **映射表数据帧**：数据帧中所传输的是一个映射表，需要在接收到后进行解码，可用于传输结构较复杂的数据
+- **映射表**(Map)：由若干个“键-值”对构成，每个键是一个字符串，值为任意类型。每个键在表中只会出现一次，唯一对应着一个值，通过键即可找到所对应的值
+	- 在本模块中一个“键-值”对被称为一个字段(Item)，其中包含【键】、【值】和【值的数据长度】
+- **绑定数据**(bindData)：对于每一次订阅，订阅者可以绑定上一个自定义数据，在收到数据的同时也会收到该绑定数据
+	> 例如：订阅者可以订阅一次topic1，此时绑定一个数据A，然后再次订阅topic1，并绑定一个数据B，那么当发布者在topic1上发布一次数据时，该订阅者可以收到两次数据，分别附带有所绑定的A和B
+
+---
 
 ## 接口使用示例
 
-假设我们有一个模块有一些数据需要其他模块传入，有一些数据需要发布出去供其他模块使用
-
+**发布话题(发送数据)**
 ```c
-typedef struct{
-	int16_t input1,output1;
-	float input2,output2;
-}Module;
+/* 发布原始数据帧 */
+uint8_t data[10] = {0xAA}; //要发布的数据
+SoftBus_Publish("topic1", data, sizeof(data)); //向总线发布数据
+
+/* 发布映射表数据帧 */
+uint8_t value1 = 0x01; //要发布的第一个值
+float value2 = 1.0f; //要发布的第二个值
+SoftBus_PublishMap("topic2", {
+	{"key1", &value1, sizeof(value1)},
+	{"key2", &value2, sizeof(value2)}
+}); //向总线上发布一个映射表数据帧
 ```
 
-1. 修改依赖
+**订阅话题(接收数据)**
+```c
+//定义软总线回调函数，收到数据时会自动调用
+void callback(const char* topic, SoftBusFrame* frame, void* bindData)
+{
+	if(strcmp(topic, "topic1") == 0) //判断是哪个topic的数据
+	{
+		uint8_t* data = frame->data; //获取帧数据
+		uint16_t length = frame->length; //获取数据长度
+		/* ...其他处理逻辑 */
+	}
+	else if(strcmp(topic, "topic2") == 0)
+	{
+		const SoftBusItem* item1 = SoftBus_GetItem(frame, "key1"); //获取"key1"字段
+		uint8_t value1 = *(uint8_t*)item1->data; //读取字段值
+		const SoftBusItem* item2 = SoftBus_GetItem(frame, "key2"); //获取"key2"字段
+		float value2 = *(float*)item2->data; //读取字段值
+		/* ...其他处理逻辑 */
+	}
+}
 
-	1. 如果使用freertos应将`softbus.c`中的宏定义改为
-	```c
-	#define SOFTBUS_MALLOC_PORT(len) pvPortMalloc(len)
-	#define SOFTBUS_FREE_PORT(ptr) vPortFree(ptr)
-	```
-	2. 如果topic字符串平均长度大于20字符，应将`softbus.c`中的宏定义改为
-   ```c
-	#define SoftBus_Str2Hash(str) SoftBus_Str2Hash_32(str)
-	```
+//订阅话题
+//方法1：订阅单个话题
+SoftBus_Subscribe(NULL, callback, "topic1");
+SoftBus_Subscribe(NULL, callback, "topic2");
+//方法2：一次订阅多个话题
+SoftBus_MultiSubscribe(NULL, callback, {"topic1", "topic2"});
+```
 
-2. 发布话题
-
-   ```c
-   Module module1;//假设module1里面已有数据
-   ```
-
-   模块的输出接口发布相关topic对外传递数据
-   
-	```c
-	//方法1：使用自定义格式数据发布话题，类似串口收发，发送和接收端自行规定协议去解析数据
-	uint8_t buffer[7]={0x55};
-	buffer[1] = module1.output1;
-	buffer[2] = module1.output1 >> 8;
-	memcpy(buffer+3,&module1.output2,sizeof(float));
-	SoftBus_Publish("buffer",buffer,7);
-	
-	//方法2：使用映射表发布话题
-	SoftBus_PublishMap("\module1\output",{{"output1",&module1.output1,sizeof(int16_t)},
-										  {"output2",&module1.output2,sizeof(float)}});
-	```
-
-3. 订阅话题
-   
-   ```c
-   Module module2;
-   ```
-
-    1)  在回调函数中解析数据
-
-		```c
-		//情况一：使用自定义格式数据发布的话题
-		void callback(const char* topic, SoftBusFrame* frame)
-		{
-			if(!strcmp(topic, "\module1\output"))//确定是哪个话题发布的数据
-			{
-				uint8_t buffer* = frame->data;
-				if(buffer[0] == 0x55)//确认帧头
-				{
-					module2.input1 = (buffer[2] << 8) | buffer[1];
-					memcpy(&module2.output2,buffer+3, sizeof(float), sizeof(float));
-				}
-			}
-		}
-
-		//情况二：使用另一种方法发布的话题
-		void callback(const char* topic, SoftBusFrame* frame)
-		{
-			if(!strcmp(topic, "\module1\output"))//确定是哪个话题发布的数据
-			{
-				SoftBusItem* item = SoftBus_GetItem(frame,"output1");
-				if(!item)
-					module2.input1 = *(int16_t*)item->data//获取数据帧里的output1对应的数据
-				SoftBusItem* item = SoftBus_GetItem(frame,"output2");
-				if(!item)
-					module2.input2 = *(float*)item->data//获取数据帧里的output2对应的数据
-			}
-		}
-		```
-		
-	1)  订阅相关话题
-
-		> 注：仅需要订阅一次，之后对应话题发布后会自动的调用注册的回调函数
-
-		```c
-		//订阅一个话题
-		SoftBus_Subscribe(callback,"\module1\output");
-		//订阅多个话题
-		SoftBus_MultiSubscribe(callback,{"topic1","topic2"});
-		```
+---
 
 ## 注意事项
 
-1. 动态添加的数据全部分配自堆区，应保证堆区大小足够
-
-2. 经测试在17个topic下其中一个topic注册了两个回调函数，该模块仍有近30kHz的速率
+1. 不宜以极高频发布数据
+	> 经测试，在已注册17个topic，其中一个topic注册了两个回调函数的条件下，软总线约有30kHz的传输频率
+2. 回调函数是在发布者所在线程中执行的，因此回调函数的执行速度应尽可能快，切不可发生阻塞
+	> 用`SoftBus_Publish`或`SoftBus_PublishMap`函数发布一个topic时，只有当订阅了该topic的所有回调函数执行结束后，该发布函数才会退出
+3. 软总线仅会传输数据的地址(data指针)，且数据指针仅保证在回调函数范围内有效，若需在回调函数外使用这些数据，请在回调中拷贝整个数据，而不只是保存数据指针
+4. 在回调函数中不应对传入的数据帧进行修改，否则会影响同一topic下的其他回调

@@ -2,7 +2,6 @@
 #define _SOFTBUS_H_
 
 #include <stdint.h>
-#include <stdarg.h>
 
 typedef struct{
 	void* data;

@@ -1,4 +1,3 @@
-#include "rc.h"
 #include "config.h"
 #include "softbus.h"
 #include "cmsis_os.h"
