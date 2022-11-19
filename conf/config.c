@@ -3,13 +3,13 @@
 #include "cmsis_os.h"
 
 //声明服务模块回调函数
-#define SERVICE(service,callback,priority) extern void callback(void const *);
+#define SERVICE(service,callback,priority,stackSize) extern void callback(void const *);
 SERVICE_LIST
 #undef SERVICE
 
 typedef enum
 {
-	#define SERVICE(service,callback,priority) service,
+	#define SERVICE(service,callback,priority,stackSize) service,
 	SERVICE_LIST
 	#undef SERVICE
 	serviceNum
@@ -50,8 +50,8 @@ void* _Conf_GetValue(ConfItem* dict, const char* name)
 void StartDefaultTask(void const * argument)
 {
 	//创建其他任务
-	#define SERVICE(service,callback,priority) \
-		osThreadDef(service, callback, priority, 0, 128); \
+	#define SERVICE(service,callback,priority,stackSize) \
+		osThreadDef(service, callback, priority, 0, stackSize); \
 		serviceTaskHandle[service] = osThreadCreate(osThread(service), Conf_GetPtr(systemConfig,#service,void));
 	SERVICE_LIST
 	#undef SERVICE

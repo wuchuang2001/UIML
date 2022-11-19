@@ -20,10 +20,10 @@
 #endif
 // <<< end of configuration section >>>
 
-//服务配置列表，每项格式(服务名,服务任务函数,任务优先级)
+//服务配置列表，每项格式(服务名,服务任务函数,任务优先级,任务栈大小)
 #define SERVICE_LIST \
-	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal) \
-	SERVICE(can, BSP_CAN_TaskCallback, osPriorityNormal)
+	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,128) \
+	SERVICE(can, BSP_CAN_TaskCallback, osPriorityNormal,128)
 
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
