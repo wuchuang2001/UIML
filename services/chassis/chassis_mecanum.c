@@ -128,35 +128,17 @@ void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindD
 	Chassis* chassis = (Chassis*)bindData;
 //	if(!strcmp(topic, "chassis"))
 //	{
-		const SoftBusItem* item = SoftBus_GetItem(frame, "relativeAngle");
-		if(item)
-		{
-			chassis->relativeAngle = *(float*)item->data;
-		}
-		item = SoftBus_GetItem(frame, "vx");
-		if(item)
-		{
-			Slope_SetTarget(&chassis->move.xSlope, *(float*)item->data);
-		}
-		item = SoftBus_GetItem(frame, "vy");
-		if(item)
-		{
-			Slope_SetTarget(&chassis->move.ySlope, *(float*)item->data);
-		}
-		item = SoftBus_GetItem(frame, "vw");
-		if(item)
-		{
-			chassis->move.vw = *(float*)item->data;
-		}
-		item = SoftBus_GetItem(frame, "ax");
-		if(item)
-		{
-			Slope_SetStep(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)item->data));
-		}
-		item = SoftBus_GetItem(frame, "ay");
-		if(item)
-		{
-			Slope_SetStep(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)item->data));
-		}
+		if(SoftBus_IsMapKeyExist(frame, "relativeAngle"))
+			chassis->relativeAngle = *(float*)SoftBus_GetMapValue(frame, "relativeAngle");
+		if(SoftBus_IsMapKeyExist(frame, "vx"))
+			Slope_SetTarget(&chassis->move.xSlope, *(float*)SoftBus_GetMapValue(frame, "vx"));
+		if(SoftBus_IsMapKeyExist(frame, "vy"))
+			Slope_SetTarget(&chassis->move.ySlope, *(float*)SoftBus_GetMapValue(frame, "vy"));
+		if(SoftBus_IsMapKeyExist(frame, "vw"))
+			chassis->move.vw = *(float*)SoftBus_GetMapValue(frame, "vw");
+		if(SoftBus_IsMapKeyExist(frame, "ax"))
+			Slope_SetStep(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)SoftBus_GetMapValue(frame, "ax")));
+		if(SoftBus_IsMapKeyExist(frame, "ay"))
+			Slope_SetStep(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)SoftBus_GetMapValue(frame, "ay")));
 //	}
 }

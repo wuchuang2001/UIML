@@ -148,9 +148,9 @@ void _SoftBus_PublishMap(const char* topic, uint16_t itemNum, SoftBusItem* items
 	_SoftBus_Publish(topic, &frame);
 }
 
-const SoftBusItem* SoftBus_GetItem(SoftBusFrame* frame, char* key)
+const SoftBusItem* SoftBus_GetMapItem(SoftBusFrame* frame, char* key)
 {
-	for(uint16_t i = 0; i < frame->length; ++i)
+	for(uint16_t i = 0; i < frame->size; ++i)
 	{
 		SoftBusItem* item = (SoftBusItem*)frame->data;
 		if(strcmp(key, item->key) == 0)//如果key值与数据帧中相应的字段匹配上则返回它
@@ -159,7 +159,7 @@ const SoftBusItem* SoftBus_GetItem(SoftBusFrame* frame, char* key)
 	return NULL;
 }
 
-SoftBusFastHandle SoftBus_GetFastHandle(const char* topic)
+SoftBusFastHandle SoftBus_CreateFastHandle(const char* topic)
 {
 	if(!topic)
 		return NULL;
@@ -178,26 +178,38 @@ SoftBusFastHandle SoftBus_GetFastHandle(const char* topic)
 		}
 	}
 	SoftBus_Subscribe(NULL, SoftBus_EmptyCallback, topic);//未匹配到topic,注册一个空回调函数
-	return SoftBus_GetFastHandle(topic);//递归调用
+	return SoftBus_CreateFastHandle(topic);//递归调用
 }
 
-void _SoftBus_FastPublishList(SoftBusFastHandle topicHandle, uint16_t listNum, void** list)
+void _SoftBus_PublishList(SoftBusFastHandle topicHandle, uint16_t listNum, void** list)
 {
 	if(!hashList.data || !listNum || !list)
 		return;
 	TopicNode* topicNode = (TopicNode*)topicHandle;
-	SoftBusFrame frame = {list, listNum*sizeof(void*)};
+	SoftBusFrame frame = {list, listNum};
 	Vector_ForEach(topicNode->callbackNodes, callbackNode, CallbackNode)
 	{
 		(*(callbackNode->callback))(topicNode->topic, &frame, callbackNode->bindData);
 	}
 }
 
-void* SoftBus_GetListElem(SoftBusFrame* frame, uint16_t pos)
+void* _SoftBus_GetListValue(SoftBusFrame* frame, uint16_t pos)
 {
-	if(!frame || pos >= frame->length)
+	if(!frame || pos >= frame->size)
 		return NULL;
 	return ((void**)frame->data)[pos];
+}
+
+uint8_t _SoftBus_CheckMapKeys(SoftBusFrame* frame, uint16_t keysNum, char** keys)
+{
+	if(!frame || !keys || !keysNum)
+		return 0;
+	for(uint16_t i = 0; i < keysNum; ++i)
+	{
+		if(!SoftBus_GetMapItem(frame, keys[i]))
+			return 0;
+	}
+	return 1;
 }
 
 void SoftBus_EmptyCallback(const char* topic, SoftBusFrame* frame, void* bindData) { }

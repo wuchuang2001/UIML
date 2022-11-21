@@ -75,7 +75,9 @@ Motor* M6020_Init(ConfItem* dict)
 	//初始化电机pid
 	M6020_PIDInit(m6020, dict);
 	//订阅can信息
-	SoftBus_Subscribe(m6020, M6020_SoftBusCallback, "/can/recv");
+	char topic[] = "/can_/recv";
+	topic[4] = m6020->canInfo.canX + '0';
+	SoftBus_Subscribe(m6020, M6020_SoftBusCallback, topic);
 	//开启软件定时器
 	osTimerDef(M6020, M6020_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M6020), osTimerPeriodic, m6020), 2);
@@ -94,19 +96,14 @@ void M6020_PIDInit(M6020* m6020, ConfItem* dict)
 void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	M6020* m6020 = (M6020*)bindData;
-	const SoftBusItem* item = NULL;
 
-	item = SoftBus_GetItem(frame, "can-x");
-	if(!item || *(uint8_t*)item->data != m6020->canInfo.canX)
-		return;
-
-	item = SoftBus_GetItem(frame, "id");
-	if(!item || *(uint16_t*)item->data != m6020->canInfo.recvID)
+	uint16_t id = *(uint16_t*)SoftBus_GetListValue(frame, 0);
+	if(id != m6020->canInfo.recvID)
 		return;
 		
-	item = SoftBus_GetItem(frame, "data");
-	if(item)
-		M6020_Update(m6020, item->data);
+	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 1);
+	if(data)
+		M6020_Update(m6020, data);
 }
 
 //开始统计电机累计角度
@@ -153,12 +150,12 @@ void M6020_CtrlerCalc(M6020* m6020, float reference)
 	{
 		output = (int16_t)reference;
 	}
-	SoftBus_PublishMap("/can/set-buf",{
-		{"can-x", &m6020->canInfo.canX, sizeof(uint8_t)},
-		{"id", &m6020->canInfo.sendID, sizeof(uint16_t)},
-		{"pos", &m6020->canInfo.bufIndex, sizeof(uint8_t)},
-		{"len", &(uint8_t){2}, sizeof(uint8_t)},
-		{"data", &output, sizeof(int16_t)}
+	SoftBus_Publish("/can/set-buf",{
+		{"can-x", &m6020->canInfo.canX},
+		{"id", &m6020->canInfo.sendID},
+		{"pos", &m6020->canInfo.bufIndex},
+		{"len", &(uint8_t){2}},
+		{"data", &output}
 	});
 }
 //设置电机期望值

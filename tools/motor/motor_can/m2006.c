@@ -75,7 +75,9 @@ Motor* M2006_Init(ConfItem* dict)
 	//初始化电机pid
 	M2006_PIDInit(m2006, dict);
 	//订阅can信息
-	SoftBus_Subscribe(m2006, M2006_SoftBusCallback, "/can/recv");
+	char topic[] = "/can_/recv";
+	topic[4] = m2006->canInfo.canX + '0';
+	SoftBus_Subscribe(m2006, M2006_SoftBusCallback, topic);
 	//开启软件定时器
 	osTimerDef(M2006, M2006_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);
@@ -95,19 +97,13 @@ void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 {
 	M2006* m2006 = (M2006*)bindData;
 
-	const SoftBusItem* item = NULL;
-
-	item = SoftBus_GetItem(frame, "can-x");
-	if(!item || *(uint8_t*)item->data != m2006->canInfo.canX)
-		return;
-
-	item = SoftBus_GetItem(frame, "id");
-	if(!item || *(uint16_t*)item->data != m2006->canInfo.recvID)
+	uint16_t id = *(uint16_t*)SoftBus_GetListValue(frame, 0);
+	if(id != m2006->canInfo.recvID)
 		return;
 		
-	item = SoftBus_GetItem(frame, "data");
-	if(item)
-		M2006_Update(m2006, item->data);
+	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 1);
+	if(data)
+		M2006_Update(m2006, data);
 }
 
 //开始统计电机累计角度
@@ -155,12 +151,12 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 		output = (int16_t)reference;
 	}
 	//发布can信息
-	SoftBus_PublishMap("/can/set-buf",{
-		{"can-x", &m2006->canInfo.canX, sizeof(uint8_t)},
-		{"id", &m2006->canInfo.sendID, sizeof(uint16_t)},
-		{"pos", &m2006->canInfo.bufIndex, sizeof(uint8_t)},
-		{"len", &(uint8_t){2}, sizeof(uint8_t)},
-		{"data", &output, sizeof(int16_t)}
+	SoftBus_Publish("/can/set-buf",{
+		{"can-x", &m2006->canInfo.canX},
+		{"id", &m2006->canInfo.sendID},
+		{"pos", &m2006->canInfo.bufIndex},
+		{"len", &(uint8_t){2}},
+		{"data", &output}
 	});
 }
 //设置电机期望值

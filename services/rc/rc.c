@@ -106,7 +106,9 @@ void RC_TaskCallback(void const * argument)
 	RC rc;
 	rc.uartX = Conf_GetValue((ConfItem*)argument, "uart-x", uint8_t, 0);
 	RC_InitKeys(&rc);
-	SoftBus_Subscribe(&rc, RC_SoftBusCallback, "/uart/recv");
+	char topic[] = "/uart_/recv";
+	topic[5] = rc.uartX + '0';
+	SoftBus_Subscribe(&rc, RC_SoftBusCallback, topic);
 	TickType_t tick = xTaskGetTickCount();
 	while(1)
 	{
@@ -178,10 +180,10 @@ void RC_UpdateKeys(RC* rc)
 			rc->keyList[key].startPressTime=presentTime;//记录按下时间
 			rc->keyList[key].isPressing=1;
 			//发布topic
-			SoftBus_PublishMap(topic, {
-				{"event", "on-down", 8},
-				{"key", keyType[key], 1},
-				{"combine-key", combineKey, 5}
+			SoftBus_Publish(topic, {
+				{"event", "on-down"},
+				{"key", keyType[key]},
+				{"combine-key", combineKey}
 			});
 		}
 		/*******松开的一瞬间********/
@@ -193,10 +195,10 @@ void RC_UpdateKeys(RC* rc)
 			//按键抬起
 			rc->keyList[key].isUp=1;
 			//发布topic
-			SoftBus_PublishMap(topic, {
-				{"event", "on-up", 6},
-				{"key", keyType[key], 1},
-				{"combine-key", combineKey, 5}
+			SoftBus_Publish(topic, {
+				{"event", "on-up"},
+				{"key", keyType[key]},
+				{"combine-key", combineKey}
 			});
 				
 			//单击判定
@@ -204,10 +206,10 @@ void RC_UpdateKeys(RC* rc)
 			{
 				rc->keyList[key].isClicked=1;
 				//发布topic
-			SoftBus_PublishMap(topic, {
-				{"event", "on-click", 9},
-				{"key", keyType[key], 1},
-				{"combine-key", combineKey, 5}
+			SoftBus_Publish(topic, {
+				{"event", "on-click"},
+				{"key", keyType[key]},
+				{"combine-key", combineKey}
 			});
 			}
 		}
@@ -216,10 +218,10 @@ void RC_UpdateKeys(RC* rc)
 		{
 			//执行一直按下的事件回调
 			//发布topic
-			SoftBus_PublishMap(topic, {
-				{"event", "on-pressing", 12},
-				{"key", keyType[key], 1},
-				{"combine-key", combineKey, 5}
+			SoftBus_Publish(topic, {
+				{"event", "on-pressing"},
+				{"key", keyType[key]},
+				{"combine-key", combineKey}
 			});
 			
 			//长按判定
@@ -227,10 +229,10 @@ void RC_UpdateKeys(RC* rc)
 			{
 				rc->keyList[key].isLongPressed=1;
 				//发布topic
-				SoftBus_PublishMap(topic, {
-					{"event", "on-long-press", 14},
-					{"key", keyType[key], 1},
-					{"combine-key", combineKey, 5}
+				SoftBus_Publish(topic, {
+					{"event", "on-long-press"},
+					{"key", keyType[key]},
+					{"combine-key", combineKey}
 				});
 			}
 			else rc->keyList[key].isLongPressed=0;
@@ -253,14 +255,10 @@ void RC_UpdateKeys(RC* rc)
 void RC_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	RC* rc = (RC*)bindData;
-	const SoftBusItem* item = NULL;
-
-	item = SoftBus_GetItem(frame, "can-x");
-	if(!item || *(uint8_t*)item->data != rc->uartX)
-		return;
-	item = SoftBus_GetItem(frame, "data");
-	if(item)
-		RC_ParseData(rc, item->data);
+	
+	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 0);
+	if(data)
+		RC_ParseData(rc, data);
 }
 
 //解析串口数据 

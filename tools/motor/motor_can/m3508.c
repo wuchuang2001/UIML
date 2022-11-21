@@ -75,7 +75,9 @@ Motor* M3508_Init(ConfItem* dict)
 	//初始化电机pid
 	M3508_PIDInit(m3508, dict);
 	//订阅can信息
-	SoftBus_Subscribe(m3508, M3508_SoftBusCallback, "/can/recv");
+	char topic[] = "/can_/recv";
+	topic[4] = m3508->canInfo.canX + '0';
+	SoftBus_Subscribe(m3508, M3508_SoftBusCallback, topic);
 	//开启软件定时器
 	osTimerDef(M3508, M3508_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M3508), osTimerPeriodic, m3508), 2);
@@ -95,19 +97,13 @@ void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 {
 	M3508* m3508 = (M3508*)bindData;
 
-	const SoftBusItem* item = NULL;
-
-	item = SoftBus_GetItem(frame, "can-x");
-	if(!item || *(uint8_t*)item->data != m3508->canInfo.canX)
-		return;
-
-	item = SoftBus_GetItem(frame, "id");
-	if(!item || *(uint16_t*)item->data != m3508->canInfo.recvID)
+	uint16_t id = *(uint16_t*)SoftBus_GetListValue(frame, 0);
+	if(id != m3508->canInfo.recvID)
 		return;
 		
-	item = SoftBus_GetItem(frame, "data");
-	if(item)
-		M3508_Update(m3508, item->data);
+	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 1);
+	if(data)
+		M3508_Update(m3508, data);
 }
 
 //开始统计电机累计角度
@@ -154,12 +150,12 @@ void M3508_CtrlerCalc(M3508* m3508, float reference)
 	{
 		output = (int16_t)reference;
 	}
-	SoftBus_PublishMap("/can/set-buf",{
-		{"can-x", &m3508->canInfo.canX, sizeof(uint8_t)},
-		{"id", &m3508->canInfo.sendID, sizeof(uint16_t)},
-		{"pos", &m3508->canInfo.bufIndex, sizeof(uint8_t)},
-		{"len", &(uint8_t){2}, sizeof(uint8_t)},
-		{"data", &output, sizeof(int16_t)}
+	SoftBus_Publish("/can/set-buf",{
+		{"can-x", &m3508->canInfo.canX},
+		{"id", &m3508->canInfo.sendID},
+		{"pos", &m3508->canInfo.bufIndex},
+		{"len", &(uint8_t){2}},
+		{"data", &output}
 	});
 }
 //设置电机期望值
