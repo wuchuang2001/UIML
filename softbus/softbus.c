@@ -30,6 +30,7 @@ typedef struct{
 int8_t SoftBus_Init(void);//初始化软总线,返回0:成功 -1:失败
 uint32_t SoftBus_Str2Hash_8(const char* str);//8位处理的hash函数，在字符串长度小于20个字符时使用
 uint32_t SoftBus_Str2Hash_32(const char* str);//32位处理的hash函数，在字符串长度小于20个字符时使用
+void SoftBus_EmptyCallback(const char* topic, SoftBusFrame* frame, void* bindData);//空回调函数
 
 Vector hashList={0};
 
@@ -44,30 +45,41 @@ int8_t SoftBus_Subscribe(void* bindData, SoftBusCallback callback, const char* t
 		return -2;
 	if(hashList.data == NULL)//如果软总线未初始化则初始化软总线
 	{
-		return SoftBus_Init();
+		if(SoftBus_Init())
+			return -1;
 	}
-	char* topicCpy = SOFTBUS_MALLOC_PORT(SOFTBUS_STRLEN_PORT(topic));
-	uint32_t hash = SoftBus_Str2Hash(topicCpy);//计算字符串hash值
+	uint32_t hash = SoftBus_Str2Hash(topic);//计算字符串hash值
 	Vector_ForEach(hashList, hashNode, HashNode)//遍历所有hash节点
 	{
 		if(hash == hashNode->hash)
 		{
 			Vector_ForEach(hashNode->topicNodes, topicNode, TopicNode)//遍历该hash节点下所有topic
 			{
-				if(strcmp(topicCpy, topicNode->topic) == 0)//匹配到已有topic注册回调函数
+				if(strcmp(topic, topicNode->topic) == 0)//匹配到已有topic注册回调函数
 				{
+					if(Vector_GetFront(topicNode->callbackNodes, CallbackNode)->callback == SoftBus_EmptyCallback)//如果该topic下有空回调函数
+					{
+						CallbackNode* callbackNode = Vector_GetFront(topicNode->callbackNodes, CallbackNode);
+						callbackNode->bindData = bindData;//更新绑定数据
+						callbackNode->callback = callback;//更新回调函数
+						return 0;
+					}
 					return Vector_PushBack(topicNode->callbackNodes, ((CallbackNode){bindData, callback}));
 				}
 			}
-			Vector callbackV = Vector_Create(CallbackNode);//未匹配到topic产生hash冲突，在该hash节点处添加一个topic节点解决hash冲突
-			Vector_PushBack(callbackV, ((CallbackNode){bindData, callback}));
-			return Vector_PushBack(hashNode->topicNodes,((TopicNode){topicCpy, callbackV}));
+			Vector callbackNodes = Vector_Create(CallbackNode);//未匹配到topic产生hash冲突，在该hash节点处添加一个topic节点解决hash冲突
+			Vector_PushBack(callbackNodes, ((CallbackNode){bindData, callback}));
+			char* topicCpy = SOFTBUS_MALLOC_PORT(SOFTBUS_STRLEN_PORT(topic)+1);
+			SOFTBUS_MEMCPY_PORT(topicCpy, topic, SOFTBUS_STRLEN_PORT(topic)+1);
+			return Vector_PushBack(hashNode->topicNodes,((TopicNode){topicCpy, callbackNodes}));
 		}
 	}
-	Vector callbackV = Vector_Create(CallbackNode);//新的hash节点
-	Vector_PushBack(callbackV, ((CallbackNode){bindData, callback}));
+	Vector callbackNodes = Vector_Create(CallbackNode);//新的hash节点
+	Vector_PushBack(callbackNodes, ((CallbackNode){bindData, callback}));
 	Vector topicV = Vector_Create(TopicNode);
-	Vector_PushBack(topicV, ((TopicNode){topicCpy, callbackV}));
+	char* topicCpy = SOFTBUS_MALLOC_PORT(SOFTBUS_STRLEN_PORT(topic)+1);
+	SOFTBUS_MEMCPY_PORT(topicCpy, topic, SOFTBUS_STRLEN_PORT(topic)+1);
+	Vector_PushBack(topicV, ((TopicNode){topicCpy, callbackNodes}));
 	return Vector_PushBack(hashList, ((HashNode){hash, topicV}));
 }
 
@@ -146,3 +158,46 @@ const SoftBusItem* SoftBus_GetItem(SoftBusFrame* frame, char* key)
 	}
 	return NULL;
 }
+
+SoftBusFastHandle SoftBus_GetFastHandle(const char* topic)
+{
+	if(!topic)
+		return NULL;
+	uint32_t hash = SoftBus_Str2Hash(topic);//计算字符串hash值
+	Vector_ForEach(hashList, hashNode, HashNode)//遍历所有hash节点
+	{
+		if(hash == hashNode->hash)
+		{
+			Vector_ForEach(hashNode->topicNodes, topicNode, TopicNode)//遍历该hash节点下所有topic
+			{
+				if(strcmp(topic, topicNode->topic) == 0)//匹配到已有topic注册回调函数
+				{
+					return topicNode;
+				}
+			}
+		}
+	}
+	SoftBus_Subscribe(NULL, SoftBus_EmptyCallback, topic);//未匹配到topic,注册一个空回调函数
+	return SoftBus_GetFastHandle(topic);//递归调用
+}
+
+void _SoftBus_FastPublishList(SoftBusFastHandle topicHandle, uint16_t listNum, void** list)
+{
+	if(!hashList.data || !listNum || !list)
+		return;
+	TopicNode* topicNode = (TopicNode*)topicHandle;
+	SoftBusFrame frame = {list, listNum*sizeof(void*)};
+	Vector_ForEach(topicNode->callbackNodes, callbackNode, CallbackNode)
+	{
+		(*(callbackNode->callback))(topicNode->topic, &frame, callbackNode->bindData);
+	}
+}
+
+void* SoftBus_GetListElem(SoftBusFrame* frame, uint16_t pos)
+{
+	if(!frame || pos >= frame->length)
+		return NULL;
+	return ((void**)frame->data)[pos];
+}
+
+void SoftBus_EmptyCallback(const char* topic, SoftBusFrame* frame, void* bindData) { }

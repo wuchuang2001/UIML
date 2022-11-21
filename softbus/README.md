@@ -66,6 +66,16 @@ SoftBus_PublishMap("topic2", {
 }); //向总线上发布一个映射表数据帧
 ```
 
+>注：当发送频率大于1kHz时，建议使用列表数据帧，因为可以获得话题句柄，通过句柄直接发布数据，这样可以减少字符串比较的时间
+
+```c
+/*发布列表数据帧*/
+SoftBusFastHandle handle= SoftBus_GetFastHandle("topic3"); //获取话题句柄
+uint16_t value = 0x201; //要发布的第一个值
+uint8_t data[2] = {0x20, 0x01}; //要发布的第二个值
+SoftBus_PublishFast(handle, {&value, data}); //向总线发布一个列表数据帧
+```
+
 **订阅话题(接收数据)**
 ```c
 //定义软总线回调函数，收到数据时会自动调用
@@ -86,6 +96,14 @@ void callback(const char* topic, SoftBusFrame* frame, void* bindData)
 		/* ...其他处理逻辑 */
 	}
 }
+//一般使用快速发布(即列表数据帧)是为了提高总线效率，因此通常使用单独的函数去订阅来提高效率
+void fastCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+{
+	uint16_t value; 
+	value = *SoftBus_GetListPtr(frame, 0, uint16_t);//获取第一个值
+	uint8_t* data = SoftBus_GetListPtr(frame, 1, uint8_t); //获取第二个值
+	/* ...其他处理逻辑 */
+}
 
 //订阅话题
 //方法1：订阅单个话题
@@ -93,15 +111,19 @@ SoftBus_Subscribe(NULL, callback, "topic1");
 SoftBus_Subscribe(NULL, callback, "topic2");
 //方法2：一次订阅多个话题
 SoftBus_MultiSubscribe(NULL, callback, {"topic1", "topic2"});
+//方法3：订阅快速发布的话题
+SoftBus_Subscribe(NULL, fastCallback, "topic3");
 ```
 
 ---
 
 ## 注意事项
 
-1. 不宜以极高频发布数据
+1. 不宜以极高频不使用快速句柄发布数据
 	> 经测试，在已注册17个topic，其中一个topic注册了两个回调函数的条件下，软总线约有30kHz的传输频率
-2. 回调函数是在发布者所在线程中执行的，因此回调函数的执行速度应尽可能快，切不可发生阻塞
+2. 若遇到发送频率大于1kHz的情况，建议使用快速句柄发布数据
+    > 经测试，在使用快速句柄发布数据空跑回调函数时，软总线约有2MHz的传输频率
+3. 回调函数是在发布者所在线程中执行的，因此回调函数的执行速度应尽可能快，切不可发生阻塞
 	> 用`SoftBus_Publish`或`SoftBus_PublishMap`函数发布一个topic时，只有当订阅了该topic的所有回调函数执行结束后，该发布函数才会退出
 3. 软总线仅会传输数据的地址(data指针)，且数据指针仅保证在回调函数范围内有效，若需在回调函数外使用这些数据，请在回调中拷贝整个数据，而不只是保存数据指针
 4. 在回调函数中不应对传入的数据帧进行修改，否则会影响同一topic下的其他回调
