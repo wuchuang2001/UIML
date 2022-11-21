@@ -39,23 +39,28 @@
 	> 注：本软总线与CAN通信等协议有一定相似之处，Topic的作用就类似于CAN数据帧ID，可用于标记数据帧的发送者或作用，订阅者订阅数据就相当于设置过滤器，过滤出总线上所发布的广播数据中感兴趣的部分
 - **数据帧**(Frame)：在总线上所传输的数据是以“数据帧”为单位的，每次发布就是向软总线上发送一个数据帧
 	- 数据帧是一个结构体，包含【数据】和【长度】两个信息
-	- 数据帧分为三种，原始数据帧和映射表数据帧和列表数据帧
-    	- **映射表数据帧**：数据帧中所传输的是一个映射表，需要在接收到后进行解码，可用于传输结构较复杂的数据
-    	- **列表数据帧**：数据帧中所传输的是一个列表，需要在接收到后进行解码，可用于传输有序的数据
+	- 数据帧分为两种，映射表数据帧和列表数据帧
+    	- **映射表数据帧**：数据帧中所传输的是一个映射表，需要在接收到后进行解码，可用于传输结构较复杂的数据，可读性较好
+    	- **列表数据帧**：数据帧中所传输的是一个列表，需要在接收到后进行解码，可用于传输有序的数据，解码速率较快
 - **映射表**(Map)：由若干个“键-值”对构成，每个键是一个字符串，值为任意类型。每个键在表中只会出现一次，唯一对应着一个值，通过键即可找到所对应的值
 	- 在本模块中一个“键-值”对被称为一个字段(Item)，其中包含【键】和【值】
 - **列表**(List)：由有序的若干个任意类型的值构成，通过索引即可找到所对应的值
 - **绑定数据**(bindData)：对于每一次订阅，订阅者可以绑定上一个自定义数据，在收到数据的同时也会收到该绑定数据
 	> 例如：订阅者可以订阅一次topic1，此时绑定一个数据A，然后再次订阅topic1，并绑定一个数据B，那么当发布者在topic1上发布一次数据时，该订阅者可以收到两次数据，分别附带有所绑定的A和B
-- **发送方式分类**(普通/快速)：
+- **发送方式分类**：发送方式分为普通发送方式和快速发送方式
+  - **普通发送方式**：普通发送方式使用话题名去寻找所有订阅者，此方式与映射表数据帧绑定，可读性较好
+  - **快速发送方式**：快速发送方式通过话题对应的快速句柄去寻找所有订阅者，此方式与列表数据帧绑定，解码速率较快
+- **数据帧解析**：总线上的数据帧都是经过编码的，应将数据帧解码后才能使用
+  - **映射表数据帧解析**：根据key值获取对应的value值前应先判断key值在映射表中是否存在
+  - **列表数据帧解析**：根据索引获取对应的值，索引从0开始，若索引超出范围则返回NULL
 
 ---
 
 ## 传输方式的选择
 
-1. 当发送频率小于1kHz时，建议使用不带句柄的普通发送，可读性较好，只支持映射表数据帧
+1. 当发送频率小于1kHz时，建议使用不带句柄的普通发送，可读性较好，只支持映射表数据帧，通常使用在基本任务等低频率模块中
    > 经测试，在不普通发送中已注册17个topic，其中一个topic注册了两个回调函数的条件下，软总线约有30kHz的传输频率
-2. 当发送频率大于1kHz时，建议使用带句柄的发送，效率最高，但是只支持列表数据帧
+2. 当发送频率大于1kHz时，建议使用带句柄的发送，效率最高，但是只支持列表数据帧,通常使用在bsp等高频率服务模块中
     > 经测试，在使用快速句柄发布数据空跑回调函数时，软总线约有2MHz的传输频率
 
 ---
@@ -74,10 +79,10 @@ SoftBus_PublishMap("topic2", {
 }); //向总线上发布一个映射表数据帧
 
 /*发布列表数据帧*/
-SoftBusFastHandle handle= SoftBus_GetFastHandle("topic3"); //获取话题句柄
+SoftBusFastHandle handle= SoftBus_CreateFastHandle("topic3"); //获取话题句柄
 uint16_t value = 0x201; //要发布的第一个值
 uint8_t data[2] = {0x20, 0x01}; //要发布的第二个值
-SoftBus_PublishFast(handle, {&value, data}); //向总线发布一个列表数据帧
+SoftBus_FastPublish(handle, {&value, data}); //向总线发布一个列表数据帧
 ```
 
 **订阅话题(接收数据)**
@@ -85,18 +90,14 @@ SoftBus_PublishFast(handle, {&value, data}); //向总线发布一个列表数据
 //定义软总线回调函数，收到数据时会自动调用
 void callback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-	if(strcmp(topic, "topic1") == 0) //判断是哪个topic的数据
+	if(strcmp(topic, "topic2") == 0)
 	{
-		uint8_t* data = frame->data; //获取帧数据
-		uint16_t length = frame->length; //获取数据长度
-		/* ...其他处理逻辑 */
-	}
-	else if(strcmp(topic, "topic2") == 0)
-	{
-		const SoftBusItem* item1 = SoftBus_GetItem(frame, "key1"); //获取"key1"字段
-		uint8_t value1 = *(uint8_t*)item1->data; //读取字段值
-		const SoftBusItem* item2 = SoftBus_GetItem(frame, "key2"); //获取"key2"字段
-		float value2 = *(float*)item2->data; //读取字段值
+		uint8_t value1;
+		float value2;
+		if(SoftBus_IsMapKeyExist(frame, "key1")) //判断"key1"字段是否存在
+			value1 = *(uint8_t*)SoftBus_GetMapValue(frame, "key1"); //读取字段值
+		if(SoftBus_IsMapKeyExist(frame, "key2")) //判断"key2"字段是否存在
+			value2 = *(float*)SoftBus_GetMapValue(frame, "key2"); //读取字段值
 		/* ...其他处理逻辑 */
 	}
 }
@@ -104,8 +105,8 @@ void callback(const char* topic, SoftBusFrame* frame, void* bindData)
 void fastCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	uint16_t value; 
-	value = *SoftBus_GetListPtr(frame, 0, uint16_t);//获取第一个值
-	uint8_t* data = SoftBus_GetListPtr(frame, 1, uint8_t); //获取第二个值
+	value = *(uint16_t*)SoftBus_GetListPtr(frame, 0); //获取第一个值
+	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 1); //获取第二个值
 	/* ...其他处理逻辑 */
 }
 
