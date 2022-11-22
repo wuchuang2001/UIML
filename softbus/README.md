@@ -38,86 +38,93 @@
 - **软总线**：是对本模块作用的一种形象描述，系统中的所有模块通过本模块所提供的“订阅/发布”功能进行数据传输，可以将本模块看做系统中的一根“总线”，各个模块挂接在总线上相互传输数据
 	> 注：本软总线与CAN通信等协议有一定相似之处，Topic的作用就类似于CAN数据帧ID，可用于标记数据帧的发送者或作用，订阅者订阅数据就相当于设置过滤器，过滤出总线上所发布的广播数据中感兴趣的部分
 - **数据帧**(Frame)：在总线上所传输的数据是以“数据帧”为单位的，每次发布就是向软总线上发送一个数据帧
-	- 数据帧是一个结构体，包含【数据】和【长度】两个信息
+	- 数据帧是一个结构体，包含【数据】和【元素个数】两个信息
 	- 数据帧分为两种，映射表数据帧和列表数据帧
-    	- **映射表数据帧**：数据帧中所传输的是一个映射表，需要在接收到后进行解码，可用于传输结构较复杂的数据，可读性较好
-    	- **列表数据帧**：数据帧中所传输的是一个列表，需要在接收到后进行解码，可用于传输有序的数据，解码速率较快
+		- **映射表数据帧**：数据帧中所传输的是一个映射表，可读性较好，但解析过程较慢
+		- **列表数据帧**：数据帧中所传输的是一个列表，可读性较弱，但解析速度很快
 - **映射表**(Map)：由若干个“键-值”对构成，每个键是一个字符串，值为任意类型。每个键在表中只会出现一次，唯一对应着一个值，通过键即可找到所对应的值
-	- 在本模块中一个“键-值”对被称为一个字段(Item)，其中包含【键】和【值】
-- **列表**(List)：由有序的若干个任意类型的值构成，通过索引即可找到所对应的值
+	- 在本模块中一个“键-值”对被称为一个字段(Item)，其中包含对应的【键(key)】和【值(value)】两个信息
+	- 键有时也称作【字段名】
+- **列表**(List)：由有序的若干个值构成，每个值有一个索引，从0开始编号，通过索引即可获取对应的值
+- **快速句柄**(FastHandle)：在[快速发布方式](#发布方式和选用原则)中，需要提前由话题字符串创建出快速句柄，后续发布时使用该句柄代替话题字符串，其作用与话题字符串一致
 - **绑定数据**(bindData)：对于每一次订阅，订阅者可以绑定上一个自定义数据，在收到数据的同时也会收到该绑定数据
 	> 例如：订阅者可以订阅一次topic1，此时绑定一个数据A，然后再次订阅topic1，并绑定一个数据B，那么当发布者在topic1上发布一次数据时，该订阅者可以收到两次数据，分别附带有所绑定的A和B
-- **发送方式分类**：发送方式分为普通发送方式和快速发送方式
-  - **普通发送方式**：普通发送方式使用话题名去寻找所有订阅者，此方式与映射表数据帧绑定，可读性较好
-  - **快速发送方式**：快速发送方式通过话题对应的快速句柄去寻找所有订阅者，此方式与列表数据帧绑定，解码速率较快
-- **数据帧解析**：总线上的数据帧都是经过编码的，应将数据帧解码后才能使用
-  - **映射表数据帧解析**：根据key值获取对应的value值前应先判断key值在映射表中是否存在
-  - **列表数据帧解析**：根据索引获取对应的值，索引从0开始，若索引超出范围则返回NULL
 
 ---
 
-## 传输方式的选择
+## 发布方式和选用原则
 
-1. 当发送频率小于1kHz时，建议使用不带句柄的普通发送，可读性较好，只支持映射表数据帧，通常使用在基本任务等低频率模块中
-   > 经测试，在不普通发送中已注册17个topic，其中一个topic注册了两个回调函数的条件下，软总线约有30kHz的传输频率
-2. 当发送频率大于1kHz时，建议使用带句柄的发送，效率最高，但是只支持列表数据帧,通常使用在bsp等高频率服务模块中
-    > 经测试，在使用快速句柄发布数据空跑回调函数时，软总线约有2MHz的传输频率
+**发布方式**：本模块提供普通和快速两种发布方式
+- 普通方式
+	- 直接使用话题字符串发布，使用方便，可读性较好
+	- 须使用映射表数据帧
+	- 效率较低，适合发布频率较低的话题
+- 快速方式
+	- 须提前创建好快速句柄，用句柄发布，可读性较弱，使用较繁琐
+	- 须使用列表数据帧
+	- 效率较高，适合发布频率很高的话题
+
+**性能表现**：在168MHz主频的STM32F407中，本模块有以下性能表现
+- 普通发布方式在最简情况下最高能达到600kHz的调用频率，但随着注册的话题数和数据字段数量的增加，调用频率可能大幅下降至30kHz以下
+- 快速发布方式能达到2MHz调用频率，且不随话题数和数据帧长度发生变化
+	> 注：1. 最简情况指仅在单个话题上注册单个空回调函数；2. 若回调内逻辑增加，两种方式的发布频率都会明显下降
+
+**选用原则**：基于可读性和效率的衡量，我们对发布方式的选用有以下建议
+- 当话题的平均发布频率**小于1kHz**时，使用**普通**发布方式，一般用于上层模块间数据传输
+- 当话题的平均发布频率**大于1kHz**时，使用**快速**发布方式，一般用于底层外设驱动模块
 
 ---
 
 ## 接口使用示例
 
+> 注：此处仅展示基础用法，若要获取更多说明请查看项目文件中代码注释
+
 **发布话题(发送数据)**
 
 ```c
-/* 发布映射表数据帧 */
+/* 普通发布方式 */
 uint8_t value1 = 0x01; //要发布的第一个值
 float value2 = 1.0f; //要发布的第二个值
-SoftBus_PublishMap("topic2", {
-	{"key1", &value1, sizeof(value1)},
-	{"key2", &value2, sizeof(value2)}
-}); //向总线上发布一个映射表数据帧
+SoftBus_PublishMap("topic1", {
+	{"key1", &value1},
+	{"key2", &value2}
+}); //向总线发布一个映射表数据帧
 
-/*发布列表数据帧*/
-SoftBusFastHandle handle= SoftBus_CreateFastHandle("topic3"); //获取话题句柄
+/* 快速发布方式 */
+//创建快速句柄(只在程序初始化时创建一次)
+SoftBusFastHandle handle = SoftBus_CreateFastHandle("topic2"); 
+//发布数据帧
 uint16_t value = 0x201; //要发布的第一个值
-uint8_t data[2] = {0x20, 0x01}; //要发布的第二个值
-SoftBus_FastPublish(handle, {&value, data}); //向总线发布一个列表数据帧
+uint8_t array[2] = {0x20, 0x01}; //要发布的第二个值
+SoftBus_FastPublish(handle, {&value, array}); //向总线发布一个列表数据帧
 ```
 
 **订阅话题(接收数据)**
 ```c
 //定义软总线回调函数，收到数据时会自动调用
-void callback(const char* topic, SoftBusFrame* frame, void* bindData)
+void Callback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-	if(strcmp(topic, "topic2") == 0)
+	if(strcmp(topic, "topic1") == 0)
 	{
-		uint8_t value1;
-		float value2;
-		if(SoftBus_IsMapKeyExist(frame, "key1")) //判断"key1"字段是否存在
-			value1 = *(uint8_t*)SoftBus_GetMapValue(frame, "key1"); //读取字段值
-		if(SoftBus_IsMapKeyExist(frame, "key2")) //判断"key2"字段是否存在
-			value2 = *(float*)SoftBus_GetMapValue(frame, "key2"); //读取字段值
+		if(!SoftBus_CheckMapKeys(frame, {"key1", "key2"})) //确保数据帧中存在所需字段
+			return;
+		uint8_t value1 = *(uint8_t*)SoftBus_GetMapValue(frame, "key1"); //读取key1字段值
+		float value2 = *(float*)SoftBus_GetMapValue(frame, "key2"); //读取key2字段值
 		/* ...其他处理逻辑 */
 	}
 }
-//使用快速发布是为了提高总线效率，因此通常使用单独的函数去订阅来提高效率
-void fastCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+
+//为提高总线效率，一般使用单独回调函数订阅快速发布的话题
+void FastCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-	uint16_t value; 
-	value = *(uint16_t*)SoftBus_GetListPtr(frame, 0); //获取第一个值
-	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 1); //获取第二个值
+	uint16_t value = *(uint16_t*)SoftBus_GetListValue(frame, 0); //获取第一个值
+	uint8_t* array = (uint8_t*)SoftBus_GetListValue(frame, 1); //获取第二个值
 	/* ...其他处理逻辑 */
 }
 
 //订阅话题
-//方法1：订阅单个话题
-SoftBus_Subscribe(NULL, callback, "topic1");
-SoftBus_Subscribe(NULL, callback, "topic2");
-//方法2：一次订阅多个话题
-SoftBus_MultiSubscribe(NULL, callback, {"topic1", "topic2"});
-//方法3：订阅快速发布的话题
-SoftBus_Subscribe(NULL, fastCallback, "topic3");
+SoftBus_Subscribe(NULL, Callback, "topic1");
+SoftBus_Subscribe(NULL, Fastcallback, "topic2");
 ```
 
 ---
@@ -125,6 +132,6 @@ SoftBus_Subscribe(NULL, fastCallback, "topic3");
 ## 注意事项
 
 1. 回调函数是在发布者所在线程中执行的，因此回调函数的执行速度应尽可能快，切不可发生阻塞
-	> 用`SoftBus_Publish`或`SoftBus_PublishMap`函数发布一个topic时，只有当订阅了该topic的所有回调函数执行结束后，该发布函数才会退出
+	> 注：用`SoftBus_Publish`或`SoftBus_FastPublish`函数发布时，只有当订阅了该topic的所有回调函数执行结束后，该发布函数才会退出
 2. 软总线仅会传输数据的地址(data指针)，且数据指针仅保证在回调函数范围内有效，若需在回调函数外使用这些数据，请在回调中拷贝整个数据，而不只是保存数据指针
 3. 在回调函数中不应对传入的数据帧进行修改，否则会影响同一topic下的其他回调
