@@ -10,8 +10,7 @@
 //内部函数声明
 void Motor_SetTarget(Motor* motor, float targetValue);
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode ctrlerType);
-void Motor_StartStatAngle(Motor* motor);
-void Motor_StatAngle(Motor* motor);
+void Motor_SetStartAngle(Motor* motor, float angle);
 void Motor_InitDefault(Motor* motor);
 
 //声明子类初始化函数
@@ -43,10 +42,8 @@ void Motor_InitDefault(Motor* motor)
 		motor->changeMode = Motor_ChangeCtrler;
 	if(!motor->setTarget)
 		motor->setTarget = Motor_SetTarget;
-	if(!motor->startStatAngle)
-		motor->startStatAngle = Motor_StartStatAngle;
-	if(!motor->statAngle)
-		motor->statAngle = Motor_StatAngle;
+	if(!motor->setStartAngle)
+		motor->setStartAngle = Motor_SetStartAngle;
 }
 
 //纯虚函数
@@ -54,6 +51,5 @@ void Motor_SetTarget(Motor* motor, float targetValue) { }
 
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode mode) { }
 
-void Motor_StartStatAngle(Motor* motor) { }
+void Motor_SetStartAngle(Motor* motor, float angle) { }
 
-void Motor_StatAngle(Motor* motor) { }

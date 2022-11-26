@@ -35,20 +35,21 @@ typedef struct _M6020
 
 Motor* M6020_Init(ConfItem* dict);
 
-void M6020_StartStatAngle(Motor *motor);
-void M6020_StatAngle(Motor* motor);
+void M6020_SetStartAngle(Motor *motor, float startAngle);
 void M6020_SetTarget(Motor* motor, float targetValue);
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode);
 void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
 void M6020_Update(M6020* m6020,uint8_t* data);
 void M6020_PIDInit(M6020* m6020, ConfItem* dict);
+void M6020_StatAngle(M6020* m6020);
 void M6020_CtrlerCalc(M6020* m6020, float reference);
 
 //软件定时器回调函数
 void M6020_TimerCallback(void const *argument)
 {
 	M6020* m6020 = pvTimerGetTimerID((TimerHandle_t)argument); 
+	M6020_StatAngle(m6020);
 	M6020_CtrlerCalc(m6020, m6020->targetValue);
 }
 
@@ -60,13 +61,12 @@ Motor* M6020_Init(ConfItem* dict)
 	//子类多态
 	m6020->motor.setTarget = M6020_SetTarget;
 	m6020->motor.changeMode = M6020_ChangeMode;
-	m6020->motor.startStatAngle = M6020_StartStatAngle;
-	m6020->motor.statAngle = M6020_StatAngle;
+	m6020->motor.setStartAngle = M6020_SetStartAngle;
 	//电机减速比
 	m6020->reductionRatio = 1;
 	//初始化电机绑定can信息
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
-	m6020->canInfo.recvID = id + 0x200;
+	m6020->canInfo.recvID = id + 0x204;
 	m6020->canInfo.sendID = (id <= 4) ? 0x1FF : 0x2FF;
 	m6020->canInfo.bufIndex =  (id - 1) * 2;
 	m6020->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
@@ -107,19 +107,17 @@ void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 }
 
 //开始统计电机累计角度
-void M6020_StartStatAngle(Motor *motor)
+void M6020_SetStartAngle(Motor *motor, float startAngle)
 {
 	M6020* m6020 = (M6020*)motor;
 	
-	m6020->totalAngle=0;
+	m6020->totalAngle=M6020_DGR2CODE(startAngle);
 	m6020->lastAngle=m6020->angle;
 }
 
 //统计电机累计转过的圈数
-void M6020_StatAngle(Motor* motor)
+void M6020_StatAngle(M6020* m6020)
 {
-	M6020* m6020 = (M6020*)motor;
-	
 	int32_t dAngle=0;
 	if(m6020->angle-m6020->lastAngle<-4000)
 		dAngle=m6020->angle+(8191-m6020->lastAngle);

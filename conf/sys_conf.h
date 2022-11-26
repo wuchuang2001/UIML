@@ -8,15 +8,15 @@
 //<q0>CAN
 //<i>Select to include "can.h"
 //<q1>UART
-//<i>Select to include "uart.h"
+//<i>Select to include "usart.h"
 #define CONF_CAN_ENABLE		1
-#define CONF_UART_ENABLE	0
+#define CONF_USART_ENABLE	0
 //</h>
 #if CONF_CAN_ENABLE
 #include "can.h"
 #endif
-#if CONF_UART_ENABLE
-#include "uart.h"
+#if CONF_USART_ENABLE
+#include "usart.h"
 #endif
 // <<< end of configuration section >>>
 

@@ -20,7 +20,6 @@ typedef void (*SoftBusCallback)(const char* topic, SoftBusFrame* frame, void* bi
 int8_t _SoftBus_MultiSubscribe(void* bindData, SoftBusCallback callback, uint16_t topicsNum, char** topics);
 void _SoftBus_PublishMap(const char* topic, uint16_t itemNum, SoftBusItem* items);
 void _SoftBus_PublishList(SoftBusFastHandle topicHandle, uint16_t listNum, void** list);
-void* _SoftBus_GetListValue(SoftBusFrame* frame, uint16_t pos);
 uint8_t _SoftBus_CheckMapKeys(SoftBusFrame* frame, uint16_t keysNum, char** keys);
 
 /*
@@ -114,6 +113,6 @@ SoftBusFastHandle SoftBus_CreateFastHandle(const char* topic);
 	@note 不应通过返回的指针修改指向的数据
 	@example float value = *(float*)SoftBus_GetListValue(frame, 0); //获取列表中第一个值
 */
-#define SoftBus_GetListValue(frame,pos) (_SoftBus_GetListValue((frame),(pos)))
+#define SoftBus_GetListValue(frame,pos) (((pos) < (frame)->size)?((void**)(frame)->data)[(pos)]:NULL)
 
 #endif

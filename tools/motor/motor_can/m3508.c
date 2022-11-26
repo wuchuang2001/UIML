@@ -35,20 +35,21 @@ typedef struct _M3508
 
 Motor* M3508_Init(ConfItem* dict);
 
-void M3508_StartStatAngle(Motor *motor);
-void M3508_StatAngle(Motor* motor);
+void M3508_SetStartAngle(Motor *motor, float startAngle);
 void M3508_SetTarget(Motor* motor, float targetValue);
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode);
 void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
 void M3508_Update(M3508* m3508,uint8_t* data);
 void M3508_PIDInit(M3508* m3508, ConfItem* dict);
+void M3508_StatAngle(M3508* m3508);
 void M3508_CtrlerCalc(M3508* m3508, float reference);
 
 //软件定时器回调函数
 void M3508_TimerCallback(void const *argument)
 {
 	M3508* m3508 = pvTimerGetTimerID((TimerHandle_t)argument); 
+	M3508_StatAngle(m3508);
 	M3508_CtrlerCalc(m3508, m3508->targetValue);
 }
 
@@ -60,8 +61,7 @@ Motor* M3508_Init(ConfItem* dict)
 	//子类多态
 	m3508->motor.setTarget = M3508_SetTarget;
 	m3508->motor.changeMode = M3508_ChangeMode;
-	m3508->motor.startStatAngle = M3508_StartStatAngle;
-	m3508->motor.statAngle = M3508_StatAngle;
+	m3508->motor.setStartAngle = M3508_SetStartAngle;
 	//电机减速比
 	m3508->reductionRatio = 19;
 	//初始化电机绑定can信息
@@ -107,19 +107,17 @@ void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 }
 
 //开始统计电机累计角度
-void M3508_StartStatAngle(Motor *motor)
+void M3508_SetStartAngle(Motor *motor, float startAngle)
 {
 	M3508* m3508 = (M3508*)motor;
 	
-	m3508->totalAngle=0;
+	m3508->totalAngle=M3508_DGR2CODE(startAngle);
 	m3508->lastAngle=m3508->angle;
 }
 
 //统计电机累计转过的圈数
-void M3508_StatAngle(Motor* motor)
+void M3508_StatAngle(M3508* m3508)
 {
-	M3508* m3508 = (M3508*)motor;
-	
 	int32_t dAngle=0;
 	if(m3508->angle-m3508->lastAngle<-4000)
 		dAngle=m3508->angle+(8191-m3508->lastAngle);

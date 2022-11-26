@@ -193,13 +193,6 @@ void _SoftBus_PublishList(SoftBusFastHandle topicHandle, uint16_t listNum, void*
 	}
 }
 
-void* _SoftBus_GetListValue(SoftBusFrame* frame, uint16_t pos)
-{
-	if(!frame || pos >= frame->size)
-		return NULL;
-	return ((void**)frame->data)[pos];
-}
-
 uint8_t _SoftBus_CheckMapKeys(SoftBusFrame* frame, uint16_t keysNum, char** keys)
 {
 	if(!frame || !keys || !keysNum)

@@ -35,20 +35,21 @@ typedef struct _M2006
 
 Motor* M2006_Init(ConfItem* dict);
 
-void M2006_StartStatAngle(Motor *motor);
-void M2006_StatAngle(Motor* motor);
+void M2006_SetStartAngle(Motor *motor, float startAngle);
 void M2006_SetTarget(Motor* motor, float targetValue);
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode);
 void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
 void M2006_Update(M2006* m2006,uint8_t* data);
 void M2006_PIDInit(M2006* m2006, ConfItem* dict);
+void M2006_StatAngle(M2006* m2006);
 void M2006_CtrlerCalc(M2006* m2006, float reference);
 
 //软件定时器回调函数
 void M2006_TimerCallback(void const *argument)
 {
-	M2006* m2006 = pvTimerGetTimerID((TimerHandle_t)argument); 
+	M2006* m2006 = pvTimerGetTimerID((TimerHandle_t)argument);
+	M2006_StatAngle(m2006);
 	M2006_CtrlerCalc(m2006, m2006->targetValue);
 }
 
@@ -60,8 +61,7 @@ Motor* M2006_Init(ConfItem* dict)
 	//子类多态
 	m2006->motor.setTarget = M2006_SetTarget;
 	m2006->motor.changeMode = M2006_ChangeMode;
-	m2006->motor.startStatAngle = M2006_StartStatAngle;
-	m2006->motor.statAngle = M2006_StatAngle;
+	m2006->motor.setStartAngle = M2006_SetStartAngle;
 	//电机减速比
 	m2006->reductionRatio = 36;
 	//初始化电机绑定can信息
@@ -107,19 +107,17 @@ void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 }
 
 //开始统计电机累计角度
-void M2006_StartStatAngle(Motor *motor)
+void M2006_SetStartAngle(Motor *motor, float startAngle)
 {
 	M2006* m2006 = (M2006*)motor;
 	
-	m2006->totalAngle=0;
+	m2006->totalAngle= M2006_DGR2CODE(startAngle);
 	m2006->lastAngle=m2006->angle;
 }
 
 //统计电机累计转过的圈数
-void M2006_StatAngle(Motor* motor)
+void M2006_StatAngle(M2006* m2006)
 {
-	M2006* m2006 = (M2006*)motor;
-	
 	int32_t dAngle=0;
 	if(m2006->angle-m2006->lastAngle<-4000)
 		dAngle=m2006->angle+(8191-m2006->lastAngle);
