@@ -68,7 +68,7 @@ Motor* M6020_Init(ConfItem* dict)
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m6020->canInfo.recvID = id + 0x204;
 	m6020->canInfo.sendID = (id <= 4) ? 0x1FF : 0x2FF;
-	m6020->canInfo.bufIndex =  (id - 1) * 2;
+	m6020->canInfo.bufIndex =  ((id - 1)%4) * 2;
 	m6020->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
 	//设置电机默认模式为扭矩模式
 	m6020->mode = MOTOR_TORQUE_MODE;
@@ -133,7 +133,8 @@ void M6020_StatAngle(M6020* m6020)
 //控制器根据模式计算输出
 void M6020_CtrlerCalc(M6020* m6020, float reference)
 {
-	int16_t output;
+	int16_t output=0;
+	uint8_t buffer[2]={0};
 	if(m6020->mode == MOTOR_SPEED_MODE)
 	{
 		PID_SingleCalc(&m6020->speedPID, reference, m6020->speed);
@@ -148,12 +149,14 @@ void M6020_CtrlerCalc(M6020* m6020, float reference)
 	{
 		output = (int16_t)reference;
 	}
+	buffer[0] = (output>>8)&0xff;
+	buffer[1] = (output)&0xff;
 	SoftBus_Publish("/can/set-buf",{
 		{"can-x", &m6020->canInfo.canX},
 		{"id", &m6020->canInfo.sendID},
 		{"pos", &m6020->canInfo.bufIndex},
 		{"len", &(uint8_t){2}},
-		{"data", &output}
+		{"data", buffer}
 	});
 }
 //设置电机期望值

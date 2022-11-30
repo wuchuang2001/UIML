@@ -122,7 +122,7 @@ void BSP_CAN_Init(ConfItem* dict)
 void BSP_CAN_InitInfo(CANInfo* info, ConfItem* dict)
 {
 	info->hcan = Conf_GetPtr(dict, "hcan", CAN_HandleTypeDef);
-	info->number = Conf_GetValue(dict, "can-x", uint8_t, 0);
+	info->number = Conf_GetValue(dict, "number", uint8_t, 0);
 	char topic[] = "/can_/recv";
 	topic[4] = info->number + '0';
 	info->fastHandle = SoftBus_CreateFastHandle(topic);

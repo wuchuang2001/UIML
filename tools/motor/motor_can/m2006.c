@@ -68,7 +68,7 @@ Motor* M2006_Init(ConfItem* dict)
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m2006->canInfo.recvID = id + 0x200;
 	m2006->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
-	m2006->canInfo.bufIndex =  (id - 1) * 2;
+	m2006->canInfo.bufIndex =  ((id - 1)%4) * 2;
 	m2006->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
 	//设置电机默认模式为扭矩模式
 	m2006->mode = MOTOR_TORQUE_MODE;
@@ -133,7 +133,8 @@ void M2006_StatAngle(M2006* m2006)
 //控制器根据模式计算输出
 void M2006_CtrlerCalc(M2006* m2006, float reference)
 {
-	int16_t output;
+	int16_t output=0;
+	uint8_t buffer[2]={0};
 	if(m2006->mode == MOTOR_SPEED_MODE)
 	{
 		PID_SingleCalc(&m2006->speedPID, reference, m2006->speed);
@@ -148,13 +149,15 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 	{
 		output = (int16_t)reference;
 	}
+	buffer[0] = (output>>8)&0xff;
+	buffer[1] = (output)&0xff;
 	//发布can信息
 	SoftBus_Publish("/can/set-buf",{
 		{"can-x", &m2006->canInfo.canX},
 		{"id", &m2006->canInfo.sendID},
 		{"pos", &m2006->canInfo.bufIndex},
 		{"len", &(uint8_t){2}},
-		{"data", &output}
+		{"data", buffer}
 	});
 }
 //设置电机期望值

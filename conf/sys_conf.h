@@ -23,7 +23,7 @@
 //服务配置列表，每项格式(服务名,服务任务函数,任务优先级,任务栈大小)
 #define SERVICE_LIST \
 	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,128) \
-	SERVICE(can, BSP_CAN_TaskCallback, osPriorityNormal,128)
+	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128)
 
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
@@ -117,18 +117,18 @@ ConfItem* systemConfig = CF_DICT{
 				{"number", IM_PTR(uint8_t, 1)},
 				CF_DICT_END
 			}},
-//			{"1", CF_DICT{
-//				{"hcan", &hcan2},
-//				{"number", IM_PTR(uint8_t, 2)},
-//				CF_DICT_END
-//			}},
+			{"1", CF_DICT{
+				{"hcan", &hcan2},
+				{"number", IM_PTR(uint8_t, 2)},
+				CF_DICT_END
+			}},
 			CF_DICT_END
 		}},
 		//定时帧配置
 		{"repeat-buffers", CF_DICT{
 			{"0", CF_DICT{
 				{"can-x", IM_PTR(uint8_t, 1)},
-				{"id", IM_PTR(uint16_t, 0x200)},
+				{"id", IM_PTR(uint16_t, 0x1FF)},
 				{"interval", IM_PTR(uint16_t, 2)},
 				CF_DICT_END
 			}},

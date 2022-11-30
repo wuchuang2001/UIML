@@ -152,7 +152,7 @@ const SoftBusItem* SoftBus_GetMapItem(SoftBusFrame* frame, char* key)
 {
 	for(uint16_t i = 0; i < frame->size; ++i)
 	{
-		SoftBusItem* item = (SoftBusItem*)frame->data;
+		SoftBusItem* item = (SoftBusItem*)frame->data + i;
 		if(strcmp(key, item->key) == 0)//如果key值与数据帧中相应的字段匹配上则返回它
 			return item;
 	}
