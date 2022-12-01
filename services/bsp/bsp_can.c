@@ -40,13 +40,13 @@ uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t StdId,uint8_t* data);
 //can接收结束中断
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-	if(!canService.initFinished)
-		return;
-
 	CAN_RxHeaderTypeDef header;
 	uint8_t rx_data[8];
 	
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &header, rx_data);
+	
+	if(!canService.initFinished)
+		return;
 	
 	for(uint8_t i = 0; i < canService.canNum; i++)
 	{
@@ -62,7 +62,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 //can任务回调函数
 void BSP_CAN_TaskCallback(void const * argument)
 {
+	//进入临界区
+	portENTER_CRITICAL();
 	BSP_CAN_Init((ConfItem*)argument);
+	portEXIT_CRITICAL();
+	
 	vTaskDelete(NULL);
 }
 

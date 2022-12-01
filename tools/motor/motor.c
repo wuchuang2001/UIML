@@ -29,9 +29,11 @@ Motor* Motor_Init(ConfItem* dict)
 		motor = initFunc(dict);
 	MOTOR_CHILD_LIST
 	#undef MOTOR_TYPE
-	//将子类未定义的方法设置为空函数
 	if(motor)
-		Motor_InitDefault(motor);
+		motor = MOTOR_MALLOC_PORT(sizeof(Motor));
+	
+	//将子类未定义的方法设置为空函数
+	Motor_InitDefault(motor);
 
 	return motor;
 }

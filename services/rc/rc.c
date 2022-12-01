@@ -103,12 +103,17 @@ void RC_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
 void RC_TaskCallback(void const * argument)
 {
+	//进入临界区
+	portENTER_CRITICAL();
 	RC rc;
 	rc.uartX = Conf_GetValue((ConfItem*)argument, "uart-x", uint8_t, 0);
 	RC_InitKeys(&rc);
 	char topic[] = "/uart_/recv";
 	topic[5] = rc.uartX + '0';
 	SoftBus_Subscribe(&rc, RC_SoftBusCallback, topic);
+	portEXIT_CRITICAL();
+	
+	osDelay(2000);
 	TickType_t tick = xTaskGetTickCount();
 	while(1)
 	{

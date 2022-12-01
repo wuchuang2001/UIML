@@ -44,8 +44,13 @@ void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindD
 //底盘任务回调函数
 void Chassis_TaskCallback(void const * argument)
 {
+	//进入临界区
+	portENTER_CRITICAL();
 	Chassis chassis={0};
 	Chassis_Init(&chassis, (ConfItem*)argument);
+	portEXIT_CRITICAL();
+	
+	osDelay(2000);
 	TickType_t tick = xTaskGetTickCount();
 	while(1)
 	{		
