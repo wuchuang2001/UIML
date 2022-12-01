@@ -53,6 +53,9 @@
 		- 开启vTaskDelayUntil
 
 		![开启vTaskDelayUntil](开启vTaskDelayUntil.png)
+   - 修改堆栈大小,建议大小为如下图所示
+
+	![修改堆栈大小](修改堆栈大小.png)
 2. 将所有所需的文件添加至Keil工程
 	- 文件依赖分析待完善
 3. 编写配置文件，可参考各模块给出的说明和配置示例进行修改 [查看配置文件说明](conf/README.md)
