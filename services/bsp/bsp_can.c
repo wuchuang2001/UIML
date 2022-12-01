@@ -171,6 +171,7 @@ void BSP_CAN_InitRepeatBuffer(CANRepeatBuffer* buffer, ConfItem* dict)
 	//设置重复帧can的id域
 	buffer->frameID = Conf_GetValue(dict, "id", uint16_t, 0x00);
 	buffer->data = pvPortMalloc(8);
+	memset(buffer->data, 0, 8);
 		//开启软件定时器定时发送重复帧
 	uint16_t sendInterval = Conf_GetValue(dict, "interval", uint16_t, 100);
 	osTimerDef(CAN, BSP_CAN_TimerCallback);
