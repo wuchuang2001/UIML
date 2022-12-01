@@ -26,7 +26,7 @@ typedef struct _M3508
 	
 	int32_t totalAngle;//累计转过的编码器值
 	
-	float  targetValue;//目标值(速度/角度(编码器值))
+	float  targetValue;//目标值(输出轴扭矩矩/速度/角度(单位度))
 	
 	PID speedPID;//速度pid(单级)
 	CascadePID anglePID;//角度pid，串级
