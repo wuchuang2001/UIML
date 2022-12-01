@@ -4,8 +4,8 @@
 #include "config.h"
 
 //各种电机编码值与角度的换算
-#define M3508_DGR2CODE(dgr) ((int32_t)(dgr*436.9263f)) //3591/187*8191/360
-#define M3508_CODE2DGR(code) ((float)(code/436.9263f))
+#define M3508_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //减速比*8191/360
+#define M3508_CODE2DGR(code,rdcr) ((float)((code)/(22.7528f*(rdcr))))
 
 typedef struct _M3508
 {
@@ -63,7 +63,7 @@ Motor* M3508_Init(ConfItem* dict)
 	m3508->motor.changeMode = M3508_ChangeMode;
 	m3508->motor.setStartAngle = M3508_SetStartAngle;
 	//电机减速比
-	m3508->reductionRatio = 19;
+	m3508->reductionRatio = Conf_GetValue(dict, "reductionRatio", float, 19.2f);//如果未配置电机减速比参数，则使用原装电机默认减速比
 	//初始化电机绑定can信息
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m3508->canInfo.recvID = id + 0x200;
@@ -90,7 +90,7 @@ void M3508_PIDInit(M3508* m3508, ConfItem* dict)
 	PID_Init(&m3508->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
 	PID_Init(&m3508->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
 	PID_Init(&m3508->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
-	PID_SetMaxOutput(&m3508->anglePID.outer, m3508->anglePID.outer.maxOutput*m3508->reductionRatio);
+	PID_SetMaxOutput(&m3508->anglePID.outer, m3508->anglePID.outer.maxOutput*m3508->reductionRatio);//将输出轴速度限幅放大到转子上
 }
 //软总线回调函数
 void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
@@ -111,7 +111,7 @@ void M3508_SetStartAngle(Motor *motor, float startAngle)
 {
 	M3508* m3508 = (M3508*)motor;
 	
-	m3508->totalAngle=M3508_DGR2CODE(startAngle);
+	m3508->totalAngle=M3508_DGR2CODE(startAngle, m3508->reductionRatio);
 	m3508->lastAngle=m3508->angle;
 }
 
@@ -165,7 +165,7 @@ void M3508_SetTarget(Motor* motor, float targetValue)
 	M3508* m3508 = (M3508*)motor;
 	if(m3508->mode == MOTOR_ANGLE_MODE)
 	{
-		m3508->targetValue = M3508_DGR2CODE(targetValue);
+		m3508->targetValue = M3508_DGR2CODE(targetValue, m3508->reductionRatio);
 	}
 	else if(m3508->mode == MOTOR_SPEED_MODE)
 	{

@@ -39,10 +39,23 @@
 ## 使用步骤
 
 1. 新建CubeMX工程，配置所需外设及FreeRTOS
-	- 配置细节待完善
+   - 配置外设
+   - 配置FreeRTOS
+        - 使能FreeRTOS,并选择CMSIS_V1
+   
+		![使能FreeRTOS](使能FreeRTOS.png)
+		- 将初始任务的Code Generation Option设置为As weak,**不需要额外添加任何其他任务**
+
+		![初始任务生成方式](初始任务生成方式.png)
+		- 打开软件定时器,并将其优先级设置为6，定时器队列大小设置为20
+  
+  		![打开软件定时器](打开软件定时器.png)
+		- 开启vTaskDelayUntil
+
+		![开启vTaskDelayUntil](开启vTaskDelayUntil.png)
 2. 将所有所需的文件添加至Keil工程
 	- 文件依赖分析待完善
-3. 编写配置文件，可参考各模块给出的说明和配置示例进行修改
+3. 编写配置文件，可参考各模块给出的说明和配置示例进行修改 [查看配置文件说明](conf/README.md)
 
 ---
 
@@ -50,7 +63,10 @@
 
 ### 添加步骤
 
-待完善
+- 服务类模块
+  - 底盘模块 [查看底盘文件说明](chassis/README.md)
+  - BSP模块 [查看BSP文件说明](bsp/README.md)
+  - 遥控器模块 [查看遥控器文件说明](rc/README.md)
 
 ### 相关规范
 
@@ -58,7 +74,7 @@
 
 ### Todo List
 
-![已完成进度](https://img.shields.io/badge/已完成-9/23-blue)
+![已完成进度](https://img.shields.io/badge/已完成-9/25-blue)
 
 - 系统模块
 	- [x] 系统配置模块
@@ -66,13 +82,15 @@
 - 数学计算模块
 	- [x] 斜坡函数
 	- [x] PID计算
-	- [ ] 卡尔曼滤波
+	- [ ] 一阶滤波
 - 外设驱动模块
 	- [x] CAN通信模块
 	- [ ] 串口模块
 	- [ ] SPI模块
 	- [ ] IIC模块
 	- [ ] TIM模块
+	- [ ] USB虚拟串口模块
+	- [ ] 外部中断模块
 - 设备驱动模块
 	- [ ] 遥控器驱动模块
 	- [ ] IMU驱动模块

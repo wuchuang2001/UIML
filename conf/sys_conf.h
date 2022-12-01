@@ -54,6 +54,7 @@ ConfItem* systemConfig = CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 1)},
 			{"canX", IM_PTR(uint8_t, 1)},
+//			{"reductionRatio", IM_PTR(float, 1)},   //若使用改装减速箱或者拆掉减速箱的电机则修改此参数，若使用原装电机则无需配置此参数
 			{"speedPID", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
@@ -62,6 +63,25 @@ ConfItem* systemConfig = CF_DICT{
 				{"maxOut", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
+//			{"anglePID", CF_DICT{                  //串级pid示例，如需使用串级pid照此模板配置即可
+//				{"inner", CF_DICT{
+//					{"p", IM_PTR(float, 10)},
+//					{"i", IM_PTR(float, 1)},
+//					{"d", IM_PTR(float, 0)},
+//					{"maxI", IM_PTR(float, 10000)},
+//					{"maxOut", IM_PTR(float, 20000)},
+//					CF_DICT_END
+//				}},
+//				{"outer", CF_DICT{
+//					{"p", IM_PTR(float, 0.5)},
+//					{"i", IM_PTR(float, 0)},
+//					{"d", IM_PTR(float, 0)},
+//					{"maxI", IM_PTR(float, 25)},
+//					{"maxOut", IM_PTR(float, 50)},
+//					CF_DICT_END
+//				}},
+//				CF_DICT_END
+//			}},
 			CF_DICT_END
 		}},
 		{"motorFR", CF_DICT{

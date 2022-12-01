@@ -4,8 +4,8 @@
 #include "config.h"
 
 //各种电机编码值与角度的换算
-#define M6020_DGR2CODE(dgr) ((int32_t)(dgr*22.7528f)) //8191/360
-#define M6020_CODE2DGR(code) ((float)(code/22.7528f))
+#define M6020_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //减速比*8191/360
+#define M6020_CODE2DGR(code,rdcr) ((float)((code)/(22.7528f*(rdcr))))
 
 typedef struct _M6020
 {
@@ -63,7 +63,7 @@ Motor* M6020_Init(ConfItem* dict)
 	m6020->motor.changeMode = M6020_ChangeMode;
 	m6020->motor.setStartAngle = M6020_SetStartAngle;
 	//电机减速比
-	m6020->reductionRatio = 1;
+	m6020->reductionRatio = Conf_GetValue(dict, "reductionRatio", float, 1);//如果未配置电机减速比参数，则使用原装电机默认减速比
 	//初始化电机绑定can信息
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m6020->canInfo.recvID = id + 0x204;
@@ -90,7 +90,7 @@ void M6020_PIDInit(M6020* m6020, ConfItem* dict)
 	PID_Init(&m6020->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
 	PID_Init(&m6020->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
 	PID_Init(&m6020->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
-	PID_SetMaxOutput(&m6020->anglePID.outer, m6020->anglePID.outer.maxOutput*m6020->reductionRatio);
+	PID_SetMaxOutput(&m6020->anglePID.outer, m6020->anglePID.outer.maxOutput*m6020->reductionRatio);//将输出轴速度限幅放大到转子上
 }
 //软总线回调函数
 void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
@@ -111,7 +111,7 @@ void M6020_SetStartAngle(Motor *motor, float startAngle)
 {
 	M6020* m6020 = (M6020*)motor;
 	
-	m6020->totalAngle=M6020_DGR2CODE(startAngle);
+	m6020->totalAngle=M6020_DGR2CODE(startAngle, m6020->reductionRatio);
 	m6020->lastAngle=m6020->angle;
 }
 
@@ -165,7 +165,7 @@ void M6020_SetTarget(Motor* motor, float targetValue)
 	M6020* m6020 = (M6020*)motor;
 	if(m6020->mode == MOTOR_ANGLE_MODE)
 	{
-		m6020->targetValue = M6020_DGR2CODE(targetValue);
+		m6020->targetValue = M6020_DGR2CODE(targetValue, m6020->reductionRatio);
 	}
 	else if(m6020->mode == MOTOR_SPEED_MODE)
 	{

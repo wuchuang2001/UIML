@@ -4,8 +4,8 @@
 #include "config.h"
 
 //各种电机编码值与角度的换算	
-#define M2006_DGR2CODE(dgr) ((int32_t)(dgr*819.1f)) //36*8191/360
-#define M2006_CODE2DGR(code) ((float)(code/819.1f))
+#define M2006_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //减速比*8191/360
+#define M2006_CODE2DGR(code,rdcr) ((float)((code)/(22.7528f*(rdcr))))
 
 typedef struct _M2006
 {
@@ -63,7 +63,7 @@ Motor* M2006_Init(ConfItem* dict)
 	m2006->motor.changeMode = M2006_ChangeMode;
 	m2006->motor.setStartAngle = M2006_SetStartAngle;
 	//电机减速比
-	m2006->reductionRatio = 36;
+	m2006->reductionRatio = Conf_GetValue(dict, "reductionRatio", float, 36);//如果未配置电机减速比参数，则使用原装电机默认减速比
 	//初始化电机绑定can信息
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m2006->canInfo.recvID = id + 0x200;
@@ -90,7 +90,7 @@ void M2006_PIDInit(M2006* m2006, ConfItem* dict)
 	PID_Init(&m2006->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
 	PID_Init(&m2006->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
 	PID_Init(&m2006->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
-	PID_SetMaxOutput(&m2006->anglePID.outer, m2006->anglePID.outer.maxOutput*m2006->reductionRatio);
+	PID_SetMaxOutput(&m2006->anglePID.outer, m2006->anglePID.outer.maxOutput*m2006->reductionRatio);//将输出轴速度限幅放大到转子上
 }
 //软总线回调函数
 void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
@@ -111,7 +111,7 @@ void M2006_SetStartAngle(Motor *motor, float startAngle)
 {
 	M2006* m2006 = (M2006*)motor;
 	
-	m2006->totalAngle= M2006_DGR2CODE(startAngle);
+	m2006->totalAngle= M2006_DGR2CODE(startAngle, m2006->reductionRatio);
 	m2006->lastAngle=m2006->angle;
 }
 
@@ -166,7 +166,7 @@ void M2006_SetTarget(Motor* motor, float targetValue)
 	M2006* m2006 = (M2006*)motor;
 	if(m2006->mode == MOTOR_ANGLE_MODE)
 	{
-		m2006->targetValue = M2006_DGR2CODE(targetValue);
+		m2006->targetValue = M2006_DGR2CODE(targetValue, m2006->reductionRatio);
 	}
 	else if(m2006->mode == MOTOR_SPEED_MODE)
 	{
