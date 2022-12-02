@@ -25,7 +25,7 @@
 
 此部分支持Keil的Configuration Wizard图形化配置，在Keil中勾选对应项即可
 
-![图形化配置](图形化配置.png)
+![图形化配置](README-IMG/图形化配置.png)
 
 **服务列表配置**
 

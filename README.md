@@ -24,7 +24,7 @@
   - 工具类模块没有在配置文件中的独立配置
   - 例如：PID计算模块、电机模块等
 
-各服务类模块之间通过软总线进行数据交互，以实现模块间的松耦合 [查看软总线说明](../softbus/README/README.md)
+各服务类模块之间通过软总线进行数据交互，以实现模块间的松耦合 [查看软总线说明](softbus/README.md)
 
 > 注意：服务类与它所用到的工具类模块是通过函数直接调用的，而不用经过软总线
 
@@ -43,22 +43,22 @@
    - 配置FreeRTOS
         - 使能FreeRTOS,并选择CMSIS_V1
    
-		![使能FreeRTOS](使能FreeRTOS.png)
+		![使能FreeRTOS](README-IMG/使能FreeRTOS.png)
 		- 将初始任务的Code Generation Option设置为As weak,**不需要额外添加任何其他任务**
 
-		![初始任务生成方式](初始任务生成方式.png)
+		![初始任务生成方式](README-IMG/初始任务生成方式.png)
 		- 打开软件定时器,并将其优先级设置为6，定时器队列大小设置为20
   
-  		![打开软件定时器](打开软件定时器.png)
+  		![打开软件定时器](README-IMG/打开软件定时器.png)
 		- 开启vTaskDelayUntil
 
-		![开启vTaskDelayUntil](开启vTaskDelayUntil.png)
+		![开启vTaskDelayUntil](README-IMG/开启vTaskDelayUntil.png)
    - 修改堆栈大小,建议大小为如下图所示
 
-	![修改堆栈大小](修改堆栈大小.png)
+	![修改堆栈大小](/README-IMG/修改堆栈大小.png)
 2. 将所有所需的文件添加至Keil工程
 	- 文件依赖分析待完善
-3. 编写配置文件，可参考各模块给出的说明和配置示例进行修改 [查看配置文件说明](../conf/README/README.md)
+3. 编写配置文件，可参考各模块给出的说明和配置示例进行修改 [查看配置文件说明](conf/README.md)
 
 ---
 
@@ -67,9 +67,9 @@
 ### 添加步骤
 
 - 服务类模块
-  - 底盘模块 [查看底盘文件说明](../services/chassis/README/README.md)
-  - BSP模块 [查看BSP文件说明](../services/bsp/README/README.md)
-  - 遥控器模块 [查看遥控器文件说明](../services/rc/README/README.md)
+  - 底盘模块 [查看底盘文件说明](services/chassis/README.md)
+  - BSP模块 [查看BSP文件说明](services/bsp/README.md)
+  - 遥控器模块 [查看遥控器文件说明](services/rc/README.md)
 
 ### 相关规范
 
