@@ -10,7 +10,7 @@
 //<q1>UART
 //<i>Select to include "usart.h"
 #define CONF_CAN_ENABLE		1
-#define CONF_USART_ENABLE	0
+#define CONF_USART_ENABLE	1
 //</h>
 #if CONF_CAN_ENABLE
 #include "can.h"
@@ -22,9 +22,11 @@
 
 //服务配置列表，每项格式(服务名,服务任务函数,任务优先级,任务栈大小)
 #define SERVICE_LIST \
-	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,128) \
-	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128)
-
+  	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,256) \
+	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
+	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)         \
+	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,256)
+	
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
 	//底盘服务配置
@@ -148,11 +150,23 @@ ConfItem* systemConfig = CF_DICT{
 		{"repeat-buffers", CF_DICT{
 			{"0", CF_DICT{
 				{"can-x", IM_PTR(uint8_t, 1)},
-				{"id", IM_PTR(uint16_t, 0x1FF)},
+				{"id", IM_PTR(uint16_t, 0x200)},
 				{"interval", IM_PTR(uint16_t, 2)},
 				CF_DICT_END
 			}},
-			{"1", CF_DICT{
+      		{"1",CF_DICT{
+				{"can-x", IM_PTR(uint8_t, 1)},
+				{"id", IM_PTR(uint16_t, 0x1FF)},
+				{"interval", IM_PTR(uint16_t, 2)},          
+				CF_DICT_END
+				}},
+			{"2",CF_DICT{
+				{"can-x", IM_PTR(uint8_t, 2)},
+				{"id", IM_PTR(uint16_t, 0x200)},
+				{"interval", IM_PTR(uint16_t, 2)},          
+				CF_DICT_END
+				}},		
+			{"3", CF_DICT{
 				{"can-x", IM_PTR(uint8_t, 2)},
 				{"id", IM_PTR(uint16_t, 0x1FF)},
 				{"interval", IM_PTR(uint16_t, 2)},
@@ -162,6 +176,30 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
+			//遥控服务配置
+	{"rc",CF_DICT{
+		{"uart-x",IM_PTR(uint8_t, 3)},
+	   CF_DICT_END
+	}},
+	//串口服务配置
+	{"uart",CF_DICT{
+		{"uarts",CF_DICT{
+			{"0",CF_DICT{
+				{"huart",&huart1},
+				{"uart-x",IM_PTR(uint8_t,1)},
+				{"maxRecvSize",IM_PTR(uint16_t,100)},
+				CF_DICT_END
+				}},
+			{"1",CF_DICT{
+				{"huart",&huart3},
+				{"uart-x",IM_PTR(uint8_t,3)},
+				{"maxRecvSize",IM_PTR(uint16_t,18)},
+				CF_DICT_END
+				}},
+			CF_DICT_END
+			}},	
+		CF_DICT_END
+		}},
 	CF_DICT_END
 };
 

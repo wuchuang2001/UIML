@@ -35,6 +35,7 @@ char* keyType[] = {
 	#undef MOUSE_KEY
 };
 
+
 //遥控数据结构体
 typedef struct {
 	//摇杆数据 取值[-660,660] 
@@ -43,8 +44,10 @@ typedef struct {
 	int16_t ch3;
 	int16_t ch4;
 	//左右拨码开关 上1/中3/下2 
-	uint8_t left;
+  uint8_t left;
 	uint8_t right;
+	//拨轮数据 取值[-660,660]
+	int16_t wheel;
 	//鼠标信息 
 	struct {
 		//移动速度 
@@ -66,8 +69,7 @@ typedef struct {
 			#undef MOUSE_KEY 
 		} bit;//各个位代表对应的键位 
 	} kb;
-	//拨轮数据 取值[-660,660]
-	int16_t wheel;
+
 }RC_TypeDef;
 
 //按键结构体，用于计算键盘/鼠标的按键事件
@@ -97,6 +99,7 @@ typedef struct
 //初始化判定时间
 void RC_InitKeys(RC* rc);
 void RC_InitKeyJudgeTime(RC* rc, uint32_t key,uint16_t clickDelay,uint16_t longPressDelay);
+void RC_PublishData(RC *rc);
 void RC_UpdateKeys(RC* rc);
 void RC_ParseData(RC* rc, uint8_t* buff);
 void RC_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
@@ -105,7 +108,7 @@ void RC_TaskCallback(void const * argument)
 {
 	//进入临界区
 	portENTER_CRITICAL();
-	RC rc;
+	RC rc={0};
 	rc.uartX = Conf_GetValue((ConfItem*)argument, "uart-x", uint8_t, 0);
 	RC_InitKeys(&rc);
 	char topic[] = "/uart_/recv";
@@ -117,7 +120,7 @@ void RC_TaskCallback(void const * argument)
 	TickType_t tick = xTaskGetTickCount();
 	while(1)
 	{
-		RC_UpdateKeys(&rc);
+		RC_PublishData(&rc);
 		osDelayUntil(&tick,14);
 	}
 }
@@ -142,6 +145,58 @@ void RC_InitKeyJudgeTime(RC* rc, uint32_t key,uint16_t clickDelay,uint16_t longP
 	}
 }
 
+
+//发布rc数据
+void RC_PublishData(RC *rc)
+{
+  static RC_TypeDef lastData={0};
+	
+	/*
+	@brief 若有数据更新则向外发布	
+	@param topic:话题名
+	@param iterm:数据字段名
+	@param data：数据
+	@note RC_PUBLISH_1_DATA 若有数据更新则发布topic
+	      RC_PUBLISH_2_DATA 若两个数据中有一个更新则发布topic
+          RC_PUBLISH_3_DATA 若三个数据中有一个更新则发布topic
+*/	
+	#define RC_PUBLISH_1_DATA(topic,iterm1,data1) \
+	if(lastData.data1!=rc->rcInfo.data1) \
+	{ \
+		SoftBus_Publish(topic,{iterm1,&rc->rcInfo.data1});	\
+		lastData =rc->rcInfo;\
+	}
+	
+	RC_PUBLISH_1_DATA("rc/wheel","wheel",wheel);
+	#undef RC_PUBLISH_1_DATA
+	
+	
+  #define RC_PUBLISH_2_DATA(topic,iterm1,data1,iterm2,data2) \
+	if(lastData.data1!=rc->rcInfo.data1||lastData.data2!=rc->rcInfo.data2) \
+	{ \
+		SoftBus_Publish(topic,{{iterm1,&rc->rcInfo.data1},{iterm2,&rc->rcInfo.data2}}); \
+		lastData =rc->rcInfo; \
+	} 
+	
+	RC_PUBLISH_2_DATA("rc/right_handle","channel_x",ch1,"channel_y",ch2);
+	RC_PUBLISH_2_DATA("rc/left_handle","channel_x",ch3,"channel_y",ch4);
+	RC_PUBLISH_2_DATA("rc/lever","left",left,"right",right);
+	#undef RC_PUBLISH_2_DATA
+	
+ 
+	#define RC_PUBLISH_3_DATA(topic,iterm1,data1,iterm2,data2,iterm3,data3) \
+	if(lastData.data1!=rc->rcInfo.data1||lastData.data2!=rc->rcInfo.data2||lastData.data3!=rc->rcInfo.data3) \
+	{ \
+		SoftBus_Publish(topic,{{iterm1,&rc->rcInfo.data1},{iterm2,&rc->rcInfo.data2},{iterm3,&rc->rcInfo.data3}});	\
+		lastData =rc->rcInfo;\
+	}
+	
+	RC_PUBLISH_3_DATA("rc/mouse","mouse_x",mouse.x,"mouse_y",mouse.y,"mouse_z",mouse.z);
+	#undef RC_PUBLISH_3_DATA
+
+	//更新按键状态并发布
+	RC_UpdateKeys(rc);
+}
 //更新按键状态，需要定时调用，建议间隔为14ms
 void RC_UpdateKeys(RC* rc)
 {
@@ -281,6 +336,8 @@ void RC_ParseData(RC* rc, uint8_t* buff)
 	rc->rcInfo.left = ((buff[5] >> 4) & 0x000C) >> 2;
 	rc->rcInfo.right = (buff[5] >> 4) & 0x0003;
 
+	rc->rcInfo.wheel = (buff[16] | buff[17] << 8) - 1024;
+	
 	rc->rcInfo.mouse.x = buff[6] | (buff[7] << 8);
 	rc->rcInfo.mouse.y = buff[8] | (buff[9] << 8);
 	rc->rcInfo.mouse.z = buff[10] | (buff[11] << 8);
@@ -289,5 +346,5 @@ void RC_ParseData(RC* rc, uint8_t* buff)
 	rc->rcInfo.mouse.r = buff[13];
 
 	rc->rcInfo.kb.key_code = buff[14] | buff[15] << 8;
-	rc->rcInfo.wheel = (buff[16] | buff[17] << 8) - 1024;
+
 }
