@@ -9,6 +9,7 @@
 //X-MACRO
 #define KEY_TPYE \
 	KEY(W) \
+	KEY(S) \
 	KEY(A) \
 	KEY(D) \
 	KEY(Shift) \
@@ -23,8 +24,8 @@
 	KEY(C) \
 	KEY(V) \
 	KEY(B) \
-	MOUSE_KEY(Left) \
-	MOUSE_KEY(Right) 
+	MOUSE_KEY(left) \
+	MOUSE_KEY(right)
 
 //主键
 char* keyType[] = {
@@ -44,10 +45,8 @@ typedef struct {
 	int16_t ch3;
 	int16_t ch4;
 	//左右拨码开关 上1/中3/下2 
-  uint8_t left;
+	uint8_t left;
 	uint8_t right;
-	//拨轮数据 取值[-660,660]
-	int16_t wheel;
 	//鼠标信息 
 	struct {
 		//移动速度 
@@ -62,14 +61,15 @@ typedef struct {
 	union {
 		uint16_t key_code;//按键编码 
 		struct {
-			#define KEY(x) uint16_t (x) : 1;
-			#define MOUSE_KEY(x) 
+			#define KEY(x) uint16_t x : 1;
+			#define MOUSE_KEY(x)
 			KEY_TPYE
 			#undef KEY
-			#undef MOUSE_KEY 
+			#undef MOUSE_KEY
 		} bit;//各个位代表对应的键位 
 	} kb;
-
+	//拨轮数据 取值[-660,660]
+	int16_t wheel;
 }RC_TypeDef;
 
 //按键结构体，用于计算键盘/鼠标的按键事件
@@ -149,53 +149,30 @@ void RC_InitKeyJudgeTime(RC* rc, uint32_t key,uint16_t clickDelay,uint16_t longP
 //发布rc数据
 void RC_PublishData(RC *rc)
 {
-  static RC_TypeDef lastData={0};
-	
-	/*
-	@brief 若有数据更新则向外发布	
-	@param topic:话题名
-	@param iterm:数据字段名
-	@param data：数据
-	@note RC_PUBLISH_1_DATA 若有数据更新则发布topic
-	      RC_PUBLISH_2_DATA 若两个数据中有一个更新则发布topic
-          RC_PUBLISH_3_DATA 若三个数据中有一个更新则发布topic
-*/	
-	#define RC_PUBLISH_1_DATA(topic,iterm1,data1) \
-	if(lastData.data1!=rc->rcInfo.data1) \
-	{ \
-		SoftBus_Publish(topic,{iterm1,&rc->rcInfo.data1});	\
-		lastData =rc->rcInfo;\
-	}
-	
-	RC_PUBLISH_1_DATA("rc/wheel","wheel",wheel);
-	#undef RC_PUBLISH_1_DATA
-	
-	
-  #define RC_PUBLISH_2_DATA(topic,iterm1,data1,iterm2,data2) \
-	if(lastData.data1!=rc->rcInfo.data1||lastData.data2!=rc->rcInfo.data2) \
-	{ \
-		SoftBus_Publish(topic,{{iterm1,&rc->rcInfo.data1},{iterm2,&rc->rcInfo.data2}}); \
-		lastData =rc->rcInfo; \
-	} 
-	
-	RC_PUBLISH_2_DATA("rc/right_handle","channel_x",ch1,"channel_y",ch2);
-	RC_PUBLISH_2_DATA("rc/left_handle","channel_x",ch3,"channel_y",ch4);
-	RC_PUBLISH_2_DATA("rc/lever","left",left,"right",right);
-	#undef RC_PUBLISH_2_DATA
-	
- 
-	#define RC_PUBLISH_3_DATA(topic,iterm1,data1,iterm2,data2,iterm3,data3) \
-	if(lastData.data1!=rc->rcInfo.data1||lastData.data2!=rc->rcInfo.data2||lastData.data3!=rc->rcInfo.data3) \
-	{ \
-		SoftBus_Publish(topic,{{iterm1,&rc->rcInfo.data1},{iterm2,&rc->rcInfo.data2},{iterm3,&rc->rcInfo.data3}});	\
-		lastData =rc->rcInfo;\
-	}
-	
-	RC_PUBLISH_3_DATA("rc/mouse","mouse_x",mouse.x,"mouse_y",mouse.y,"mouse_z",mouse.z);
-	#undef RC_PUBLISH_3_DATA
+	static RC_TypeDef lastData={0};
 
+	if(lastData.ch1 != rc->rcInfo.ch1 || lastData.ch2 != rc->rcInfo.ch2)
+		SoftBus_Publish("rc/right-stick",{{"x",&rc->rcInfo.ch1},{"y",&rc->rcInfo.ch2}}); 
+	
+	if(lastData.ch3 != rc->rcInfo.ch3 || lastData.ch4 != rc->rcInfo.ch4)
+		SoftBus_Publish("rc/left-stick",{{"x",&rc->rcInfo.ch3},{"y",&rc->rcInfo.ch4}});
+
+	if(lastData.mouse.x != rc->rcInfo.mouse.x || lastData.mouse.y != rc->rcInfo.mouse.y)
+		SoftBus_Publish("rc/mouse-move",{{"x",&rc->rcInfo.mouse.x},{"y",&rc->rcInfo.mouse.y}});
+	
+	if(lastData.left != rc->rcInfo.left)
+		SoftBus_Publish("rc/switch",{{"left",&rc->rcInfo.left}});
+
+	if(lastData.right != rc->rcInfo.right)
+		SoftBus_Publish("rc/switch",{{"right",&rc->rcInfo.right}});
+
+	if(lastData.wheel != rc->rcInfo.wheel)
+		SoftBus_Publish("rc/wheel",{{"value",&rc->rcInfo.wheel}});
+	
 	//更新按键状态并发布
 	RC_UpdateKeys(rc);
+
+	lastData =rc->rcInfo;
 }
 //更新按键状态，需要定时调用，建议间隔为14ms
 void RC_UpdateKeys(RC* rc)
@@ -335,8 +312,6 @@ void RC_ParseData(RC* rc, uint8_t* buff)
 
 	rc->rcInfo.left = ((buff[5] >> 4) & 0x000C) >> 2;
 	rc->rcInfo.right = (buff[5] >> 4) & 0x0003;
-
-	rc->rcInfo.wheel = (buff[16] | buff[17] << 8) - 1024;
 	
 	rc->rcInfo.mouse.x = buff[6] | (buff[7] << 8);
 	rc->rcInfo.mouse.y = buff[8] | (buff[9] << 8);
@@ -347,4 +322,5 @@ void RC_ParseData(RC* rc, uint8_t* buff)
 
 	rc->rcInfo.kb.key_code = buff[14] | buff[15] << 8;
 
+	rc->rcInfo.wheel = (buff[16] | buff[17] << 8) - 1024;
 }

@@ -188,16 +188,17 @@ void BSP_CAN_TimerCallback(void const *argument)
 }
 
 //CAN·¢ËÍÊý¾ÝÖ¡
-uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t StdId,uint8_t data[8])
+uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t stdId,uint8_t data[8])
 {
-	CAN_TxHeaderTypeDef tx_header;
+	CAN_TxHeaderTypeDef txHeader;
+	uint32_t canTxMailBox;
 
-	tx_header.StdId = StdId;
-	tx_header.IDE   = CAN_ID_STD;
-	tx_header.RTR   = CAN_RTR_DATA;
-	tx_header.DLC   = 8;
+	txHeader.StdId = stdId;
+	txHeader.IDE   = CAN_ID_STD;
+	txHeader.RTR   = CAN_RTR_DATA;
+	txHeader.DLC   = 8;
 	
-	uint8_t retVal=HAL_CAN_AddTxMessage(hcan, &tx_header, data, (uint32_t*)CAN_TX_MAILBOX0);
+	uint8_t retVal=HAL_CAN_AddTxMessage(hcan, &txHeader, data, &canTxMailBox);
 
 	return retVal;
 }

@@ -11,8 +11,8 @@ typedef struct {
 	struct 
 	{
 		uint8_t *data;
-  		uint16_t maxBufSize;
-   		uint16_t pos;
+		uint16_t maxBufSize;
+		uint16_t pos;
 	}recvBuffer;
 	SoftBusFastHandle fastHandle;
 }UARTInfo;
@@ -42,19 +42,19 @@ void BSP_UART_IdleCallback(UART_HandleTypeDef *huart)
 		return;
 	}
 	
-	for(uint8_t i = 0; i < uartService.uartNum; i++)
+	for(uint8_t i = 0; i < uartService.uartNum; ++i)
 	{
 		UARTInfo* uartInfo = &uartService.uartList[i];
-		if(huart==uartInfo->huart)
+		if(huart == uartInfo->huart)
 		{
-		   if (__HAL_UART_GET_FLAG(uartInfo->huart, UART_FLAG_RXNE))
+		   if (__HAL_UART_GET_FLAG(huart, UART_FLAG_RXNE))
 			{
 				//防止数组越界
 				if(uartInfo->recvBuffer.pos < uartInfo->recvBuffer.maxBufSize)
 					uartInfo->recvBuffer.data[uartInfo->recvBuffer.pos++] = uartInfo->huart->Instance->DR;
 			}
 				
-			if (__HAL_UART_GET_FLAG(uartInfo->huart, UART_FLAG_IDLE))
+			if (__HAL_UART_GET_FLAG(huart, UART_FLAG_IDLE))
 			{
 				/* clear idle it flag avoid idle interrupt all the time */
 				__HAL_UART_CLEAR_IDLEFLAG(uartInfo->huart);
@@ -63,6 +63,7 @@ void BSP_UART_IdleCallback(UART_HandleTypeDef *huart)
 				uartInfo->recvBuffer.pos = 0;
 			}
 		}
+		break;
 	}
 }
 
@@ -109,10 +110,7 @@ void BSP_UART_Init(ConfItem* dict)
 	}
 
 	//订阅话题
-	SoftBus_MultiSubscribe(NULL, BSP_UART_SoftBusCallback, {"/uart/trans/it",
-																													"/uart/trans/dma",
-																													"/uart/trans/block"
-																													});
+	SoftBus_MultiSubscribe(NULL, BSP_UART_SoftBusCallback, {"/uart/trans/it","/uart/trans/dma","/uart/trans/block"});
 	uartService.initFinished = 1;
 }
 
@@ -121,7 +119,7 @@ void BSP_UART_InitInfo(UARTInfo* info, ConfItem* dict)
 {
 	info->huart = Conf_GetPtr(dict, "huart", UART_HandleTypeDef);
 	info->number = Conf_GetValue(dict, "uart-x", uint8_t, 0);
-	info->recvBuffer.maxBufSize = Conf_GetValue(dict,"maxRecvSize",uint16_t,1);
+	info->recvBuffer.maxBufSize = Conf_GetValue(dict, "maxRecvSize", uint16_t, 1);
 	char topic[] = "/uart_/recv";
 	topic[5] = info->number + '0';
 	info->fastHandle = SoftBus_CreateFastHandle(topic);
@@ -144,26 +142,26 @@ void BSP_UART_InitRecvBuffer(UARTInfo* info)
 //软总线回调
 void BSP_UART_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-		if(!SoftBus_CheckMapKeys(frame, {"uart-x","data","transSize"}))
-			return;
+	if(!SoftBus_CheckMapKeys(frame, {"uart-x","data","transSize"}))
+		return;
 
-		uint8_t uartX = *(uint8_t*)SoftBus_GetMapValue(frame, "uart-x");
-		uint8_t* data = (uint8_t*)SoftBus_GetMapValue(frame, "data");
-        uint16_t transSize = *(uint16_t*)SoftBus_GetMapValue(frame, "transSize");
-		for(uint8_t i = 0; i < uartService.uartNum; i++)
+	uint8_t uartX = *(uint8_t*)SoftBus_GetMapValue(frame, "uart-x");
+	uint8_t* data = (uint8_t*)SoftBus_GetMapValue(frame, "data");
+	uint16_t transSize = *(uint16_t*)SoftBus_GetMapValue(frame, "transSize");
+	for(uint8_t i = 0; i < uartService.uartNum; i++)
+	{
+		UARTInfo* info = &uartService.uartList[i];
+		if(info->number == uartX)
 		{
-			UARTInfo* info = &uartService.uartList[i];
-			if(info->number == uartX)
+			if(!strcmp(topic, "/uart/trans/it")) //中断发送
+				HAL_UART_Transmit_IT(info->huart,data,transSize);
+			else if(!strcmp(topic, "/uart/trans/dma")) //dma发送
+				HAL_UART_Transmit_DMA(info->huart,data,transSize);
+			else if(!strcmp(topic, "/uart/trans/block") && SoftBus_IsMapKeyExist(frame, "timeout"))//阻塞式发送
 			{
-				if(!strcmp(topic, "/uart/trans/it")) //中断发送
-					HAL_UART_Transmit_IT(info->huart,data,transSize);
-				else if(!strcmp(topic, "/uart/trans/dma")) //dma发送
-					HAL_UART_Transmit_DMA(info->huart,data,transSize);
-				else if(!strcmp(topic, "/uart/trans/block")&&SoftBus_CheckMapKeys(frame, {"timeout"}))//阻塞式发送
-				{
-					uint32_t timeout = *(uint32_t*)SoftBus_GetMapValue(frame, "timeout");
-					HAL_UART_Transmit(info->huart,data,transSize,timeout);
-				}
+				uint32_t timeout = *(uint32_t*)SoftBus_GetMapValue(frame, "timeout");
+				HAL_UART_Transmit(info->huart,data,transSize,timeout);
 			}
 		}
+	}
 }
