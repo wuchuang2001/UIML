@@ -65,6 +65,7 @@ void Chassis_TaskCallback(void const * argument)
 									 +Slope_GetVal(&chassis.move.ySlope) * gimbalAngleSin;
 		chassis.move.vy=-Slope_GetVal(&chassis.move.xSlope) * gimbalAngleSin
 									 +Slope_GetVal(&chassis.move.ySlope) * gimbalAngleCos;
+		float vw = chassis.move.vw/180*PI;
 		
 		/*************解算各轮子转速**************/
 		
@@ -74,10 +75,10 @@ void Chassis_TaskCallback(void const * argument)
 		rotateRatio[2]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f+chassis.info.offsetY+chassis.info.offsetX;
 		rotateRatio[3]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f+chassis.info.offsetY-chassis.info.offsetX;
 		float wheelRPM[4];
-		wheelRPM[0]=(chassis.move.vx+chassis.move.vy-chassis.move.vw*rotateRatio[0])*60/(2*PI*chassis.info.wheelRadius);//FL
-		wheelRPM[1]=-(-chassis.move.vx+chassis.move.vy+chassis.move.vw*rotateRatio[1])*60/(2*PI*chassis.info.wheelRadius);//FR
-		wheelRPM[2]=(-chassis.move.vx+chassis.move.vy-chassis.move.vw*rotateRatio[2])*60/(2*PI*chassis.info.wheelRadius);//BL
-		wheelRPM[3]=-(chassis.move.vx+chassis.move.vy+chassis.move.vw*rotateRatio[3])*60/(2*PI*chassis.info.wheelRadius);//BR
+		wheelRPM[0]=(chassis.move.vx+chassis.move.vy-vw*rotateRatio[0])*60/(2*PI*chassis.info.wheelRadius);//FL
+		wheelRPM[1]=-(-chassis.move.vx+chassis.move.vy+vw*rotateRatio[1])*60/(2*PI*chassis.info.wheelRadius);//FR
+		wheelRPM[2]=(-chassis.move.vx+chassis.move.vy-vw*rotateRatio[2])*60/(2*PI*chassis.info.wheelRadius);//BL
+		wheelRPM[3]=-(chassis.move.vx+chassis.move.vy+vw*rotateRatio[3])*60/(2*PI*chassis.info.wheelRadius);//BR
 		
 		for(uint8_t i = 0; i<4; i++)
 		{
