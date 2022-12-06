@@ -4,6 +4,16 @@
 
 #include "usart.h"
 
+#define UART_IRQ \
+	IRQ_FUN(USART1_IRQHandler, 1) \
+	IRQ_FUN(USART2_IRQHandler, 2) \
+	IRQ_FUN(USART3_IRQHandler, 3) \
+	IRQ_FUN(UART4_IRQHandler, 4) \
+	IRQ_FUN(UART5_IRQHandler, 5) \
+	IRQ_FUN(USART6_IRQHandler, 6) \
+	IRQ_FUN(UART7_IRQHandler, 7) \
+	IRQ_FUN(UART8_IRQHandler, 8)
+
 //UART句柄信息
 typedef struct {
 	UART_HandleTypeDef* huart;
@@ -33,28 +43,28 @@ void BSP_UART_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
 void BSP_UART_InitRecvBuffer(UARTInfo* info);
 
 //uart接收结束中断
-void BSP_UART_IdleCallback(UART_HandleTypeDef *huart)
-{
-	if(!uartService.initFinished)//如果初始化未完成则清除标志位
-	{              
-		(void)huart->Instance->SR; 
-		(void)huart->Instance->DR;
-		return;
-	}
-	
+void BSP_UART_IdleCallback(uint8_t huartX)
+{	
 	for(uint8_t i = 0; i < uartService.uartNum; ++i)
 	{
 		UARTInfo* uartInfo = &uartService.uartList[i];
-		if(huart == uartInfo->huart)
+		if(huartX == uartInfo->number)
 		{
-		   if (__HAL_UART_GET_FLAG(huart, UART_FLAG_RXNE))
+			if(!uartService.initFinished)//如果初始化未完成则清除标志位
+			{              
+				(void)uartInfo->huart->Instance->SR; 
+				(void)uartInfo->huart->Instance->DR;
+				return;
+			}
+			
+		   if (__HAL_UART_GET_FLAG(uartInfo->huart, UART_FLAG_RXNE))
 			{
 				//防止数组越界
 				if(uartInfo->recvBuffer.pos < uartInfo->recvBuffer.maxBufSize)
 					uartInfo->recvBuffer.data[uartInfo->recvBuffer.pos++] = uartInfo->huart->Instance->DR;
 			}
 				
-			if (__HAL_UART_GET_FLAG(huart, UART_FLAG_IDLE))
+			if (__HAL_UART_GET_FLAG(uartInfo->huart, UART_FLAG_IDLE))
 			{
 				/* clear idle it flag avoid idle interrupt all the time */
 				__HAL_UART_CLEAR_IDLEFLAG(uartInfo->huart);
@@ -165,3 +175,13 @@ void BSP_UART_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
 		}
 	}
 }
+
+//生成中断服务函数
+#define IRQ_FUN(irq, number) \
+void irq(void) \
+{ \
+	BSP_UART_IdleCallback(number); \
+}
+
+UART_IRQ
+#undef IRQ_FUN
