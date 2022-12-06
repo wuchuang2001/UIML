@@ -26,6 +26,7 @@
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
 	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)         \
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,256)
+	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) \
 	
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
@@ -35,8 +36,8 @@ ConfItem* systemConfig = CF_DICT{
 		{"taskInterval", IM_PTR(uint8_t, 2)},
 		//底盘尺寸信息
 		{"info", CF_DICT{
-			{"wheelBase", IM_PTR(float, 100)},
-			{"wheelTrack", IM_PTR(float, 100)},
+			{"wheelbase", IM_PTR(float, 100)},
+			{"wheeltrack", IM_PTR(float, 100)},
 			{"wheelRadius", IM_PTR(float, 76)},
 			{"offsetX", IM_PTR(float, 0)},
 			{"offsetY", IM_PTR(float, 0)},
@@ -176,7 +177,7 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
-			//遥控服务配置
+	//遥控服务配置
 	{"rc",CF_DICT{
 		{"uart-x",IM_PTR(uint8_t, 3)},
 	   CF_DICT_END
@@ -198,6 +199,21 @@ ConfItem* systemConfig = CF_DICT{
 				}},
 			CF_DICT_END
 			}},	
+		CF_DICT_END
+		}},
+	//外部中断服务配置
+	{"exti",CF_DICT{
+		{"extis",CF_DICT{
+			{"0",CF_DICT{
+				{"pin-x",IM_PTR(uint16_t,0)},
+				CF_DICT_END
+				}},
+			{"1",CF_DICT{
+				{"pin-x",IM_PTR(uint16_t,4)},
+				CF_DICT_END
+				}},
+			CF_DICT_END
+			}},
 		CF_DICT_END
 		}},
 	CF_DICT_END
