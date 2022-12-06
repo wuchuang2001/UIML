@@ -42,10 +42,10 @@ void BSP_UART_Start_IT(UARTInfo* info);
 void BSP_UART_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 void BSP_UART_InitRecvBuffer(UARTInfo* info);
 
-//uart接收结束中断
-void BSP_UART_IdleCallback(uint8_t huartX)
+//uart接收中断回调函数
+void BSP_UART_IRQCallback(uint8_t huartX)
 {	
-	for(uint8_t i = 0; i < uartService.uartNum; ++i)
+	for(uint8_t i = 0; i < uartService.uartNum; i++)
 	{
 		UARTInfo* uartInfo = &uartService.uartList[i];
 		if(huartX == uartInfo->number)
@@ -71,9 +71,9 @@ void BSP_UART_IdleCallback(uint8_t huartX)
 				uint16_t recSize=uartInfo->recvBuffer.pos;
 				SoftBus_FastPublish(uartInfo->fastHandle, {uartInfo->recvBuffer.data, &recSize});
 				uartInfo->recvBuffer.pos = 0;
-			}
+			}	
+			break;
 		}
-		break;
 	}
 }
 
@@ -180,7 +180,7 @@ void BSP_UART_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
 #define IRQ_FUN(irq, number) \
 void irq(void) \
 { \
-	BSP_UART_IdleCallback(number); \
+	BSP_UART_IRQCallback(number); \
 }
 
 UART_IRQ

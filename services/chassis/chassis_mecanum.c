@@ -12,8 +12,8 @@ typedef struct _Chassis
 	//底盘尺寸信息
 	struct Info
 	{
-		float wheelbase;//轴距
-		float wheeltrack;//轮距
+		float wheelBase;//轴距
+		float wheelTrack;//轮距
 		float wheelRadius;//轮半径
 		float offsetX;//重心在xy轴上的偏移
 		float offsetY;
@@ -70,10 +70,10 @@ void Chassis_TaskCallback(void const * argument)
 		/*************解算各轮子转速**************/
 		
 		float rotateRatio[4];
-		rotateRatio[0]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f-chassis.info.offsetY+chassis.info.offsetX;
-		rotateRatio[1]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f-chassis.info.offsetY-chassis.info.offsetX;
-		rotateRatio[2]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f+chassis.info.offsetY+chassis.info.offsetX;
-		rotateRatio[3]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f+chassis.info.offsetY-chassis.info.offsetX;
+		rotateRatio[0]=(chassis.info.wheelBase+chassis.info.wheelTrack)/2.0f-chassis.info.offsetY+chassis.info.offsetX;
+		rotateRatio[1]=(chassis.info.wheelBase+chassis.info.wheelTrack)/2.0f-chassis.info.offsetY-chassis.info.offsetX;
+		rotateRatio[2]=(chassis.info.wheelBase+chassis.info.wheelTrack)/2.0f+chassis.info.offsetY+chassis.info.offsetX;
+		rotateRatio[3]=(chassis.info.wheelBase+chassis.info.wheelTrack)/2.0f+chassis.info.offsetY-chassis.info.offsetX;
 		float wheelRPM[4];
 		wheelRPM[0]=(chassis.move.vx+chassis.move.vy-vw*rotateRatio[0])*60/(2*PI*chassis.info.wheelRadius);//FL
 		wheelRPM[1]=-(-chassis.move.vx+chassis.move.vy+vw*rotateRatio[1])*60/(2*PI*chassis.info.wheelRadius);//FR
@@ -94,8 +94,8 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 	//任务间隔
 	chassis->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
 	//底盘尺寸信息（用于解算轮速）
-	chassis->info.wheelbase = Conf_GetValue(dict, "info/wheelbase", float, 0);
-	chassis->info.wheeltrack = Conf_GetValue(dict, "info/wheeltrack", float, 0);
+	chassis->info.wheelBase = Conf_GetValue(dict, "info/wheelBase", float, 0);
+	chassis->info.wheelTrack = Conf_GetValue(dict, "info/wheelTrack", float, 0);
 	chassis->info.wheelRadius = Conf_GetValue(dict, "info/wheelRadius", float, 76);
 	chassis->info.offsetX = Conf_GetValue(dict, "info/offsetX", float, 0);
 	chassis->info.offsetY = Conf_GetValue(dict, "info/offsetY", float, 0);

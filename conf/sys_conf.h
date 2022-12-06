@@ -35,8 +35,8 @@ ConfItem* systemConfig = CF_DICT{
 		{"taskInterval", IM_PTR(uint8_t, 2)},
 		//µ◊≈Ã≥ﬂ¥Á–≈œ¢
 		{"info", CF_DICT{
-			{"wheelbase", IM_PTR(float, 100)},
-			{"wheeltrack", IM_PTR(float, 100)},
+			{"wheelBase", IM_PTR(float, 100)},
+			{"wheelTrack", IM_PTR(float, 100)},
 			{"wheelRadius", IM_PTR(float, 76)},
 			{"offsetX", IM_PTR(float, 0)},
 			{"offsetY", IM_PTR(float, 0)},

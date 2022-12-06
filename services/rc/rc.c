@@ -128,7 +128,7 @@ void RC_TaskCallback(void const * argument)
 //初始化所有按键的判定时间
 void RC_InitKeys(RC* rc)
 {
-	//初始化全部按键
+	//初始化全部按键(0x3ffff)
 	RC_InitKeyJudgeTime(rc,0x3ffff,50,500);
 }
 
@@ -146,7 +146,7 @@ void RC_InitKeyJudgeTime(RC* rc, uint32_t key,uint16_t clickDelay,uint16_t longP
 }
 
 
-//发布rc数据
+//若有数据更新则发布rc数据
 void RC_PublishData(RC *rc)
 {
 	static RC_TypeDef lastData={0};
@@ -190,21 +190,18 @@ void RC_UpdateKeys(RC* rc)
 		//读取按键状态
 		uint8_t thisState=0;
 		if(key==4||key==5) continue;
-		char* topic = NULL;
+		char topic[20] = "rc/key/";
 		if(key<16) 
 		{
 			thisState=(rc->rcInfo.kb.key_code&(0x01<<key))?1:0;//取出键盘对应位
-			topic = "rc/key";
 		}
 		else if(key==16) 
 		{
 			thisState=rc->rcInfo.mouse.l;
-			topic = "rc/mouse-key";
 		}
 		else if(key==17)
 		{
 			 thisState=rc->rcInfo.mouse.r;
-			 topic = "rc/mouse-key";
 		}
 		
 		uint16_t lastPressTime=lastUpdateTime-rc->keyList[key].startPressTime;//上次更新时按下的时间
@@ -217,8 +214,8 @@ void RC_UpdateKeys(RC* rc)
 			rc->keyList[key].startPressTime=presentTime;//记录按下时间
 			rc->keyList[key].isPressing=1;
 			//发布topic
+			memcpy(topic+7, "on-down", 7);
 			SoftBus_Publish(topic, {
-				{"event", "on-down"},
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
@@ -232,8 +229,8 @@ void RC_UpdateKeys(RC* rc)
 			//按键抬起
 			rc->keyList[key].isUp=1;
 			//发布topic
+			memcpy(topic+7, "on-up", 5);
 			SoftBus_Publish(topic, {
-				{"event", "on-up"},
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
@@ -243,11 +240,11 @@ void RC_UpdateKeys(RC* rc)
 			{
 				rc->keyList[key].isClicked=1;
 				//发布topic
-			SoftBus_Publish(topic, {
-				{"event", "on-click"},
-				{"key", keyType[key]},
-				{"combine-key", combineKey}
-			});
+				memcpy(topic+7, "on-click", 8);
+				SoftBus_Publish(topic, {
+					{"key", keyType[key]},
+					{"combine-key", combineKey}
+				});
 			}
 		}
 		/*******按键持续按下********/
@@ -255,8 +252,8 @@ void RC_UpdateKeys(RC* rc)
 		{
 			//执行一直按下的事件回调
 			//发布topic
+			memcpy(topic+7, "on-pressing", 11);
 			SoftBus_Publish(topic, {
-				{"event", "on-pressing"},
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
@@ -266,8 +263,8 @@ void RC_UpdateKeys(RC* rc)
 			{
 				rc->keyList[key].isLongPressed=1;
 				//发布topic
+				memcpy(topic+7, "on-long-press", 13);
 				SoftBus_Publish(topic, {
-					{"event", "on-long-press"},
 					{"key", keyType[key]},
 					{"combine-key", combineKey}
 				});
