@@ -2,7 +2,7 @@
 #include  "cmsis_os.h"
 #include "config.h"
 #include "gpio.h"
-#include "arm_math.h"
+
 //EXTI GPIO信息
 typedef struct
 {
@@ -27,11 +27,11 @@ EXTIService extiService={0};
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	if(!extiService.initFinished)
-			return;  
-	for(uint16_t i=0;i<extiService.extiNum;i++)
+		return;  
+	for(uint16_t i = 0; i < extiService.extiNum; i++)
 	{
 		EXTIInfo* extiInfo = &extiService.extiList[i];
-		if(GPIO_Pin==extiInfo ->pin)
+		if(GPIO_Pin == extiInfo->pin)
 		{
 			SoftBus_FastPublish(extiInfo->fastHandle,{""});
 			break;
@@ -43,7 +43,7 @@ void BSP_EXTI_TaskCallback(void const * argument)
 {
 	//进入临界区
 	portENTER_CRITICAL();
-	BSP_EXTI_Init((ConfItem *)argument);
+	BSP_EXTI_Init((ConfItem*)argument);
 	portEXIT_CRITICAL();
 	
 	vTaskDelete(NULL);
@@ -79,7 +79,7 @@ void BSP_EXIT_InitInfo(EXTIInfo* info, ConfItem* dict)
 	char topic[] = "/exti/pin_";
 	topic[9] = info->pin + '0';
 	//重新映射至GPIO_PIN=2^pin
-	info->pin=pow(2,info->pin);
+	info->pin = 1 << info->pin;
 	info->fastHandle = SoftBus_CreateFastHandle(topic);
 }
 
