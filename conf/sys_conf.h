@@ -26,7 +26,7 @@
 #endif
 // <<< end of configuration section >>>
 
-//╥ЧнЯеДжцап╠Мё╛ц©оН╦Яй╫(╥ЧнЯцШ,╥ЧнЯхннЯ╨╞йЩ,хннЯсеох╪╤,хннЯу╩╢Сп║)
+//О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫п╠О©╫О©╫О©╫ц©О©╫О©╫О©╫й╫(О©╫О©╫О©╫О©╫О©╫О©╫,О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫,О©╫О©╫О©╫О©╫О©╫О©╫О©╫х╪О©╫,О©╫О©╫О©╫О©╫у╩О©╫О©╫п║)
 #define SERVICE_LIST \
 	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,256) \
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
@@ -34,13 +34,13 @@
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,256) \
 	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) 
 	
-//╦В╥ЧнЯеДжцоН
+//О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 ConfItem* systemConfig = CF_DICT{
-	//╣вел╥ЧнЯеДжц
+	//О©╫О©╫О©╫л╥О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 	{"chassis", CF_DICT{
-		//хннЯя╜╩╥жэфз
+		//О©╫О©╫О©╫О©╫я╜О©╫О©╫О©╫О©╫О©╫О©╫
 		{"taskInterval", IM_PTR(uint8_t, 2)},
-		//╣велЁъ╢Гпео╒
+		//О©╫О©╫О©╫лЁъ╢О©╫О©╫О©╫о╒
 		{"info", CF_DICT{
 			{"wheelbase", IM_PTR(float, 100)},
 			{"wheeltrack", IM_PTR(float, 100)},
@@ -49,7 +49,7 @@ ConfItem* systemConfig = CF_DICT{
 			{"offsetY", IM_PTR(float, 0)},
 			CF_DICT_END
 		}},
-		//╣велрф╤╞кы╤х/╪скы╤хеДжц
+		//О©╫О©╫О©╫О©╫О©╫ф╤О©╫О©╫ы╤О©╫/О©╫О©╫О©╫ы╤О©╫О©╫О©╫О©╫О©╫
 		{"move", CF_DICT{
 			{"maxVx", IM_PTR(float, 2000)},
 			{"maxVy", IM_PTR(float, 2000)},
@@ -58,12 +58,12 @@ ConfItem* systemConfig = CF_DICT{
 			{"yAcc", IM_PTR(float, 1000)},
 			CF_DICT_END
 		}},
-		//кд╦Ж╣Г╩ЗеДжц
+		//О©╫д╦О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 		{"motorFL", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 1)},
 			{"canX", IM_PTR(uint8_t, 1)},
-//			{"reductionRatio", IM_PTR(float, 1)},   //хТй╧сц╦дв╟╪УкыоД╩Руъ╡П╣Т╪УкыоД╣д╣Г╩ЗтРпч╦д╢к╡нйЩё╛хТй╧сцт╜в╟╣Г╩ЗтРнчпХеДжц╢к╡нйЩ
+//			{"reductionRatio", IM_PTR(float, 1)},   //О©╫О©╫й╧О©╫ц╦О©╫в╟О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ъ╡О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫д╣О©╫О©╫О©╫О©╫О©╫ч╦д╢к╡О©╫О©╫О©╫О©╫О©╫О©╫О©╫й╧О©╫О©╫т╜в╟О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫ц╢к╡О©╫О©╫О©╫
 			{"speedPID", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
@@ -72,7 +72,7 @@ ConfItem* systemConfig = CF_DICT{
 				{"maxOut", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
-//			{"anglePID", CF_DICT{                  //╢╝╪╤pidй╬юЩё╛хГпХй╧сц╢╝╪╤pidуу╢кдё╟ЕеДжц╪╢©и
+//			{"anglePID", CF_DICT{                  //О©╫О©╫О©╫О©╫pidй╬О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫й╧О©╫ц╢О©╫О©╫О©╫pidО©╫у╢О©╫дёО©╫О©╫О©╫О©╫О©╫ц╪О©╫О©╫О©╫
 //				{"inner", CF_DICT{
 //					{"p", IM_PTR(float, 10)},
 //					{"i", IM_PTR(float, 1)},
@@ -137,9 +137,9 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
-	//CAN╥ЧнЯеДжц
+	//CANО©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 	{"can", CF_DICT{
-		//CAN©ьжффВпео╒
+		//CANО©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫о╒
 		{"cans", CF_DICT{
 			{"0", CF_DICT{
 				{"hcan", &hcan1},
@@ -153,7 +153,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},
-		//╤╗й╠ж║еДжц
+		//О©╫О©╫й╠ж║О©╫О©╫О©╫О©╫
 		{"repeat-buffers", CF_DICT{
 			{"0", CF_DICT{
 				{"can-x", IM_PTR(uint8_t, 1)},
@@ -183,12 +183,12 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
-	//рё©ь╥ЧнЯеДжц
+	//рёО©╫ь╥О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 	{"rc",CF_DICT{
 		{"uart-x",IM_PTR(uint8_t, 3)},
 	   CF_DICT_END
 	}},
-	//╢╝©з╥ЧнЯеДжц
+	//О©╫О©╫О©╫з╥О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 	{"uart",CF_DICT{
 		{"uarts",CF_DICT{
 			{"0",CF_DICT{
@@ -207,17 +207,17 @@ ConfItem* systemConfig = CF_DICT{
 			}},	
 		CF_DICT_END
 		}},
-	//мБ╡©жп╤о╥ЧнЯеДжц
+	//О©╫Б╡©О©╫п╤о╥О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 	{"exti",CF_DICT{
 		{"extis",CF_DICT{
 			{"0",CF_DICT{
 				{"gpio-x", GPIOA},
-				{"pin-x",IM_PTR(uint16_t,0)},
+				{"pin-x",IM_PTR(uint8_t,0)},
 				CF_DICT_END
 				}},
 			{"1",CF_DICT{
 				{"gpio-x", GPIOA},
-				{"pin-x",IM_PTR(uint16_t,4)},
+				{"pin-x",IM_PTR(uint8_t,4)},
 				CF_DICT_END
 				}},
 			CF_DICT_END

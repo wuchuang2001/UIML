@@ -13,7 +13,7 @@ typedef struct
 
 //EXTI服务数据
 typedef struct {
-	EXTIInfo* extiList;
+	EXTIInfo extiList[16];
 	uint8_t extiNum;
 	uint8_t initFinished;
 }EXTIService;
@@ -29,16 +29,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	if(!extiService.initFinished)
 		return;  
-	for(uint16_t i = 0; i < extiService.extiNum; i++)
-	{
-		EXTIInfo* extiInfo = &extiService.extiList[i];
-		if(GPIO_Pin == extiInfo->pin)
-		{
-			GPIO_PinState state = HAL_GPIO_ReadPin(extiInfo->GPIOX, GPIO_Pin);
-			SoftBus_FastPublish(extiInfo->fastHandle,{&state});
-			break;
-		}
-	}
+	uint8_t pin = 31 - __clz((uint32_t)GPIO_Pin);
+	EXTIInfo* extiInfo = &extiService.extiList[pin];
+	GPIO_PinState state = HAL_GPIO_ReadPin(extiInfo->GPIOX, GPIO_Pin);
+	SoftBus_FastPublish(extiInfo->fastHandle,{&state});
 }
 //EXTI任务回调函数
 void BSP_EXTI_TaskCallback(void const * argument)
@@ -64,7 +58,7 @@ void BSP_EXTI_Init(ConfItem* dict)
 		else
 			break;
 	}
-	extiService.extiList=pvPortMalloc(extiService.extiNum * sizeof(EXTIInfo));
+
 	for(uint8_t num = 0; num < extiService.extiNum; num++)
 	{
 		char confName[9] = "extis/_";
@@ -85,21 +79,21 @@ void BSP_EXTI_Init(ConfItem* dict)
 //初始化EXTI信息
 void BSP_EXIT_InitInfo(EXTIInfo* info, ConfItem* dict)
 {
-	info->GPIOX = Conf_GetPtr(dict, "gpio-x", GPIO_TypeDef);
-	info->pin = Conf_GetValue(dict, "pin-x", uint16_t, 0);
+	uint8_t pin = Conf_GetValue(dict, "pin-x", uint8_t, 0);
+	info[pin-1].GPIOX = Conf_GetPtr(dict, "gpio-x", GPIO_TypeDef);
 	char topic[12] = "/exti/pin_";
-	if(info->pin < 10)
+	if(pin < 10)
 	{
-		topic[9] = info->pin + '0';
+		topic[9] = pin + '0';
 	}
 	else
 	{
-		topic[9] = info->pin/10 + '0';
-		topic[10] = info->pin%10 + '0';
+		topic[9] = pin/10 + '0';
+		topic[10] = pin%10 + '0';
 	}
 	//重新映射至GPIO_PIN=2^pin
-	info->pin = 1 << info->pin;
-	info->fastHandle = SoftBus_CreateFastHandle(topic);
+	info[pin-1].pin = 1 << pin;
+	info[pin-1].fastHandle = SoftBus_CreateFastHandle(topic);
 }
 
 
