@@ -29,7 +29,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	if(!extiService.initFinished)
 		return;  
-	uint8_t pin = 31 - __clz((uint32_t)GPIO_Pin);
+	uint8_t pin = 31 - __clz((uint32_t)GPIO_Pin);//使用内核函数__clz就算GPIO_Pin前导0的个数，从而得到中断线号
 	EXTIInfo* extiInfo = &extiService.extiList[pin];
 	GPIO_PinState state = HAL_GPIO_ReadPin(extiInfo->GPIOX, GPIO_Pin);
 	SoftBus_FastPublish(extiInfo->fastHandle,{&state});
