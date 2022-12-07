@@ -9,8 +9,11 @@
 //<i>Select to include "can.h"
 //<q1>UART
 //<i>Select to include "usart.h"
+//<q1>EXIT
+//<i>Select to include "gpio.h"
 #define CONF_CAN_ENABLE		1
 #define CONF_USART_ENABLE	1
+#define CONF_EXIT_ENABLE 1
 //</h>
 #if CONF_CAN_ENABLE
 #include "can.h"
@@ -18,15 +21,18 @@
 #if CONF_USART_ENABLE
 #include "usart.h"
 #endif
+#if CONF_EXIT_ENABLE
+#include "gpio.h"
+#endif
 // <<< end of configuration section >>>
 
 //服务配置列表，每项格式(服务名,服务任务函数,任务优先级,任务栈大小)
 #define SERVICE_LIST \
-  	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,256) \
+	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,256) \
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
 	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)         \
-	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,256)
-	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) \
+	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,256) \
+	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) 
 	
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
@@ -205,10 +211,12 @@ ConfItem* systemConfig = CF_DICT{
 	{"exti",CF_DICT{
 		{"extis",CF_DICT{
 			{"0",CF_DICT{
+				{"gpio-x", GPIOA},
 				{"pin-x",IM_PTR(uint16_t,0)},
 				CF_DICT_END
 				}},
 			{"1",CF_DICT{
+				{"gpio-x", GPIOA},
 				{"pin-x",IM_PTR(uint16_t,4)},
 				CF_DICT_END
 				}},

@@ -118,7 +118,7 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 	{
 		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
 	}
-	SoftBus_MultiSubscribe(chassis, Chassis_SoftBusCallback, {"\chassis\move", "\chassis\acc", "\chassis\relativeAngle"});
+	SoftBus_MultiSubscribe(chassis, Chassis_SoftBusCallback, {"/chassis/move", "/chassis/acc", "/chassis/relativeAngle"});
 }
 
 
@@ -132,7 +132,7 @@ void Chassis_UpdateSlope(Chassis* chassis)
 void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;
-	if(!strcmp(topic, "\chassis\move"))
+	if(!strcmp(topic, "/chassis/move"))
 	{
 		if(SoftBus_IsMapKeyExist(frame, "vx"))
 			Slope_SetTarget(&chassis->move.xSlope, *(float*)SoftBus_GetMapValue(frame, "vx"));
@@ -141,16 +141,16 @@ void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindD
 		if(SoftBus_IsMapKeyExist(frame, "vw"))
 			chassis->move.vw = *(float*)SoftBus_GetMapValue(frame, "vw");
 	}
-	else if(!strcmp(topic, "\chassis\acc"))
+	else if(!strcmp(topic, "/chassis/acc"))
 	{
 		if(SoftBus_IsMapKeyExist(frame, "ax"))
 			Slope_SetStep(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)SoftBus_GetMapValue(frame, "ax")));
 		if(SoftBus_IsMapKeyExist(frame, "ay"))
 			Slope_SetStep(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)SoftBus_GetMapValue(frame, "ay")));
 	}
-	else if(!strcmp(topic, "\chassis\relativeAngle"))
+	else if(!strcmp(topic, "/chassis/relativeAngle"))
 	{
-		if(SoftBus_IsMapKeyExist(frame, "relativeAngle"))
-			chassis->relativeAngle = *(float*)SoftBus_GetMapValue(frame, "relativeAngle");
+		if(SoftBus_IsMapKeyExist(frame, "angle"))
+			chassis->relativeAngle = *(float*)SoftBus_GetMapValue(frame, "angle");
 	}
 }
