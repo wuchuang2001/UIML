@@ -71,7 +71,7 @@ void BSP_EXTI_Init(ConfItem* dict)
 			confName[6] = num/10 + '0';
 			confName[7] = num%10 + '0';
 		}
-		BSP_EXIT_InitInfo(&extiService.extiList[num], Conf_GetPtr(dict, confName, ConfItem));
+		BSP_EXIT_InitInfo(extiService.extiList, Conf_GetPtr(dict, confName, ConfItem));
 	}
 	extiService.initFinished=1;
 }
@@ -80,7 +80,7 @@ void BSP_EXTI_Init(ConfItem* dict)
 void BSP_EXIT_InitInfo(EXTIInfo* info, ConfItem* dict)
 {
 	uint8_t pin = Conf_GetValue(dict, "pin-x", uint8_t, 0);
-	info[pin-1].GPIOX = Conf_GetPtr(dict, "gpio-x", GPIO_TypeDef);
+	info[pin].GPIOX = Conf_GetPtr(dict, "gpio-x", GPIO_TypeDef);
 	char topic[12] = "/exti/pin_";
 	if(pin < 10)
 	{
@@ -92,8 +92,8 @@ void BSP_EXIT_InitInfo(EXTIInfo* info, ConfItem* dict)
 		topic[10] = pin%10 + '0';
 	}
 	//ÖØÐÂÓ³ÉäÖÁGPIO_PIN=2^pin
-	info[pin-1].pin = 1 << pin;
-	info[pin-1].fastHandle = SoftBus_CreateFastHandle(topic);
+	info[pin].pin = 1 << pin;
+	info[pin].fastHandle = SoftBus_CreateFastHandle(topic);
 }
 
 

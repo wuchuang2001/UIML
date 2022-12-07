@@ -105,14 +105,6 @@ void BSP_UART_Init(ConfItem* dict)
 		BSP_UART_InitInfo(uartService.uartList, Conf_GetPtr(dict, confName, ConfItem));
 	}
 
-	for(uint8_t num = 0; num < uartService.uartNum; num++)
-	{
-		//初始化接收缓冲区
-		BSP_UART_InitRecvBuffer(&uartService.uartList[num]);
-		//开启uart中断
-		BSP_UART_Start_IT(&uartService.uartList[num]);
-	}
-
 	//订阅话题
 	SoftBus_MultiSubscribe(NULL, BSP_UART_SoftBusCallback, {"/uart/trans/it","/uart/trans/dma","/uart/trans/block"});
 	uartService.initFinished = 1;
@@ -126,8 +118,12 @@ void BSP_UART_InitInfo(UARTInfo* info, ConfItem* dict)
 	info[number-1].number = number;
 	info[number-1].recvBuffer.maxBufSize = Conf_GetValue(dict, "maxRecvSize", uint16_t, 1);
 	char topic[] = "/uart_/recv";
-	topic[5] = info->number + '0';
+	topic[5] = info[number-1].number + '0';
 	info[number-1].fastHandle = SoftBus_CreateFastHandle(topic);
+	//初始化接收缓冲区
+	BSP_UART_InitRecvBuffer(&info[number-1]);
+	//开启uart中断
+	BSP_UART_Start_IT(&info[number-1]);
 }
 
 //开启uart中断
