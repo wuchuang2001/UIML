@@ -8,7 +8,7 @@
 typedef struct {
 	CAN_HandleTypeDef* hcan;
 	uint8_t number; //canX中的X
-	SoftBusFastHandle fastHandle;
+	SoftBusFastTopicHandle fastHandle;
 }CANInfo;
 
 //循环发送缓冲区
@@ -129,7 +129,7 @@ void BSP_CAN_InitInfo(CANInfo* info, ConfItem* dict)
 	info->number = Conf_GetValue(dict, "number", uint8_t, 0);
 	char topic[] = "/can_/recv";
 	topic[4] = info->number + '0';
-	info->fastHandle = SoftBus_CreateFastHandle(topic);
+	info->fastHandle = SoftBus_CreateFastTopicHandle(topic);
 }
 
 //初始化硬件参数

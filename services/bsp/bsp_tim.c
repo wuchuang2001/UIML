@@ -7,7 +7,7 @@ typedef struct
 {
 	TIM_HandleTypeDef *htim;
 	uint8_t number;
-	SoftBusFastHandle fastHandle;
+	SoftBusFastTopicHandle fastHandle;
 }TIMInfo;
 
 typedef struct 
@@ -71,7 +71,7 @@ void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict)
 			topic[11] = info->number/10 + '0';
 			topic[12] = info->number%10 + '0';
 		}
-		info->fastHandle = SoftBus_CreateFastHandle(topic);  
+		info->fastHandle = SoftBus_CreateFastTopicHandle(topic);  
 	}
 	else if(!strcmp(Conf_GetPtr(dict,"mode",char),"pwm"))
 	{

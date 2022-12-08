@@ -4,296 +4,153 @@
 #include "motor.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
-#include "pid.h"
 
-#define CHASSIS_ACC2SLOPE(taskInterval, acc) ((taskInterval) * (acc) / 1000) // mm/s2
-
-// åº•ç›˜æ¨¡å¼
-typedef enum
-{
-    ChassisMode_Follow = 0,   // åº•ç›˜è·Ÿéšäº‘å°æ¨¡å¼
-    ChassisMode_Spin,     // å°é™€èºæ¨¡å¼
-    ChassisMode_Snipe_10, // ç‹™å‡»æ¨¡å¼10mï¼Œåº•ç›˜ä¸äº‘å°æˆ45åº¦å¤¹è§’ï¼Œç§»é€Ÿå¤§å¹…é™ä½,é¼ æ ‡DPSå¤§å¹…é™ä½
-    ChassisMode_Snipe_20  // 20m
-} ChassisMode;
+#define CHASSIS_ACC2SLOPE(taskInterval,acc) ((taskInterval)*(acc)/1000) //mm/s2
 
 typedef struct _Chassis
 {
-    // åº•ç›˜å°ºå¯¸ä¿¡æ¯
-    struct Info
-    {
-        float wheelbase;   // è½´è·
-        float wheeltrack;  // è½®è·
-        float wheelRadius; // è½®åŠå¾„
-        float offsetX;     // é‡å¿ƒåœ¨xyè½´ä¸Šçš„åç§»
-        float offsetY;
-    } info;
-    // 4ä¸ªç”µæœº
-    Motor *motors[4];
-    // åº•ç›˜ç§»åŠ¨ä¿¡æ¯
-    struct Move
-    {
-        float vx; // å½“å‰å·¦å³å¹³ç§»é€Ÿåº¦ mm/s
-        float vy; // å½“å‰å‰åç§»åŠ¨é€Ÿåº¦ mm/s
-        float vw; // å½“å‰æ—‹è½¬é€Ÿåº¦ rad/s
+	//µ×ÅÌ³ß´çĞÅÏ¢
+	struct Info
+	{
+		float wheelbase;//Öá¾à
+		float wheeltrack;//ÂÖ¾à
+		float wheelRadius;//ÂÖ°ë¾¶
+		float offsetX;//ÖØĞÄÔÚxyÖáÉÏµÄÆ«ÒÆ
+		float offsetY;
+	}info;
+	//4¸öµç»ú
+	Motor* motors[4];
+	//µ×ÅÌÒÆ¶¯ĞÅÏ¢
+	struct Move
+	{
+		float vx;//µ±Ç°×óÓÒÆ½ÒÆËÙ¶È mm/s
+		float vy;//µ±Ç°Ç°ºóÒÆ¶¯ËÙ¶È mm/s
+		float vw;//µ±Ç°Ğı×ªËÙ¶È rad/s
+		
+		float maxVx,maxVy,maxVw; //Èı¸ö·ÖÁ¿×î´óËÙ¶È
+		Slope xSlope,ySlope; //Ğ±ÆÂ
+	}move;
+	
+	float relativeAngle; //Óëµ×ÅÌµÄÆ«Àë½Ç£¬µ¥Î»¶È
+	
+	uint8_t taskInterval;
+	
+}Chassis;
 
-        float maxVx, maxVy, maxVw; // ä¸‰ä¸ªåˆ†é‡æœ€å¤§é€Ÿåº¦
-        Slope xSlope, ySlope;      // æ–œå¡
-    } move;
-    float speedRto; // åº•ç›˜é€Ÿåº¦ç™¾åˆ†æ¯” ç”¨äºä½é€Ÿè¿åŠ¨
-    // åº•ç›˜æ—‹è½¬ä¿¡æ¯
-    struct
-    {
-        PID pid;             // æ—‹è½¬PIDï¼Œç”±relativeAngleè®¡ç®—åº•ç›˜æ—‹è½¬é€Ÿåº¦
-        float relativeAngle; // äº‘å°ä¸åº•ç›˜çš„åç¦»è§’ å•ä½åº¦
-        int16_t InitAngle;   // äº‘å°ä¸åº•ç›˜å¯¹é½æ—¶çš„ç¼–ç å™¨å€¼
-        int16_t nowAngle;    // æ­¤æ—¶äº‘å°çš„ç¼–ç å™¨å€¼
-        ChassisMode mode;    // åº•ç›˜æ¨¡å¼
-    } rotate;
-    float relativeAngle; // ä¸åº•ç›˜çš„åç¦»è§’ï¼Œå•ä½åº¦
+void Chassis_Init(Chassis* chassis, ConfItem* dict);
+void Chassis_UpdateSlope(Chassis* chassis);
+void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
-    uint8_t taskInterval; // ä»»åŠ¡é—´éš” ç”¨äºè®¾å®šæ­¥é•¿
-
-} Chassis;
-
-Chassis chassis;
-
-void Chassis_Init(Chassis *chassis, ConfItem *dict);
-void Chassis_UpdateSlope(Chassis *chassis);
-void Chassis_MoveCallback(const char *topic, SoftBusFrame *frame, void *bindData); 
-void Chassis_StopCallback(const char *topic, SoftBusFrame *frame, void *bindData);
-void Chassis_SwitchModeCallback(const char *topic, SoftBusFrame *frame, void *bindData);
-void Chassis_SwitchSpeedCallback(const char *topic, SoftBusFrame *frame, void *bindData);
-void Chassis_RegisterEvents(void);
-void Chassis_SoftBusCallback(const char *topic, SoftBusFrame *frame, void *bindData);
-
-// åº•ç›˜ä»»åŠ¡å›è°ƒå‡½æ•°
-void Chassis_TaskCallback(void const *argument)
+//µ×ÅÌÈÎÎñ»Øµ÷º¯Êı
+void Chassis_TaskCallback(void const * argument)
 {
-    // è¿›å…¥ä¸´ç•ŒåŒº
-    portENTER_CRITICAL();
-    Chassis chassis = {0};
-    Chassis_Init(&chassis, (ConfItem *)argument);
-    portEXIT_CRITICAL();
+	//½øÈëÁÙ½çÇø
+	portENTER_CRITICAL();
+	Chassis chassis={0};
+	Chassis_Init(&chassis, (ConfItem*)argument);
+	portEXIT_CRITICAL();
+	
+	osDelay(2000);
+	TickType_t tick = xTaskGetTickCount();
+	while(1)
+	{		
+		/*************¼ÆËãµ×ÅÌÆ½ÒÆËÙ¶È**************/
+		
+		Chassis_UpdateSlope(&chassis);//¸üĞÂÔË¶¯Ğ±ÆÂº¯ÊıÊı¾İ
 
-    osDelay(2000);
-    TickType_t tick = xTaskGetTickCount();
-    while (1)
-    {
-        /*************è®¡ç®—åº•ç›˜å¹³ç§»é€Ÿåº¦**************/
-
-        Chassis_UpdateSlope(&chassis); // æ›´æ–°è¿åŠ¨æ–œå¡å‡½æ•°æ•°æ®
-
-        // å°†äº‘å°åæ ‡ç³»ä¸‹å¹³ç§»é€Ÿåº¦è§£ç®—åˆ°åº•ç›˜å¹³ç§»é€Ÿåº¦(æ ¹æ®äº‘å°åç¦»è§’)
-        float gimbalAngleSin = arm_sin_f32(chassis.relativeAngle * PI / 180);
-        float gimbalAngleCos = arm_cos_f32(chassis.relativeAngle * PI / 180);
-        chassis.move.vx = Slope_GetVal(&chassis.move.xSlope) * gimbalAngleCos + Slope_GetVal(&chassis.move.ySlope) * gimbalAngleSin;
-        chassis.move.vy = -Slope_GetVal(&chassis.move.xSlope) * gimbalAngleSin + Slope_GetVal(&chassis.move.ySlope) * gimbalAngleCos;
-        float vw = chassis.move.vw / 180 * PI;
-
-        /*************è§£ç®—å„è½®å­è½¬é€Ÿ**************/
-
-        float rotateRatio[4];
-        rotateRatio[0] = (chassis.info.wheelbase + chassis.info.wheeltrack) / 2.0f - chassis.info.offsetY + chassis.info.offsetX;
-        rotateRatio[1] = (chassis.info.wheelbase + chassis.info.wheeltrack) / 2.0f - chassis.info.offsetY - chassis.info.offsetX;
-        rotateRatio[2] = (chassis.info.wheelbase + chassis.info.wheeltrack) / 2.0f + chassis.info.offsetY + chassis.info.offsetX;
-        rotateRatio[3] = (chassis.info.wheelbase + chassis.info.wheeltrack) / 2.0f + chassis.info.offsetY - chassis.info.offsetX;
-        float wheelRPM[4];
-        wheelRPM[0] = (chassis.move.vx + chassis.move.vy - vw * rotateRatio[0]) * 60 / (2 * PI * chassis.info.wheelRadius);   // FL
-        wheelRPM[1] = -(-chassis.move.vx + chassis.move.vy + vw * rotateRatio[1]) * 60 / (2 * PI * chassis.info.wheelRadius); // FR
-        wheelRPM[2] = (-chassis.move.vx + chassis.move.vy - vw * rotateRatio[2]) * 60 / (2 * PI * chassis.info.wheelRadius);  // BL
-        wheelRPM[3] = -(chassis.move.vx + chassis.move.vy + vw * rotateRatio[3]) * 60 / (2 * PI * chassis.info.wheelRadius);  // BR
-
-        for (uint8_t i = 0; i < 4; i++)
-        {
-            chassis.motors[i]->setTarget(chassis.motors[i], wheelRPM[i]);
-        }
-
-        osDelayUntil(&tick, chassis.taskInterval);
-    }
+		//½«ÔÆÌ¨×ø±êÏµÏÂÆ½ÒÆËÙ¶È½âËãµ½µ×ÅÌÆ½ÒÆËÙ¶È(¸ù¾İÔÆÌ¨Æ«Àë½Ç)
+		float gimbalAngleSin=arm_sin_f32(chassis.relativeAngle*PI/180);
+		float gimbalAngleCos=arm_cos_f32(chassis.relativeAngle*PI/180);
+		chassis.move.vx=Slope_GetVal(&chassis.move.xSlope) * gimbalAngleCos
+									 +Slope_GetVal(&chassis.move.ySlope) * gimbalAngleSin;
+		chassis.move.vy=-Slope_GetVal(&chassis.move.xSlope) * gimbalAngleSin
+									 +Slope_GetVal(&chassis.move.ySlope) * gimbalAngleCos;
+		float vw = chassis.move.vw/180*PI;
+		
+		/*************½âËã¸÷ÂÖ×Ó×ªËÙ**************/
+		
+		float rotateRatio[4];
+		rotateRatio[0]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f-chassis.info.offsetY+chassis.info.offsetX;
+		rotateRatio[1]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f-chassis.info.offsetY-chassis.info.offsetX;
+		rotateRatio[2]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f+chassis.info.offsetY+chassis.info.offsetX;
+		rotateRatio[3]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f+chassis.info.offsetY-chassis.info.offsetX;
+		float wheelRPM[4];
+		wheelRPM[0]=(chassis.move.vx+chassis.move.vy-vw*rotateRatio[0])*60/(2*PI*chassis.info.wheelRadius);//FL
+		wheelRPM[1]=-(-chassis.move.vx+chassis.move.vy+vw*rotateRatio[1])*60/(2*PI*chassis.info.wheelRadius);//FR
+		wheelRPM[2]=(-chassis.move.vx+chassis.move.vy-vw*rotateRatio[2])*60/(2*PI*chassis.info.wheelRadius);//BL
+		wheelRPM[3]=-(chassis.move.vx+chassis.move.vy+vw*rotateRatio[3])*60/(2*PI*chassis.info.wheelRadius);//BR
+		
+		for(uint8_t i = 0; i<4; i++)
+		{
+			chassis.motors[i]->setTarget(chassis.motors[i], wheelRPM[i]);
+		}
+		
+		osDelayUntil(&tick,chassis.taskInterval);
+	}
 }
 
-void Chassis_Init(Chassis *chassis, ConfItem *dict)
+void Chassis_Init(Chassis* chassis, ConfItem* dict)
 {
-    // ä»»åŠ¡é—´éš”
-    chassis->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
-    // åº•ç›˜å°ºå¯¸ä¿¡æ¯ï¼ˆç”¨äºè§£ç®—è½®é€Ÿï¼‰
-    chassis->info.wheelbase = Conf_GetValue(dict, "info/wheelbase", float, 0);
-    chassis->info.wheeltrack = Conf_GetValue(dict, "info/wheeltrack", float, 0);
-    chassis->info.wheelRadius = Conf_GetValue(dict, "info/wheelRadius", float, 76);
-    chassis->info.offsetX = Conf_GetValue(dict, "info/offsetX", float, 0);
-    chassis->info.offsetY = Conf_GetValue(dict, "info/offsetY", float, 0);
-    // ç§»åŠ¨å‚æ•°åˆå§‹åŒ–
-    chassis->move.maxVx = Conf_GetValue(dict, "move/maxVx", float, 2000);
-    chassis->move.maxVy = Conf_GetValue(dict, "move/maxVy", float, 2000);
-    chassis->move.maxVw = Conf_GetValue(dict, "move/maxVw", float, 2);
-    // åº•ç›˜åŠ é€Ÿåº¦åˆå§‹åŒ–
-    float xAcc = Conf_GetValue(dict, "move/xAcc", float, 1000);
-    float yAcc = Conf_GetValue(dict, "move/yAcc", float, 1000);
-    Slope_Init(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, xAcc), 0);
-    Slope_Init(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, yAcc), 0);
-    // åº•ç›˜ç”µæœºåˆå§‹åŒ–
-    chassis->motors[0] = Motor_Init(Conf_GetPtr(dict, "motorFL", ConfItem));
-    chassis->motors[1] = Motor_Init(Conf_GetPtr(dict, "motorFR", ConfItem));
-    chassis->motors[2] = Motor_Init(Conf_GetPtr(dict, "motorBL", ConfItem));
-    chassis->motors[3] = Motor_Init(Conf_GetPtr(dict, "motorBR", ConfItem));
-    // è®¾ç½®åº•ç›˜ç”µæœºä¸ºé€Ÿåº¦æ¨¡å¼
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
-    }
-    // è®¾ç½®åˆå§‹åº•ç›˜çŠ¶æ€
-    chassis->rotate.mode = Conf_GetValue(dict, "rotate/mode", uint8_t, ChassisMode_Follow);
-
-
-    SoftBus_MultiSubscribe(chassis, Chassis_SoftBusCallback, {"/chassis/move", "/chassis/acc", "/chassis/relativeAngle"});
-    Chassis_RegisterEvents();
+	//ÈÎÎñ¼ä¸ô
+	chassis->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
+	//µ×ÅÌ³ß´çĞÅÏ¢£¨ÓÃÓÚ½âËãÂÖËÙ£©
+	chassis->info.wheelbase = Conf_GetValue(dict, "info/wheelbase", float, 0);
+	chassis->info.wheeltrack = Conf_GetValue(dict, "info/wheeltrack", float, 0);
+	chassis->info.wheelRadius = Conf_GetValue(dict, "info/wheelRadius", float, 76);
+	chassis->info.offsetX = Conf_GetValue(dict, "info/offsetX", float, 0);
+	chassis->info.offsetY = Conf_GetValue(dict, "info/offsetY", float, 0);
+	//ÒÆ¶¯²ÎÊı³õÊ¼»¯
+	chassis->move.maxVx = Conf_GetValue(dict, "move/maxVx", float, 2000);
+	chassis->move.maxVy = Conf_GetValue(dict, "move/maxVy", float, 2000);
+	chassis->move.maxVw = Conf_GetValue(dict, "move/maxVw", float, 2);
+	//µ×ÅÌ¼ÓËÙ¶È³õÊ¼»¯
+	float xAcc = Conf_GetValue(dict, "move/xAcc", float, 1000);
+	float yAcc = Conf_GetValue(dict, "move/yAcc", float, 1000);
+	Slope_Init(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, xAcc),0);
+	Slope_Init(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, yAcc),0);
+	//µ×ÅÌµç»ú³õÊ¼»¯
+	chassis->motors[0] = Motor_Init(Conf_GetPtr(dict, "motorFL", ConfItem));
+	chassis->motors[1] = Motor_Init(Conf_GetPtr(dict, "motorFR", ConfItem));
+	chassis->motors[2] = Motor_Init(Conf_GetPtr(dict, "motorBL", ConfItem));
+	chassis->motors[3] = Motor_Init(Conf_GetPtr(dict, "motorBR", ConfItem));
+	//ÉèÖÃµ×ÅÌµç»úÎªËÙ¶ÈÄ£Ê½
+	for(uint8_t i = 0; i<4; i++)
+	{
+		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
+	}
+	SoftBus_MultiSubscribe(chassis, Chassis_SoftBusCallback, {"/chassis/move", "/chassis/acc", "/chassis/relativeAngle"});
 }
 
-// æ›´æ–°æ–œå¡è®¡ç®—é€Ÿåº¦
-void Chassis_UpdateSlope(Chassis *chassis)
+
+//¸üĞÂĞ±ÆÂ¼ÆËãËÙ¶È
+void Chassis_UpdateSlope(Chassis* chassis)
 {
-    Slope_NextVal(&chassis->move.xSlope);
-    Slope_NextVal(&chassis->move.ySlope);
+	Slope_NextVal(&chassis->move.xSlope);
+	Slope_NextVal(&chassis->move.ySlope);
 }
 
-// WASDç§»åŠ¨
-void Chassis_MoveCallback(const char *topic, SoftBusFrame *frame, void *bindData)
+void Chassis_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-    if (!strcmp(topic, "rc/key"))
-    {
-        char *key_type = SoftBus_GetMapValue(frame, "key");
-        switch (*key_type)
-        {
-        case 'W':
-            Slope_SetTarget(&chassis.move.ySlope, -chassis.move.maxVy * chassis.speedRto);
-            break;
-        case 'S':
-            Slope_SetTarget(&chassis.move.ySlope, chassis.move.maxVy * chassis.speedRto);
-            break;
-        case 'A':
-            Slope_SetTarget(&chassis.move.xSlope, -chassis.move.maxVy * chassis.speedRto);
-            break;
-        case 'D':
-            Slope_SetTarget(&chassis.move.xSlope, chassis.move.maxVy * chassis.speedRto);
-            break;
-        default:
-            break;
-        }
-    }
+	Chassis* chassis = (Chassis*)bindData;
+	if(!strcmp(topic, "/chassis/move"))
+	{
+		if(SoftBus_IsMapKeyExist(frame, "vx"))
+			Slope_SetTarget(&chassis->move.xSlope, *(float*)SoftBus_GetMapValue(frame, "vx"));
+		if(SoftBus_IsMapKeyExist(frame, "vy"))
+			Slope_SetTarget(&chassis->move.ySlope, *(float*)SoftBus_GetMapValue(frame, "vy"));
+		if(SoftBus_IsMapKeyExist(frame, "vw"))
+			chassis->move.vw = *(float*)SoftBus_GetMapValue(frame, "vw");
+	}
+	else if(!strcmp(topic, "/chassis/acc"))
+	{
+		if(SoftBus_IsMapKeyExist(frame, "ax"))
+			Slope_SetStep(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)SoftBus_GetMapValue(frame, "ax")));
+		if(SoftBus_IsMapKeyExist(frame, "ay"))
+			Slope_SetStep(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)SoftBus_GetMapValue(frame, "ay")));
+	}
+	else if(!strcmp(topic, "/chassis/relativeAngle"))
+	{
+		if(SoftBus_IsMapKeyExist(frame, "angle"))
+			chassis->relativeAngle = *(float*)SoftBus_GetMapValue(frame, "angle");
+	}
 }
-
-// åœæ­¢ç§»åŠ¨
-void Chassis_StopCallback(const char *topic, SoftBusFrame *frame, void *bindData)
-{
-    if (!strcmp(topic, "rc/key"))
-    {
-        char *key_type = SoftBus_GetMapValue(frame, "key");
-        switch (*key_type)
-        {
-        case 'W':
-        case 'S':
-            Slope_SetTarget(&chassis.move.ySlope, 0);
-            break;
-        case 'A':
-        case 'D':
-            Slope_SetTarget(&chassis.move.xSlope, 0);
-            break;
-        default:
-            break;
-        }
-    }
-}
-
-// åº•ç›˜æ¨¡å¼åˆ‡æ¢
-void Chassis_SwitchModeCallback(const char *topic, SoftBusFrame *frame, void *bindData)
-{
-    if (!strcmp(topic, "rc/key"))
-    {
-        char *key_type = SoftBus_GetMapValue(frame, "key");
-        if (chassis.rotate.mode != ChassisMode_Follow && \
-                (!strcmp(key_type, "Q") || \
-            !strcmp(key_type, "E") || !strcmp(key_type, "R")))
-        {
-            chassis.rotate.mode = ChassisMode_Follow;
-            chassis.speedRto = 1;
-        }
-        else
-        {
-            switch (*key_type)
-            {
-            case 'Q': // Spin
-                PID_Clear(&chassis.rotate.pid);
-                chassis.rotate.mode = ChassisMode_Spin;
-                break;
-            case 'E': // snipe-10m
-                chassis.rotate.mode = ChassisMode_Snipe_10;
-                // gimbal&shooter
-                chassis.speedRto = 0.2;
-                break;
-            case 'R': // snipe-20m
-                chassis.rotate.mode = ChassisMode_Snipe_20;
-                // gimbal&shooter
-                chassis.speedRto = 0.1;
-                break;
-            default:
-                break;
-            }
-        }
-    }
-}
-
-// å¿«/æ…¢é€Ÿç§»åŠ¨åˆ‡æ¢
-void Chassis_SwitchSpeedCallback(const char *topic, SoftBusFrame *frame, void *bindData)
-{
-    if (!strcmp(topic, "rc/key"))
-    {
-        char *key_type = (char *)SoftBus_GetMapValue(frame, "key");
-
-        if (chassis.speedRto == 1 && !strcmp(key_type, "C"))
-            chassis.speedRto = 0.5;
-        else
-            chassis.speedRto = 1;
-    }
-}
-
-void Chassis_RegisterEvents(void)
-{
-    SoftBus_MultiSubscribe(NULL, Chassis_MoveCallback, {"rc/key/on-pressing"});   // WASDæŒ‰ä¸‹åº•ç›˜ç§»åŠ¨
-    SoftBus_MultiSubscribe(NULL, Chassis_StopCallback, {"rc/key/on-up"});         // WASDæ¾å¼€åº•ç›˜åœæ­¢
-    SoftBus_MultiSubscribe(NULL, Chassis_SwitchModeCallback, {"rc/key/on-down"}); // QERæŒ‰ä¸‹åˆ‡æ¢åº•ç›˜æ¨¡å¼
-    SoftBus_Subscribe(NULL, Chassis_SwitchSpeedCallback, "rc/key/on-down");       // CæŒ‰ä¸‹ä¸‹è¹²
-}
-
-void Chassis_SoftBusCallback(const char *topic, SoftBusFrame *frame, void *bindData)
-{
-    Chassis *chassis = (Chassis *)bindData;
-    if (!strcmp(topic, "/chassis/move"))
-    {
-        if (SoftBus_IsMapKeyExist(frame, "vx"))
-            Slope_SetTarget(&chassis->move.xSlope, *(float *)SoftBus_GetMapValue(frame, "vx"));
-        if (SoftBus_IsMapKeyExist(frame, "vy"))
-            Slope_SetTarget(&chassis->move.ySlope, *(float *)SoftBus_GetMapValue(frame, "vy"));
-        if (SoftBus_IsMapKeyExist(frame, "vw"))
-            chassis->move.vw = *(float *)SoftBus_GetMapValue(frame, "vw");
-    }
-    else if (!strcmp(topic, "/chassis/acc"))
-    {
-        if (SoftBus_IsMapKeyExist(frame, "ax"))
-            Slope_SetStep(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float *)SoftBus_GetMapValue(frame, "ax")));
-        if (SoftBus_IsMapKeyExist(frame, "ay"))
-            Slope_SetStep(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float *)SoftBus_GetMapValue(frame, "ay")));
-    }
-    else if(!strcmp(topic,"/chassis/rotate"))
-    {
-        if(SoftBus_IsMapKeyExist(frame, "relativeAngle"))
-            chassis->rotate.relativeAngle = *(float*)SoftBus_GetMapValue(frame, "relativeAngle");
-        if(SoftBus_IsMapKeyExist(frame,"InitAngle"))
-            chassis->rotate.InitAngle = *(int16_t *) SoftBus_GetMapValue(frame,"InitAngle");
-        if(SoftBus_IsMapKeyExist(frame, "nowAngle"))
-            chassis->rotate.nowAngle = *(int16_t *)SoftBus_GetMapValue(frame, "nowAngle");
-        if(SoftBus_IsMapKeyExist(frame, "mode"))
-            chassis->rotate.mode = *(ChassisMode *)SoftBus_GetMapValue(frame, "mode");
-    }
-}
-

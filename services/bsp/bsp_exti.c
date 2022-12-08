@@ -8,7 +8,7 @@ typedef struct
 {
 	GPIO_TypeDef* GPIOX;
 	uint16_t pin;
-	SoftBusFastHandle fastHandle;
+	SoftBusFastTopicHandle fastHandle;
 }EXTIInfo;
 
 //EXTI服务数据
@@ -93,7 +93,7 @@ void BSP_EXIT_InitInfo(EXTIInfo* info, ConfItem* dict)
 	}
 	//重新映射至GPIO_PIN=2^pin
 	info[pin].pin = 1 << pin;
-	info[pin].fastHandle = SoftBus_CreateFastHandle(topic);
+	info[pin].fastHandle = SoftBus_CreateFastTopicHandle(topic);
 }
 
 

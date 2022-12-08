@@ -2,6 +2,7 @@
 #define _SOFTBUS_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct{
 	void* data;
@@ -13,13 +14,15 @@ typedef struct{
 	void* data;
 }SoftBusItem;//数据字段
 
-typedef void* SoftBusFastHandle;//软总线快速句柄
-typedef void (*SoftBusCallback)(const char* topic, SoftBusFrame* frame, void* bindData);//回调函数指针
+typedef void* SoftBusFastTopicHandle;//软总线快速句柄
+typedef void (*SoftBusTopicCallback)(const char* topic, SoftBusFrame* frame, void* bindData);//话题回调函数指针
+typedef bool (*SoftBusServiceCallback)(const char* topic, SoftBusFrame* request, void* bindData, void* response);//服务回调函数指针
 
 //操作函数声明(不直接调用，应使用下方define定义的接口)
-int8_t _SoftBus_MultiSubscribe(void* bindData, SoftBusCallback callback, uint16_t topicsNum, char** topics);
+int8_t _SoftBus_MultiSubscribe(void* bindData, SoftBusTopicCallback callback, uint16_t topicsNum, char** topics);
 void _SoftBus_PublishMap(const char* topic, uint16_t itemNum, SoftBusItem* items);
-void _SoftBus_PublishList(SoftBusFastHandle topicHandle, uint16_t listNum, void** list);
+void _SoftBus_PublishList(SoftBusFastTopicHandle topicHandle, uint16_t listNum, void** list);
+bool _SoftBus_RequestMap(const char* service, void* response, uint16_t itemNum, SoftBusItem* items);
 uint8_t _SoftBus_CheckMapKeys(SoftBusFrame* frame, uint16_t keysNum, char** keys);
 
 /*
@@ -27,9 +30,9 @@ uint8_t _SoftBus_CheckMapKeys(SoftBusFrame* frame, uint16_t keysNum, char** keys
 	@param callback:话题发布时的回调函数
 	@param topic:话题名
 	@retval 0:成功 -1:堆空间不足 -2:参数为空
-	@note 回调函数的形式应为void callback(const char* topic, SoftBusFrame* frame)
+	@note 回调函数的形式应为void callback(const char* topic, SoftBusFrame* frame, void* bindData)
 */
-int8_t SoftBus_Subscribe(void* bindData, SoftBusCallback callback, const char* topic);
+int8_t SoftBus_Subscribe(void* bindData, SoftBusTopicCallback callback, const char* topic);
 
 /*
 	@brief 订阅软总线上的多个话题
@@ -49,6 +52,34 @@ int8_t SoftBus_Subscribe(void* bindData, SoftBusCallback callback, const char* t
 	@example SoftBus_PublishMap("topic", {{"key1", data1}, {"key2", data2}});
 */
 #define SoftBus_Publish(topic,...) _SoftBus_PublishMap((topic),(sizeof((SoftBusItem[])__VA_ARGS__)/sizeof(SoftBusItem)),((SoftBusItem[])__VA_ARGS__))
+
+/*
+	@brief 以快速方式发送列表数据帧
+	@param handle:快速句柄
+	@param ...:数据指针列表
+	@retval void
+	@example float value1,value2; SoftBus_FastPublish(handle, {&value1, &value2});
+*/
+#define SoftBus_FastPublish(handle,...) _SoftBus_PublishList((handle),(sizeof((void*[])__VA_ARGS__)/sizeof(void*)),((void*[])__VA_ARGS__))
+
+/*
+	@brief 创建软总线上的一个服务
+	@param callback:响应服务时的回调函数
+	@param topic:服务名
+	@retval 0:成功 -1:堆空间不足 -2:参数为空 -3:服务已存在
+	@note 回调函数的形式应为bool callback(const char* topic, SoftBusFrame* request, void* bindData, void* response)
+*/
+int8_t SoftBus_CreateServer(void* bindData, SoftBusServiceCallback callback, const char* service);
+
+/*
+	@brief 通过映射表数据帧请求服务
+	@param service:服务名
+	@param response:响应数据的指针
+	@param ...:请求数据帧
+	@retval true:成功 false:失败
+	@example SoftBus_Request("service", &response, {{"key1", data1}, {"key2", data2}});
+*/
+#define SoftBus_Request(service, response,...) _SoftBus_RequestMap((service),(response),(sizeof((SoftBusItem[])__VA_ARGS__)/sizeof(SoftBusItem)),((SoftBusItem[])__VA_ARGS__))
 
 /*
 	@brief 查找映射表数据帧中的数据字段
@@ -91,19 +122,10 @@ const SoftBusItem* SoftBus_GetMapItem(SoftBusFrame* frame, char* key);
 	@brief 通过话题字符串创建快速句柄
 	@param topic:话题字符串
 	@retval 创建出的快速句柄
-	@example SoftBusFastHandle handle = SoftBus_CreateFastHandle("topic");
+	@example SoftBusFastTopicHandle handle = SoftBus_CreateFastTopicHandle("topic");
 	@note 应仅在程序初始化时创建一次，而不是每次发布前创建
 */
-SoftBusFastHandle SoftBus_CreateFastHandle(const char* topic);
-
-/*
-	@brief 以快速方式发送列表数据帧
-	@param handle:快速句柄
-	@param ...:数据指针列表
-	@retval void
-	@example float value1,value2; SoftBus_FastPublish(handle, {&value1, &value2});
-*/
-#define SoftBus_FastPublish(handle,...) _SoftBus_PublishList((handle),(sizeof((void*[])__VA_ARGS__)/sizeof(void*)),((void*[])__VA_ARGS__))
+SoftBusFastTopicHandle SoftBus_CreateFastTopicHandle(const char* topic);
 
 /*
 	@brief 获取列表数据帧中指定索引的数据

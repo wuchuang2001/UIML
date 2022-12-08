@@ -8,7 +8,7 @@
 typedef struct {
 	SPI_HandleTypeDef* hspi;
 	uint8_t number; //SPIX中的X
-	SoftBusFastHandle fastHandle;
+	SoftBusFastTopicHandle fastHandle;
 }SPIInfo;
 typedef	struct 
 {
@@ -92,7 +92,7 @@ void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 	info->number=Conf_GetValue(dict,"number",uint8_t,0);
 	char topic[] = "/spi_/exchange";
 	topic[4] = info->number + '0';
-	info->fastHandle=SoftBus_CreateFastHandle(topic);
+	info->fastHandle=SoftBus_CreateFastTopicHandle(topic);
 }
 
 //初始化spi缓冲区

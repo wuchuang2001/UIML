@@ -26,7 +26,7 @@ typedef struct {
 		uint16_t maxBufSize;
 		uint16_t pos;
 	}recvBuffer;
-	SoftBusFastHandle fastHandle;
+	SoftBusFastTopicHandle fastHandle;
 }UARTInfo;
 
 //UART服务数据
@@ -119,7 +119,7 @@ void BSP_UART_InitInfo(UARTInfo* info, ConfItem* dict)
 	info[number-1].recvBuffer.maxBufSize = Conf_GetValue(dict, "maxRecvSize", uint16_t, 1);
 	char topic[] = "/uart_/recv";
 	topic[5] = info[number-1].number + '0';
-	info[number-1].fastHandle = SoftBus_CreateFastHandle(topic);
+	info[number-1].fastHandle = SoftBus_CreateFastTopicHandle(topic);
 	//初始化接收缓冲区
 	BSP_UART_InitRecvBuffer(&info[number-1]);
 	//开启uart中断
