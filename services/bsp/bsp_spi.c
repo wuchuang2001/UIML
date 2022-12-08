@@ -4,10 +4,10 @@
 
 #include "spi.h"
 
-//SPIå¥æŸ„ä¿¡æ¯
+//SPI¾ä±úĞÅÏ¢
 typedef struct {
 	SPI_HandleTypeDef* hspi;
-	uint8_t number; //SPIXä¸­çš„X
+	uint8_t number; //SPIXÖĞµÄX
 
 	SoftBusFastHandle fastHandle;
 }SPIInfo;
@@ -18,7 +18,7 @@ typedef	struct
 }SPIBuffer;
 
 
-//SPIæœåŠ¡æ•°æ®
+//SPI·şÎñÊı¾İ
 typedef struct {
 	SPIInfo* spiList;
 	SPIBuffer* bufs;
@@ -28,7 +28,7 @@ typedef struct {
 }SPIService;
 
 SPIService spiService={0};
-//å‡½æ•°å£°æ˜
+//º¯ÊıÉùÃ÷
 
 void BSP_SPI_Init(ConfItem* dict);
 void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict);
@@ -42,10 +42,10 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 
 }
 
-//SPIä»»åŠ¡å›è°ƒå‡½æ•°
+//SPIÈÎÎñ»Øµ÷º¯Êı
 void BSP_SPI_TaskCallback(void const * argument)
 {
-	//è¿›å…¥ä¸´ç•ŒåŒº
+	//½øÈëÁÙ½çÇø
 	portENTER_CRITICAL();
 	BSP_SPI_Init((ConfItem*)argument);
 	portEXIT_CRITICAL();
@@ -54,7 +54,7 @@ void BSP_SPI_TaskCallback(void const * argument)
 }
 void BSP_SPI_Init(ConfItem* dict)
 {
-	//è®¡ç®—ç”¨æˆ·é…ç½®çš„spiæ•°é‡
+	//¼ÆËãÓÃ»§ÅäÖÃµÄspiÊıÁ¿
 	spiService.spiNum = 0;
 	for(uint8_t num = 0; ; num++)
 	{
@@ -65,7 +65,7 @@ void BSP_SPI_Init(ConfItem* dict)
 		else
 			break;
 	}
-	//åˆå§‹åŒ–å„spiä¿¡æ¯
+	//³õÊ¼»¯¸÷spiĞÅÏ¢
 	spiService.spiList = pvPortMalloc(spiService.spiNum * sizeof(SPIInfo));
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
@@ -74,18 +74,17 @@ void BSP_SPI_Init(ConfItem* dict)
 		BSP_SPI_InitInfo(&spiService.spiList[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
 
-	//è®¢é˜…è¯é¢˜
+	//¶©ÔÄ»°Ìâ
 	spiService.initFinished = 1;
 }
-//åˆå§‹åŒ–spiä¿¡æ¯
+//³õÊ¼»¯spiĞÅÏ¢
 void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 {
-  info->hspi=Conf_GetPtr(dict,"hspi",SPI_HandleTypeDef);
+	info->hspi=Conf_GetPtr(dict,"hspi",SPI_HandleTypeDef);
 	info->number=Conf_GetValue(dict,"number",uint8_t,0);
 	char topic[] = "/spi_/recv";
 	topic[4] = info->number + '0';
 	info->fastHandle=SoftBus_CreateFastHandle(topic);
-	
 }
 
 
