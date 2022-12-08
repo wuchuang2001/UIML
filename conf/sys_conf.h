@@ -26,53 +26,68 @@
 #endif
 // <<< end of configuration section >>>
 
-//∑˛ŒÒ≈‰÷√¡–±Ì£¨√øœÓ∏Ò Ω(∑˛ŒÒ√˚,∑˛ŒÒ»ŒŒÒ∫Ø ˝,»ŒŒÒ”≈œ»º∂,»ŒŒÒ’ª¥Û–°)
+//ÊúçÂä°ÈÖçÁΩÆÂàóË°®ÔºåÊØèÈ°πÊ†ºÂºè(ÊúçÂä°Âêç,ÊúçÂä°‰ªªÂä°ÂáΩÊï∞,‰ªªÂä°‰ºòÂÖàÁ∫ß,‰ªªÂä°Ê†àÂ§ßÂ∞è)
 #define SERVICE_LIST \
 	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,256) \
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
 	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)         \
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,256) \
-	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) 
-	
-//∏˜∑˛ŒÒ≈‰÷√œÓ
+	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256)
+
+//ÂêÑÊúçÂä°ÈÖçÁΩÆÈ°π
 ConfItem* systemConfig = CF_DICT{
-	//µ◊≈Ã∑˛ŒÒ≈‰÷√
-	{"chassis", CF_DICT{
-		//»ŒŒÒ—≠ª∑÷‹∆⁄
-		{"taskInterval", IM_PTR(uint8_t, 2)},
-		//µ◊≈Ã≥ﬂ¥Á–≈œ¢
-		{"info", CF_DICT{
-			{"wheelbase", IM_PTR(float, 100)},
-			{"wheeltrack", IM_PTR(float, 100)},
-			{"wheelRadius", IM_PTR(float, 76)},
-			{"offsetX", IM_PTR(float, 0)},
-			{"offsetY", IM_PTR(float, 0)},
-			CF_DICT_END
-		}},
-		//µ◊≈Ã“∆∂ØÀŸ∂»/º”ÀŸ∂»≈‰÷√
-		{"move", CF_DICT{
-			{"maxVx", IM_PTR(float, 2000)},
-			{"maxVy", IM_PTR(float, 2000)},
-			{"maxVw", IM_PTR(float, 2)},
-			{"xAcc", IM_PTR(float, 1000)},
-			{"yAcc", IM_PTR(float, 1000)},
-			CF_DICT_END
-		}},
-		//Àƒ∏ˆµÁª˙≈‰÷√
-		{"motorFL", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 1)},
-			{"canX", IM_PTR(uint8_t, 1)},
-//			{"reductionRatio", IM_PTR(float, 1)},   //»Ù π”√∏ƒ◊∞ºıÀŸœ‰ªÚ’ﬂ≤µÙºıÀŸœ‰µƒµÁª˙‘Ú–ﬁ∏ƒ¥À≤Œ ˝£¨»Ù π”√‘≠◊∞µÁª˙‘ÚŒﬁ–Ë≈‰÷√¥À≤Œ ˝
-			{"speedPID", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
-				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
-//			{"anglePID", CF_DICT{                  //¥Æº∂pid æ¿˝£¨»Á–Ë π”√¥Æº∂pid’’¥Àƒ£∞Â≈‰÷√º¥ø…
+        //Â∫ïÁõòÊúçÂä°ÈÖçÁΩÆ
+        {"chassis", CF_DICT{
+                //‰ªªÂä°Âæ™ÁéØÂë®Êúü
+                {"taskInterval", IM_PTR(uint8_t, 2)},
+                //Â∫ïÁõòÂ∞∫ÂØ∏‰ø°ÊÅØ
+                {"info", CF_DICT{
+                        {"wheelbase", IM_PTR(float, 100)},
+                        {"wheeltrack", IM_PTR(float, 100)},
+                        {"wheelRadius", IM_PTR(float, 76)},
+                        {"offsetX", IM_PTR(float, 0)},
+                        {"offsetY", IM_PTR(float, 0)},
+                        CF_DICT_END
+                }},
+                //Â∫ïÁõòÁßªÂä®ÈÄüÂ∫¶/Âä†ÈÄüÂ∫¶ÈÖçÁΩÆ
+                {"move", CF_DICT{
+                        {"maxVx", IM_PTR(float, 2000)},
+                        {"maxVy", IM_PTR(float, 2000)},
+                        {"maxVw", IM_PTR(float, 2)},
+                        {"xAcc", IM_PTR(float, 1000)},
+                        {"yAcc", IM_PTR(float, 1000)},
+                        CF_DICT_END
+                }},
+                //ÊóãËΩ¨ÂèÇÊï∞ÈÖçÁΩÆ
+                {"rotate", CF_DICT {
+                        {"relativeAngle", IM_PTR(float, 3364)},
+                        {"initAngle",     IM_PTR(int16_t, 0)},
+                        {"nowAngle",      IM_PTR(int16_t, 0)},
+                        {"speedPID",      CF_DICT{
+                                {"p", IM_PTR(float, 0.04)},
+                                {"i", IM_PTR(float, 0)},
+                                {"d", IM_PTR(float, 0)},
+                                {"maxI", IM_PTR(float, 0.5)},
+                                {"maxOut", IM_PTR(float, 0.5)},
+                                CF_DICT_END
+                        }},
+                        CF_DICT_END
+                }},
+                //Âõõ‰∏™ÁîµÊú∫ÈÖçÁΩÆ
+                {"motorFL", CF_DICT{
+                        {"type", "M3508"},
+                        {"id", IM_PTR(uint16_t, 1)},
+                        {"canX", IM_PTR(uint8_t, 1)},
+//			{"reductionRatio", IM_PTR(float, 1)},   //Ëã•‰ΩøÁî®ÊîπË£ÖÂáèÈÄüÁÆ±ÊàñËÄÖÊãÜÊéâÂáèÈÄüÁÆ±ÁöÑÁîµÊú∫Âàô‰øÆÊîπÊ≠§ÂèÇÊï∞ÔºåËã•‰ΩøÁî®ÂéüË£ÖÁîµÊú∫ÂàôÊó†ÈúÄÈÖçÁΩÆÊ≠§ÂèÇÊï∞
+                        {"speedPID", CF_DICT{
+                                {"p", IM_PTR(float, 10)},
+                                {"i", IM_PTR(float, 1)},
+                                {"d", IM_PTR(float, 0)},
+                                {"maxI", IM_PTR(float, 10000)},
+                                {"maxOut", IM_PTR(float, 20000)},
+                                CF_DICT_END
+                        }},
+//			{"anglePID", CF_DICT{                  //‰∏≤Á∫ßpidÁ§∫‰æãÔºåÂ¶ÇÈúÄ‰ΩøÁî®‰∏≤Á∫ßpidÁÖßÊ≠§Ê®°ÊùøÈÖçÁΩÆÂç≥ÂèØ
 //				{"inner", CF_DICT{
 //					{"p", IM_PTR(float, 10)},
 //					{"i", IM_PTR(float, 1)},
@@ -91,140 +106,141 @@ ConfItem* systemConfig = CF_DICT{
 //				}},
 //				CF_DICT_END
 //			}},
-			CF_DICT_END
-		}},
-		{"motorFR", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 2)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
-				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
-			CF_DICT_END
-		}},
-		{"motorBL", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 3)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
-				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
-			CF_DICT_END
-		}},
-		{"motorBR", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 4)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
-				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
-			CF_DICT_END
-		}},
-		CF_DICT_END
-	}},
-	//CAN∑˛ŒÒ≈‰÷√
-	{"can", CF_DICT{
-		//CANøÿ÷∆∆˜–≈œ¢
-		{"cans", CF_DICT{
-			{"0", CF_DICT{
-				{"hcan", &hcan1},
-				{"number", IM_PTR(uint8_t, 1)},
-				CF_DICT_END
-			}},
-			{"1", CF_DICT{
-				{"hcan", &hcan2},
-				{"number", IM_PTR(uint8_t, 2)},
-				CF_DICT_END
-			}},
-			CF_DICT_END
-		}},
-		//∂® ±÷°≈‰÷√
-		{"repeat-buffers", CF_DICT{
-			{"0", CF_DICT{
-				{"can-x", IM_PTR(uint8_t, 1)},
-				{"id", IM_PTR(uint16_t, 0x200)},
-				{"interval", IM_PTR(uint16_t, 2)},
-				CF_DICT_END
-			}},
-      		{"1",CF_DICT{
-				{"can-x", IM_PTR(uint8_t, 1)},
-				{"id", IM_PTR(uint16_t, 0x1FF)},
-				{"interval", IM_PTR(uint16_t, 2)},          
-				CF_DICT_END
-				}},
-			{"2",CF_DICT{
-				{"can-x", IM_PTR(uint8_t, 2)},
-				{"id", IM_PTR(uint16_t, 0x200)},
-				{"interval", IM_PTR(uint16_t, 2)},          
-				CF_DICT_END
-				}},		
-			{"3", CF_DICT{
-				{"can-x", IM_PTR(uint8_t, 2)},
-				{"id", IM_PTR(uint16_t, 0x1FF)},
-				{"interval", IM_PTR(uint16_t, 2)},
-				CF_DICT_END
-			}},
-			CF_DICT_END
-		}},
-		CF_DICT_END
-	}},
-	//“£øÿ∑˛ŒÒ≈‰÷√
-	{"rc",CF_DICT{
-		{"uart-x",IM_PTR(uint8_t, 3)},
-	   CF_DICT_END
-	}},
-	//¥Æø⁄∑˛ŒÒ≈‰÷√
-	{"uart",CF_DICT{
-		{"uarts",CF_DICT{
-			{"0",CF_DICT{
-				{"huart",&huart1},
-				{"uart-x",IM_PTR(uint8_t,1)},
-				{"maxRecvSize",IM_PTR(uint16_t,100)},
-				CF_DICT_END
-				}},
-			{"1",CF_DICT{
-				{"huart",&huart3},
-				{"uart-x",IM_PTR(uint8_t,3)},
-				{"maxRecvSize",IM_PTR(uint16_t,18)},
-				CF_DICT_END
-				}},
-			CF_DICT_END
-			}},	
-		CF_DICT_END
-		}},
-	//Õ‚≤ø÷–∂œ∑˛ŒÒ≈‰÷√
-	{"exti",CF_DICT{
-		{"extis",CF_DICT{
-			{"0",CF_DICT{
-				{"gpio-x", GPIOA},
-				{"pin-x",IM_PTR(uint8_t,0)},
-				CF_DICT_END
-				}},
-			{"1",CF_DICT{
-				{"gpio-x", GPIOA},
-				{"pin-x",IM_PTR(uint8_t,4)},
-				CF_DICT_END
-				}},
-			CF_DICT_END
-			}},
-		CF_DICT_END
-		}},
-	CF_DICT_END
+                        CF_DICT_END
+                }},
+                {"motorFR", CF_DICT{
+                        {"type", "M3508"},
+                        {"id", IM_PTR(uint16_t, 2)},
+                        {"canX", IM_PTR(uint8_t, 1)},
+                        {"speedPID", CF_DICT{
+                                {"p", IM_PTR(float, 10)},
+                                {"i", IM_PTR(float, 1)},
+                                {"d", IM_PTR(float, 0)},
+                                {"maxI", IM_PTR(float, 10000)},
+                                {"maxOut", IM_PTR(float, 20000)},
+                                CF_DICT_END
+                        }},
+                        CF_DICT_END
+                }},
+                {"motorBL", CF_DICT{
+                        {"type", "M3508"},
+                        {"id", IM_PTR(uint16_t, 3)},
+                        {"canX", IM_PTR(uint8_t, 1)},
+                        {"speedPID", CF_DICT{
+                                {"p", IM_PTR(float, 10)},
+                                {"i", IM_PTR(float, 1)},
+                                {"d", IM_PTR(float, 0)},
+                                {"maxI", IM_PTR(float, 10000)},
+                                {"maxOut", IM_PTR(float, 20000)},
+                                CF_DICT_END
+                        }},
+                        CF_DICT_END
+                }},
+                {"motorBR", CF_DICT{
+                        {"type", "M3508"},
+                        {"id", IM_PTR(uint16_t, 4)},
+                        {"canX", IM_PTR(uint8_t, 1)},
+                        {"speedPID", CF_DICT{
+                                {"p", IM_PTR(float, 10)},
+                                {"i", IM_PTR(float, 1)},
+                                {"d", IM_PTR(float, 0)},
+                                {"maxI", IM_PTR(float, 10000)},
+                                {"maxOut", IM_PTR(float, 20000)},
+                                CF_DICT_END
+                        }},
+                        CF_DICT_END
+                }},
+                CF_DICT_END
+        }},
+        //CANÊúçÂä°ÈÖçÁΩÆ
+        {"can", CF_DICT{
+                //CANÊéßÂà∂Âô®‰ø°ÊÅØ
+                {"cans", CF_DICT{
+                        {"0", CF_DICT{
+                                {"hcan", &hcan1},
+                                {"number", IM_PTR(uint8_t, 1)},
+                                CF_DICT_END
+                        }},
+                        {"1", CF_DICT{
+                                {"hcan", &hcan2},
+                                {"number", IM_PTR(uint8_t, 2)},
+                                CF_DICT_END
+                        }},
+                        CF_DICT_END
+                }},
+                //ÂÆöÊó∂Â∏ßÈÖçÁΩÆ
+                {"repeat-buffers", CF_DICT{
+                        {"0", CF_DICT{
+                                {"can-x", IM_PTR(uint8_t, 1)},
+                                {"id", IM_PTR(uint16_t, 0x200)},
+                                {"interval", IM_PTR(uint16_t, 2)},
+                                CF_DICT_END
+                        }},
+                        {"1",CF_DICT{
+                                {"can-x", IM_PTR(uint8_t, 1)},
+                                {"id", IM_PTR(uint16_t, 0x1FF)},
+                                {"interval", IM_PTR(uint16_t, 2)},
+                                CF_DICT_END
+                        }},
+                        {"2",CF_DICT{
+                                {"can-x", IM_PTR(uint8_t, 2)},
+                                {"id", IM_PTR(uint16_t, 0x200)},
+                                {"interval", IM_PTR(uint16_t, 2)},
+                                CF_DICT_END
+                        }},
+                        {"3", CF_DICT{
+                                {"can-x", IM_PTR(uint8_t, 2)},
+                                {"id", IM_PTR(uint16_t, 0x1FF)},
+                                {"interval", IM_PTR(uint16_t, 2)},
+                                CF_DICT_END
+                        }},
+                        CF_DICT_END
+                }},
+                CF_DICT_END
+        }},
+        //ÈÅ•ÊéßÊúçÂä°ÈÖçÁΩÆ
+        {"rc",CF_DICT{
+                {"uart-x",IM_PTR(uint8_t, 3)},
+                CF_DICT_END
+        }},
+        //‰∏≤Âè£ÊúçÂä°ÈÖçÁΩÆ
+        {"uart",CF_DICT{
+                {"uarts",CF_DICT{
+                        {"0",CF_DICT{
+                                {"huart",&huart1},
+                                {"uart-x",IM_PTR(uint8_t,1)},
+                                {"maxRecvSize",IM_PTR(uint16_t,100)},
+                                CF_DICT_END
+                        }},
+                        {"1",CF_DICT{
+                                {"huart",&huart3},
+                                {"uart-x",IM_PTR(uint8_t,3)},
+                                {"maxRecvSize",IM_PTR(uint16_t,18)},
+                                CF_DICT_END
+                        }},
+                        CF_DICT_END
+                }},
+                CF_DICT_END
+        }},
+        //Â§ñÈÉ®‰∏≠Êñ≠ÊúçÂä°ÈÖçÁΩÆ
+        {"exti",CF_DICT{
+                {"extis",CF_DICT{
+                        {"0",CF_DICT{
+                                {"gpio-x", GPIOA},
+                                {"pin-x",IM_PTR(uint8_t,0)},
+                                CF_DICT_END
+                        }},
+                        {"1",CF_DICT{
+                                {"gpio-x", GPIOA},
+                                {"pin-x",IM_PTR(uint8_t,4)},
+                                CF_DICT_END
+                        }},
+                        CF_DICT_END
+                }},
+                CF_DICT_END
+        }},
+        CF_DICT_END
 };
 
 #endif
+
