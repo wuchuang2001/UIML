@@ -8,7 +8,7 @@
 typedef struct {
 	SPI_HandleTypeDef* hspi;
 	uint8_t number; //SPIX中的X
-	SoftBusFastTopicHandle fastHandle;
+	SoftBusFastHandle fastHandle;
 }SPIInfo;
 typedef	struct 
 {
@@ -40,7 +40,7 @@ void BSP_SPI_InitBuffer(SPIBuffer* buffer, ConfItem* dict);
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-
+		
 }
 
 //SPI任务回调函数
@@ -66,6 +66,7 @@ void BSP_SPI_Init(ConfItem* dict)
 		else
 			break;
 	}
+	
 	//初始化各spi信息
 	spiService.spiList = pvPortMalloc(spiService.spiNum * sizeof(SPIInfo));
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
@@ -74,15 +75,19 @@ void BSP_SPI_Init(ConfItem* dict)
 		confName[5] = num + '0';
 		BSP_SPI_InitInfo(&spiService.spiList[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
+	
+	
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
 		char confName[] = "spibuffer/_";
 		confName[10] = num + '0';
 		//初始化接收缓冲区
 		BSP_SPI_InitBuffer(&spiService.bufs[num],Conf_GetPtr(dict, confName, ConfItem));
-
 	}
+	
+	
 	//订阅话题
+	SoftBus_Subscribe(NULL,BSP_SPI_SoftBusCallback,"");
 	spiService.initFinished = 1;
 }
 //初始化spi信息
@@ -92,7 +97,7 @@ void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 	info->number=Conf_GetValue(dict,"number",uint8_t,0);
 	char topic[] = "/spi_/exchange";
 	topic[4] = info->number + '0';
-	info->fastHandle=SoftBus_CreateFastTopicHandle(topic);
+	info->fastHandle=SoftBus_CreateFastHandle(topic);
 }
 
 //初始化spi缓冲区
@@ -125,5 +130,8 @@ void BSP_SPI_InitBuffer(SPIBuffer* buffer, ConfItem* dict)
 
 void BSP_SPI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
+     if(!strcmp(topic, "   "))
+		 {    
 
+		 }
 }
