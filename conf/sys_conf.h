@@ -9,11 +9,14 @@
 //<i>Select to include "can.h"
 //<q1>UART
 //<i>Select to include "usart.h"
-//<q1>EXIT
+//<q2>EXIT
 //<i>Select to include "gpio.h"
+//<q3>TIM
+//<i>Select to include "tim.h"
 #define CONF_CAN_ENABLE		1
 #define CONF_USART_ENABLE	1
 #define CONF_EXIT_ENABLE 1
+#define CONF_TIM_ENABLE 1
 //</h>
 #if CONF_CAN_ENABLE
 #include "can.h"
@@ -24,6 +27,9 @@
 #if CONF_EXIT_ENABLE
 #include "gpio.h"
 #endif
+#if CONF_TIM_ENABLE
+#include "tim.h"
+#endif
 // <<< end of configuration section >>>
 
 //服务配置列表，每项格式(服务名,服务任务函数,任务优先级,任务栈大小)
@@ -32,7 +38,8 @@
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
 	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)         \
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,256) \
-	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) 
+	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) \
+	SERVICE(tim, BSP_TIM_TaskCallback, osPriorityNormal,256)
 	
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
@@ -224,6 +231,24 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 		CF_DICT_END
 		}},
+	{"tim",CF_DICT{
+		{"tims",CF_DICT{
+			{"0",CF_DICT{
+				{"htim",&htim1},
+				{"number",IM_PTR(uint8_t,1)},
+				{"mode","encode"},
+				CF_DICT_END
+				}},
+			{"1",CF_DICT{
+				{"htim",&htim14},
+				{"number",IM_PTR(uint8_t,14)},
+				{"mode","pwm"},
+				CF_DICT_END
+                }}, 
+			CF_DICT_END
+			}},
+		CF_DICT_END
+		}},	
 	CF_DICT_END
 };
 
