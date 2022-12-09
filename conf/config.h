@@ -44,6 +44,6 @@ void* _Conf_GetValue(ConfItem* dict, const char* name);
 	@param def:默认值
 	@retval type型配置值数据，若配置名不存在则返回def
 */
-#define Conf_GetValue(dict,name,type,def) (_Conf_GetValue((dict),(name))?(*(type*)(_Conf_GetValue((dict),(name)))):(def))
+#define Conf_GetValue(dict,name,type,def) (_Conf_GetValue((dict),(name))?(*(type*) (_Conf_GetValue((dict),(name)))):(def))
 
 #endif
