@@ -8,7 +8,7 @@
 typedef struct {
 	SPI_HandleTypeDef* hspi;
 	uint8_t number; //SPIX中的X
-	SoftBusFastHandle fastHandle;
+	SoftBusReceiverHandle fastHandle;
 }SPIInfo;
 typedef	struct 
 {
@@ -33,7 +33,7 @@ SPIService spiService={0};
 
 void BSP_SPI_Init(ConfItem* dict);
 void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict);
-void BSP_SPI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void BSP_SPI_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void BSP_SPI_InitBuffer(SPIBuffer* buffer, ConfItem* dict);
 
 
@@ -87,7 +87,7 @@ void BSP_SPI_Init(ConfItem* dict)
 	
 	
 	//订阅话题
-	SoftBus_Subscribe(NULL,BSP_SPI_SoftBusCallback,"");
+	Bus_RegisterReceiver(NULL,BSP_SPI_SoftBusCallback,"");
 	spiService.initFinished = 1;
 }
 //初始化spi信息
@@ -95,9 +95,9 @@ void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 {
   info->hspi=Conf_GetPtr(dict,"hspi",SPI_HandleTypeDef);
 	info->number=Conf_GetValue(dict,"number",uint8_t,0);
-	char topic[] = "/spi_/exchange";
-	topic[4] = info->number + '0';
-	info->fastHandle=SoftBus_CreateFastHandle(topic);
+	char name[] = "/spi_/exchange";
+	name[4] = info->number + '0';
+	info->fastHandle=Bus_CreateReceiverHandle(name);
 }
 
 //初始化spi缓冲区
@@ -128,9 +128,9 @@ void BSP_SPI_InitBuffer(SPIBuffer* buffer, ConfItem* dict)
 
 }
 
-void BSP_SPI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void BSP_SPI_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-     if(!strcmp(topic, "   "))
+     if(!strcmp(name, "   "))
 		 {    
 
 		 }

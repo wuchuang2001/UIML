@@ -38,7 +38,7 @@ Motor* M2006_Init(ConfItem* dict);
 void M2006_SetStartAngle(Motor *motor, float startAngle);
 void M2006_SetTarget(Motor* motor, float targetValue);
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode);
-void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M2006_Update(M2006* m2006,uint8_t* data);
 void M2006_PIDInit(M2006* m2006, ConfItem* dict);
@@ -75,9 +75,9 @@ Motor* M2006_Init(ConfItem* dict)
 	//初始化电机pid
 	M2006_PIDInit(m2006, dict);
 	//订阅can信息
-	char topic[] = "/can_/recv";
-	topic[4] = m2006->canInfo.canX + '0';
-	SoftBus_Subscribe(m2006, M2006_SoftBusCallback, topic);
+	char name[] = "/can_/recv";
+	name[4] = m2006->canInfo.canX + '0';
+	Bus_RegisterReceiver(m2006, M2006_SoftBusCallback, name);
 	//开启软件定时器
 	osTimerDef(M2006, M2006_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);
@@ -93,15 +93,15 @@ void M2006_PIDInit(M2006* m2006, ConfItem* dict)
 	PID_SetMaxOutput(&m2006->anglePID.outer, m2006->anglePID.outer.maxOutput*m2006->reductionRatio);//将输出轴速度限幅放大到转子上
 }
 //软总线回调函数
-void M2006_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	M2006* m2006 = (M2006*)bindData;
 
-	uint16_t id = *(uint16_t*)SoftBus_GetListValue(frame, 0);
+	uint16_t id = *(uint16_t*)Bus_GetListValue(frame, 0);
 	if(id != m2006->canInfo.recvID)
 		return;
 		
-	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 1);
+	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 1);
 	if(data)
 		M2006_Update(m2006, data);
 }
@@ -152,7 +152,7 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 	buffer[0] = (output>>8)&0xff;
 	buffer[1] = (output)&0xff;
 	//发布can信息
-	SoftBus_Publish("/can/set-buf",{
+	Bus_BroadcastSend("/can/set-buf",{
 		{"can-x", &m2006->canInfo.canX},
 		{"id", &m2006->canInfo.sendID},
 		{"pos", &m2006->canInfo.bufIndex},

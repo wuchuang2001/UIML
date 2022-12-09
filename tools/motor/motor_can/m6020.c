@@ -38,7 +38,7 @@ Motor* M6020_Init(ConfItem* dict);
 void M6020_SetStartAngle(Motor *motor, float startAngle);
 void M6020_SetTarget(Motor* motor, float targetValue);
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode);
-void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void M6020_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M6020_Update(M6020* m6020,uint8_t* data);
 void M6020_PIDInit(M6020* m6020, ConfItem* dict);
@@ -75,9 +75,9 @@ Motor* M6020_Init(ConfItem* dict)
 	//初始化电机pid
 	M6020_PIDInit(m6020, dict);
 	//订阅can信息
-	char topic[] = "/can_/recv";
-	topic[4] = m6020->canInfo.canX + '0';
-	SoftBus_Subscribe(m6020, M6020_SoftBusCallback, topic);
+	char name[] = "/can_/recv";
+	name[4] = m6020->canInfo.canX + '0';
+	Bus_RegisterReceiver(m6020, M6020_SoftBusCallback, name);
 	//开启软件定时器
 	osTimerDef(M6020, M6020_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M6020), osTimerPeriodic, m6020), 2);
@@ -93,15 +93,15 @@ void M6020_PIDInit(M6020* m6020, ConfItem* dict)
 	PID_SetMaxOutput(&m6020->anglePID.outer, m6020->anglePID.outer.maxOutput*m6020->reductionRatio);//将输出轴速度限幅放大到转子上
 }
 //软总线回调函数
-void M6020_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void M6020_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	M6020* m6020 = (M6020*)bindData;
 
-	uint16_t id = *(uint16_t*)SoftBus_GetListValue(frame, 0);
+	uint16_t id = *(uint16_t*)Bus_GetListValue(frame, 0);
 	if(id != m6020->canInfo.recvID)
 		return;
 		
-	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 1);
+	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 1);
 	if(data)
 		M6020_Update(m6020, data);
 }
@@ -151,7 +151,7 @@ void M6020_CtrlerCalc(M6020* m6020, float reference)
 	}
 	buffer[0] = (output>>8)&0xff;
 	buffer[1] = (output)&0xff;
-	SoftBus_Publish("/can/set-buf",{
+	Bus_BroadcastSend("/can/set-buf",{
 		{"can-x", &m6020->canInfo.canX},
 		{"id", &m6020->canInfo.sendID},
 		{"pos", &m6020->canInfo.bufIndex},

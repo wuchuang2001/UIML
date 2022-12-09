@@ -8,7 +8,7 @@
 typedef struct {
 	CAN_HandleTypeDef* hcan;
 	uint8_t number; //canX中的X
-	SoftBusFastTopicHandle fastHandle;
+	SoftBusReceiverHandle fastHandle;
 }CANInfo;
 
 //循环发送缓冲区
@@ -33,7 +33,7 @@ void BSP_CAN_Init(ConfItem* dict);
 void BSP_CAN_InitInfo(CANInfo* info, ConfItem* dict);
 void BSP_CAN_InitHardware(CANInfo* info);
 void BSP_CAN_InitRepeatBuffer(CANRepeatBuffer* buffer, ConfItem* dict);
-void BSP_CAN_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void BSP_CAN_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void BSP_CAN_TimerCallback(void const *argument);
 uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t StdId,uint8_t* data);
 
@@ -54,7 +54,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		if(hcan == canInfo->hcan)
 		{
 			uint16_t frameID = header.StdId;
-			SoftBus_FastPublish(canInfo->fastHandle, {&frameID, rx_data});
+			Bus_FastBroadcastSend(canInfo->fastHandle, {&frameID, rx_data});
 		}
 	}
 }
@@ -116,8 +116,8 @@ void BSP_CAN_Init(ConfItem* dict)
 		BSP_CAN_InitRepeatBuffer(&canService.repeatBuffers[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
 	//订阅话题
-	SoftBus_Subscribe(NULL, BSP_CAN_SoftBusCallback, "/can/set-buf");
-	SoftBus_Subscribe(NULL, BSP_CAN_SoftBusCallback, "/can/send-once");
+	Bus_RegisterReceiver(NULL, BSP_CAN_SoftBusCallback, "/can/set-buf");
+	Bus_RegisterReceiver(NULL, BSP_CAN_SoftBusCallback, "/can/send-once");
 
 	canService.initFinished = 1;
 }
@@ -127,9 +127,9 @@ void BSP_CAN_InitInfo(CANInfo* info, ConfItem* dict)
 {
 	info->hcan = Conf_GetPtr(dict, "hcan", CAN_HandleTypeDef);
 	info->number = Conf_GetValue(dict, "number", uint8_t, 0);
-	char topic[] = "/can_/recv";
-	topic[4] = info->number + '0';
-	info->fastHandle = SoftBus_CreateFastTopicHandle(topic);
+	char name[] = "/can_/recv";
+	name[4] = info->number + '0';
+	info->fastHandle = Bus_CreateReceiverHandle(name);
 }
 
 //初始化硬件参数
@@ -204,18 +204,18 @@ uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t stdId,uint8_t data[8]
 }
 
 //软总线回调
-void BSP_CAN_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void BSP_CAN_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!strcmp(topic, "/can/set-buf"))
+	if(!strcmp(name, "/can/set-buf"))
 	{
-		if(!SoftBus_CheckMapKeys(frame, {"can-x", "id", "pos", "len", "data"}))
+		if(!Bus_CheckMapKeys(frame, {"can-x", "id", "pos", "len", "data"}))
 			return;
 		
-		uint8_t canX = *(uint8_t*)SoftBus_GetMapValue(frame, "can-x");
-		uint16_t frameID = *(uint16_t*)SoftBus_GetMapValue(frame, "id");
-		uint8_t startIndex = *(uint8_t*)SoftBus_GetMapValue(frame, "pos");
-		uint8_t length = *(uint8_t*)SoftBus_GetMapValue(frame, "len");
-		uint8_t* data = (uint8_t*)SoftBus_GetMapValue(frame, "data");
+		uint8_t canX = *(uint8_t*)Bus_GetMapValue(frame, "can-x");
+		uint16_t frameID = *(uint16_t*)Bus_GetMapValue(frame, "id");
+		uint8_t startIndex = *(uint8_t*)Bus_GetMapValue(frame, "pos");
+		uint8_t length = *(uint8_t*)Bus_GetMapValue(frame, "len");
+		uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
 		
 		for(uint8_t i = 0; i < canService.bufferNum; i++)
 		{
@@ -224,15 +224,15 @@ void BSP_CAN_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindD
 				memcpy(buffer->data + startIndex, data, length);
 		}
 	}
-	else if(!strcmp(topic, "/can/send-once"))
+	else if(!strcmp(name, "/can/send-once"))
 	{
 		
-		if(!SoftBus_CheckMapKeys(frame, {"can-x", "id", "data"}))
+		if(!Bus_CheckMapKeys(frame, {"can-x", "id", "data"}))
 			return;
 
-		uint8_t canX = *(uint8_t*)SoftBus_GetMapValue(frame, "can-x");
-		uint16_t frameID = *(uint16_t*)SoftBus_GetMapValue(frame, "id");
-		uint8_t* data = (uint8_t*)SoftBus_GetMapValue(frame, "data");
+		uint8_t canX = *(uint8_t*)Bus_GetMapValue(frame, "can-x");
+		uint16_t frameID = *(uint16_t*)Bus_GetMapValue(frame, "id");
+		uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
 
 		for(uint8_t i = 0; i < canService.canNum; i++)
 		{

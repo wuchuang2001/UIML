@@ -102,7 +102,7 @@ void RC_InitKeyJudgeTime(RC* rc, uint32_t key,uint16_t clickDelay,uint16_t longP
 void RC_PublishData(RC *rc);
 void RC_UpdateKeys(RC* rc);
 void RC_ParseData(RC* rc, uint8_t* buff);
-void RC_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void RC_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void RC_TaskCallback(void const * argument)
 {
@@ -111,9 +111,9 @@ void RC_TaskCallback(void const * argument)
 	RC rc={0};
 	rc.uartX = Conf_GetValue((ConfItem*)argument, "uart-x", uint8_t, 0);
 	RC_InitKeys(&rc);
-	char topic[] = "/uart_/recv";
-	topic[5] = rc.uartX + '0';
-	SoftBus_Subscribe(&rc, RC_SoftBusCallback, topic);
+	char name[] = "/uart_/recv";
+	name[5] = rc.uartX + '0';
+	Bus_RegisterReceiver(&rc, RC_SoftBusCallback, name);
 	portEXIT_CRITICAL();
 	
 	osDelay(2000);
@@ -152,22 +152,22 @@ void RC_PublishData(RC *rc)
 	static RC_TypeDef lastData={0};
 
 	if(lastData.ch1 != rc->rcInfo.ch1 || lastData.ch2 != rc->rcInfo.ch2)
-		SoftBus_Publish("rc/right-stick",{{"x",&rc->rcInfo.ch1},{"y",&rc->rcInfo.ch2}}); 
+		Bus_BroadcastSend("rc/right-stick",{{"x",&rc->rcInfo.ch1},{"y",&rc->rcInfo.ch2}}); 
 	
 	if(lastData.ch3 != rc->rcInfo.ch3 || lastData.ch4 != rc->rcInfo.ch4)
-		SoftBus_Publish("rc/left-stick",{{"x",&rc->rcInfo.ch3},{"y",&rc->rcInfo.ch4}});
+		Bus_BroadcastSend("rc/left-stick",{{"x",&rc->rcInfo.ch3},{"y",&rc->rcInfo.ch4}});
 
 	if(lastData.mouse.x != rc->rcInfo.mouse.x || lastData.mouse.y != rc->rcInfo.mouse.y)
-		SoftBus_Publish("rc/mouse-move",{{"x",&rc->rcInfo.mouse.x},{"y",&rc->rcInfo.mouse.y}});
+		Bus_BroadcastSend("rc/mouse-move",{{"x",&rc->rcInfo.mouse.x},{"y",&rc->rcInfo.mouse.y}});
 	
 	if(lastData.left != rc->rcInfo.left)
-		SoftBus_Publish("rc/switch",{{"left",&rc->rcInfo.left}});
+		Bus_BroadcastSend("rc/switch",{{"left",&rc->rcInfo.left}});
 
 	if(lastData.right != rc->rcInfo.right)
-		SoftBus_Publish("rc/switch",{{"right",&rc->rcInfo.right}});
+		Bus_BroadcastSend("rc/switch",{{"right",&rc->rcInfo.right}});
 
 	if(lastData.wheel != rc->rcInfo.wheel)
-		SoftBus_Publish("rc/wheel",{{"value",&rc->rcInfo.wheel}});
+		Bus_BroadcastSend("rc/wheel",{{"value",&rc->rcInfo.wheel}});
 	
 	//更新按键状态并发布
 	RC_UpdateKeys(rc);
@@ -190,7 +190,7 @@ void RC_UpdateKeys(RC* rc)
 		//读取按键状态
 		uint8_t thisState=0;
 		if(key==4||key==5) continue;
-		char topic[20] = "rc/key/";
+		char name[20] = "rc/key/";
 		if(key<16) 
 		{
 			thisState=(rc->rcInfo.kb.key_code&(0x01<<key))?1:0;//取出键盘对应位
@@ -214,8 +214,8 @@ void RC_UpdateKeys(RC* rc)
 			rc->keyList[key].startPressTime=presentTime;//记录按下时间
 			rc->keyList[key].isPressing=1;
 			//发布topic
-			memcpy(topic+7, "on-down", 7);
-			SoftBus_Publish(topic, {
+			memcpy(name+7, "on-down", 7);
+			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
@@ -229,8 +229,8 @@ void RC_UpdateKeys(RC* rc)
 			//按键抬起
 			rc->keyList[key].isUp=1;
 			//发布topic
-			memcpy(topic+7, "on-up", 5);
-			SoftBus_Publish(topic, {
+			memcpy(name+7, "on-up", 5);
+			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
@@ -240,8 +240,8 @@ void RC_UpdateKeys(RC* rc)
 			{
 				rc->keyList[key].isClicked=1;
 				//发布topic
-				memcpy(topic+7, "on-click", 8);
-				SoftBus_Publish(topic, {
+				memcpy(name+7, "on-click", 8);
+				Bus_BroadcastSend(name, {
 					{"key", keyType[key]},
 					{"combine-key", combineKey}
 				});
@@ -252,8 +252,8 @@ void RC_UpdateKeys(RC* rc)
 		{
 			//执行一直按下的事件回调
 			//发布topic
-			memcpy(topic+7, "on-pressing", 11);
-			SoftBus_Publish(topic, {
+			memcpy(name+7, "on-pressing", 11);
+			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
@@ -263,8 +263,8 @@ void RC_UpdateKeys(RC* rc)
 			{
 				rc->keyList[key].isLongPressed=1;
 				//发布topic
-				memcpy(topic+7, "on-long-press", 13);
-				SoftBus_Publish(topic, {
+				memcpy(name+7, "on-long-press", 13);
+				Bus_BroadcastSend(name, {
 					{"key", keyType[key]},
 					{"combine-key", combineKey}
 				});
@@ -286,11 +286,11 @@ void RC_UpdateKeys(RC* rc)
 }
 
 
-void RC_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void RC_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	RC* rc = (RC*)bindData;
 	
-	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 0);
+	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 0);
 	if(data)
 		RC_ParseData(rc, data);
 }

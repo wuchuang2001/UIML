@@ -8,7 +8,7 @@ typedef struct
 {
 	GPIO_TypeDef* GPIOX;
 	uint16_t pin;
-	SoftBusFastTopicHandle fastHandle;
+	SoftBusReceiverHandle fastHandle;
 }EXTIInfo;
 
 //EXTI服务数据
@@ -32,7 +32,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	uint8_t pin = 31 - __clz((uint32_t)GPIO_Pin);//使用内核函数__clz就算GPIO_Pin前导0的个数，从而得到中断线号
 	EXTIInfo* extiInfo = &extiService.extiList[pin];
 	GPIO_PinState state = HAL_GPIO_ReadPin(extiInfo->GPIOX, GPIO_Pin);
-	SoftBus_FastPublish(extiInfo->fastHandle,{&state});
+	Bus_FastBroadcastSend(extiInfo->fastHandle,{&state});
 }
 //EXTI任务回调函数
 void BSP_EXTI_TaskCallback(void const * argument)
@@ -81,19 +81,19 @@ void BSP_EXIT_InitInfo(EXTIInfo* info, ConfItem* dict)
 {
 	uint8_t pin = Conf_GetValue(dict, "pin-x", uint8_t, 0);
 	info[pin].GPIOX = Conf_GetPtr(dict, "gpio-x", GPIO_TypeDef);
-	char topic[12] = "/exti/pin_";
+	char name[12] = "/exti/pin_";
 	if(pin < 10)
 	{
-		topic[9] = pin + '0';
+		name[9] = pin + '0';
 	}
 	else
 	{
-		topic[9] = pin/10 + '0';
-		topic[10] = pin%10 + '0';
+		name[9] = pin/10 + '0';
+		name[10] = pin%10 + '0';
 	}
 	//重新映射至GPIO_PIN=2^pin
 	info[pin].pin = 1 << pin;
-	info[pin].fastHandle = SoftBus_CreateFastTopicHandle(topic);
+	info[pin].fastHandle = Bus_CreateReceiverHandle(name);
 }
 
 

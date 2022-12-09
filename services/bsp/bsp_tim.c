@@ -7,7 +7,7 @@ typedef struct
 {
 	TIM_HandleTypeDef *htim;
 	uint8_t number;
-	SoftBusFastTopicHandle fastHandle;
+	SoftBusReceiverHandle fastHandle;
 }TIMInfo;
 
 typedef struct 
@@ -19,7 +19,7 @@ typedef struct
 void BSP_TIM_Init(ConfItem* dict);
 void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict);
 void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict);
-void BSP_TIM_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void BSP_TIM_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 TIMService timService={0};
 
@@ -61,31 +61,31 @@ void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict)
 	info->number=Conf_GetValue(dict,"number",uint8_t,0);
 	if(!strcmp(Conf_GetPtr(dict,"mode",char),"encode"))
 	{
-		char topic[14] = "/encode/tim_";
+		char name[14] = "/encode/tim_";
 		if(info->number < 10)
 		{
-			topic[11] = info->number + '0';
+			name[11] = info->number + '0';
 		}
 		else
 		{
-			topic[11] = info->number/10 + '0';
-			topic[12] = info->number%10 + '0';
+			name[11] = info->number/10 + '0';
+			name[12] = info->number%10 + '0';
 		}
-		info->fastHandle = SoftBus_CreateFastTopicHandle(topic);  
+		info->fastHandle = Bus_CreateReceiverHandle(name);  
 	}
 	else if(!strcmp(Conf_GetPtr(dict,"mode",char),"pwm"))
 	{
-		char topic[11] = "/pwm/tim_";
+		char name[11] = "/pwm/tim_";
 		if(info->number < 10)
 		{
-			topic[8] = info->number + '0';
+			name[8] = info->number + '0';
 		}
 		else
 		{
-			topic[8] = info->number/10 + '0';
-			topic[9] = info->number%10 + '0';
+			name[8] = info->number/10 + '0';
+			name[9] = info->number%10 + '0';
 		}
-		SoftBus_Subscribe(NULL,BSP_TIM_SoftBusCallback,topic);
+		Bus_RegisterReceiver(NULL,BSP_TIM_SoftBusCallback,name);
 	}
 }
 
@@ -103,7 +103,7 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 		HAL_TIM_PWM_Start(info->htim, TIM_CHANNEL_4);
 	}
 }
-void BSP_TIM_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void BSP_TIM_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	
 }

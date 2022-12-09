@@ -86,8 +86,8 @@ typedef struct _Gimbal
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict);
 void Gimbal_MotoAnalysis(Gimbal *gimbal);
-void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
-void Gimbal_MoveBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void Gimbal_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Gimbal_MoveBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 float angle_zero(float angle, float offset_angle);
 
 void Gimbal_TaskCallback(void const * argument)
@@ -146,36 +146,36 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 		}
 		
 		
-		SoftBus_MultiSubscribe(gimbal, Gimbal_SoftBusCallback, {"/gimbal/INS_angle"});
-		SoftBus_MultiSubscribe(gimbal, Gimbal_MoveBusCallback, {"rc/mouse-move"});		
+		Bus_MultiRegisterReceiver(gimbal, Gimbal_SoftBusCallback, {"/gimbal/INS_angle"});
+		Bus_MultiRegisterReceiver(gimbal, Gimbal_MoveBusCallback, {"rc/mouse-move"});		
 }
 
-void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void Gimbal_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 		Gimbal* gimbal = (Gimbal*)bindData;
 
-		if(!strcmp(topic, "/gimbal/INS_angle"))
+		if(!strcmp(name, "/gimbal/INS_angle"))
 		{
-				if(SoftBus_IsMapKeyExist(frame, "ins_angle[0]"))
-					gimbal->INS_angle[0] = *(float*)SoftBus_GetMapValue(frame, "INS_angle[0]");
-				if(SoftBus_IsMapKeyExist(frame, "ins_angle[0]"))
-					gimbal->INS_angle[1] = *(float*)SoftBus_GetMapValue(frame, "INS_angle[1]");
-				if(SoftBus_IsMapKeyExist(frame, "ins_angle[0]"))
-					gimbal->INS_angle[2] = *(float*)SoftBus_GetMapValue(frame, "INS_angle[2]");				
+				if(Bus_IsMapKeyExist(frame, "ins_angle[0]"))
+					gimbal->INS_angle[0] = *(float*)Bus_GetMapValue(frame, "INS_angle[0]");
+				if(Bus_IsMapKeyExist(frame, "ins_angle[0]"))
+					gimbal->INS_angle[1] = *(float*)Bus_GetMapValue(frame, "INS_angle[1]");
+				if(Bus_IsMapKeyExist(frame, "ins_angle[0]"))
+					gimbal->INS_angle[2] = *(float*)Bus_GetMapValue(frame, "INS_angle[2]");				
 		}
 }
 
-void Gimbal_MoveBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void Gimbal_MoveBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {	
 		Gimbal* gimbal = (Gimbal*)bindData;
 	
-		if(!strcmp(topic, "rc/mouse-move"))
+		if(!strcmp(name, "rc/mouse-move"))
 		{
-				if(SoftBus_IsMapKeyExist(frame, "x"))
-					gimbal->Target_angle[0] += *(float*)SoftBus_GetMapValue(frame, "x");
+				if(Bus_IsMapKeyExist(frame, "x"))
+					gimbal->Target_angle[0] += *(float*)Bus_GetMapValue(frame, "x");
 				
-				if(SoftBus_IsMapKeyExist(frame, "y"))
-					gimbal->Target_angle[1] += *(float*)SoftBus_GetMapValue(frame, "y");		
+				if(Bus_IsMapKeyExist(frame, "y"))
+					gimbal->Target_angle[1] += *(float*)Bus_GetMapValue(frame, "y");		
 		}
 	
 }	

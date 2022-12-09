@@ -38,7 +38,7 @@ Motor* M3508_Init(ConfItem* dict);
 void M3508_SetStartAngle(Motor *motor, float startAngle);
 void M3508_SetTarget(Motor* motor, float targetValue);
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode);
-void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void M3508_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M3508_Update(M3508* m3508,uint8_t* data);
 void M3508_PIDInit(M3508* m3508, ConfItem* dict);
@@ -75,9 +75,9 @@ Motor* M3508_Init(ConfItem* dict)
 	//初始化电机pid
 	M3508_PIDInit(m3508, dict);
 	//订阅can信息
-	char topic[] = "/can_/recv";
-	topic[4] = m3508->canInfo.canX + '0';
-	SoftBus_Subscribe(m3508, M3508_SoftBusCallback, topic);
+	char name[] = "/can_/recv";
+	name[4] = m3508->canInfo.canX + '0';
+	Bus_RegisterReceiver(m3508, M3508_SoftBusCallback, name);
 	//开启软件定时器
 	osTimerDef(M3508, M3508_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M3508), osTimerPeriodic, m3508), 2);
@@ -93,15 +93,15 @@ void M3508_PIDInit(M3508* m3508, ConfItem* dict)
 	PID_SetMaxOutput(&m3508->anglePID.outer, m3508->anglePID.outer.maxOutput*m3508->reductionRatio);//将输出轴速度限幅放大到转子上
 }
 //软总线回调函数
-void M3508_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void M3508_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	M3508* m3508 = (M3508*)bindData;
 
-	uint16_t id = *(uint16_t*)SoftBus_GetListValue(frame, 0);
+	uint16_t id = *(uint16_t*)Bus_GetListValue(frame, 0);
 	if(id != m3508->canInfo.recvID)
 		return;
 		
-	uint8_t* data = (uint8_t*)SoftBus_GetListValue(frame, 1);
+	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 1);
 	if(data)
 		M3508_Update(m3508, data);
 }
@@ -151,7 +151,7 @@ void M3508_CtrlerCalc(M3508* m3508, float reference)
 	}
 	buffer[0] = (output>>8)&0xff;
 	buffer[1] = (output)&0xff;
-	SoftBus_Publish("/can/set-buf",{
+	Bus_BroadcastSend("/can/set-buf",{
 		{"can-x", &m3508->canInfo.canX},
 		{"id", &m3508->canInfo.sendID},
 		{"pos", &m3508->canInfo.bufIndex},
