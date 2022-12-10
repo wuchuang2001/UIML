@@ -66,7 +66,7 @@ void BSP_TIM_Init(ConfItem* dict)
 	}
 
 	//注册接受
-	Bus_RegisterReceiver(NULL,BSP_TIM_BroadcastCallback,"/tim/set-pwm");
+	Bus_RegisterReceiver(NULL,BSP_TIM_BroadcastCallback,"/tim/set-pwm-duty");
 	//注册远程服务
 	Bus_RegisterRemoteFunc(NULL,BSP_TIM_RemoteCallback,"/tim/encode");
 	timService.initFinished=1;
@@ -100,15 +100,16 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 
-	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","value"}))
+	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","duty"}))
 		return;
 	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
 	uint8_t	channelX=*(uint8_t*)Bus_GetMapValue(frame,"channel-x");
-	uint32_t pwmValue=*(uint32_t*)Bus_GetMapValue(frame,"value");
+	float duty=*(float*)Bus_GetMapValue(frame,"duty");
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
 		if(timX==timService.timList[num].number)
 		{
+			uint32_t pwmValue=duty*__HAL_TIM_GetAutoreload(timService.timList[num].htim);
 			switch (channelX)
 			{
 			case 1:
