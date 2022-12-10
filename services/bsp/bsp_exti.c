@@ -2,6 +2,7 @@
 #include  "cmsis_os.h"
 #include "config.h"
 #include "gpio.h"
+#include "stdio.h"
 
 //EXTI GPIO信息
 typedef struct
@@ -51,8 +52,8 @@ void BSP_EXTI_Init(ConfItem* dict)
 	extiService.extiNum = 0;
 	for(uint8_t num = 0; ; num++)
 	{
-		char confName[] = "extis/_";
-		confName[6] = num + '0';
+		char confName[9];
+		sprintf(confName,"extis/%d",num);
 		if(Conf_ItemExist(dict, confName))
 			extiService.extiNum++;
 		else
@@ -62,15 +63,7 @@ void BSP_EXTI_Init(ConfItem* dict)
 	for(uint8_t num = 0; num < extiService.extiNum; num++)
 	{
 		char confName[9] = "extis/_";
-		if(num<10)
-		{
-			confName[6] = num + '0';
-		}
-		else
-		{
-			confName[6] = num/10 + '0';
-			confName[7] = num%10 + '0';
-		}
+		sprintf(confName,"extis/%d",num);
 		BSP_EXIT_InitInfo(extiService.extiList, Conf_GetPtr(dict, confName, ConfItem));
 	}
 	extiService.initFinished=1;
@@ -81,16 +74,8 @@ void BSP_EXIT_InitInfo(EXTIInfo* info, ConfItem* dict)
 {
 	uint8_t pin = Conf_GetValue(dict, "pin-x", uint8_t, 0);
 	info[pin].GPIOX = Conf_GetPtr(dict, "gpio-x", GPIO_TypeDef);
-	char name[12] = "/exti/pin_";
-	if(pin < 10)
-	{
-		name[9] = pin + '0';
-	}
-	else
-	{
-		name[9] = pin/10 + '0';
-		name[10] = pin%10 + '0';
-	}
+	char name[12];
+	sprintf(name,"/exti/pin%d",pin);
 	//重新映射至GPIO_PIN=2^pin
 	info[pin].pin = 1 << pin;
 	info[pin].fastHandle = Bus_CreateReceiverHandle(name);

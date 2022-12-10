@@ -14,7 +14,10 @@ typedef struct {
 //给用户配置文件用的宏封装
 #define CF_DICT (ConfItem[])
 #define CF_DICT_END {NULL,NULL}
+
+#ifndef IM_PTR
 #define IM_PTR(type,...) (&(type){__VA_ARGS__}) //取立即数的地址
+#endif
 
 //获取配置值，不应直接调用，应使用下方的封装宏
 void* _Conf_GetValue(ConfItem* dict, const char* name);

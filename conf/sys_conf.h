@@ -168,18 +168,18 @@ ConfItem* systemConfig = CF_DICT{
 				{"interval", IM_PTR(uint16_t, 2)},
 				CF_DICT_END
 			}},
-      		{"1",CF_DICT{
+			{"1",CF_DICT{
 				{"can-x", IM_PTR(uint8_t, 1)},
 				{"id", IM_PTR(uint16_t, 0x1FF)},
 				{"interval", IM_PTR(uint16_t, 2)},          
 				CF_DICT_END
-				}},
+			}},
 			{"2",CF_DICT{
 				{"can-x", IM_PTR(uint8_t, 2)},
 				{"id", IM_PTR(uint16_t, 0x200)},
 				{"interval", IM_PTR(uint16_t, 2)},          
 				CF_DICT_END
-				}},		
+			}},		
 			{"3", CF_DICT{
 				{"can-x", IM_PTR(uint8_t, 2)},
 				{"id", IM_PTR(uint16_t, 0x1FF)},
@@ -234,14 +234,14 @@ ConfItem* systemConfig = CF_DICT{
 	{"tim",CF_DICT{
 		{"tims",CF_DICT{
 			{"0",CF_DICT{
-				{"htim",&htim1},
-				{"number",IM_PTR(uint8_t,1)},
+				{"htim",&htim2},
+				{"number",IM_PTR(uint8_t,2)},
 				{"mode","encode"},
 				CF_DICT_END
 				}},
 			{"1",CF_DICT{
-				{"htim",&htim14},
-				{"number",IM_PTR(uint8_t,14)},
+				{"htim",&htim1},
+				{"number",IM_PTR(uint8_t,1)},
 				{"mode","pwm"},
 				CF_DICT_END
                 }}, 

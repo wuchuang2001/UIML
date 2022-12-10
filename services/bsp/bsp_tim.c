@@ -25,7 +25,8 @@ typedef struct
 void BSP_TIM_Init(ConfItem* dict);
 void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict);
 void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict);
-void BSP_TIM_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* request, void* bindData);
 void BSP_TIM_TimerCallback(void const *argument);
 
 TIMService timService={0};
@@ -48,8 +49,8 @@ void BSP_TIM_Init(ConfItem* dict)
 	timService.timNum = 0;
 	for(uint8_t num = 0; ; num++)
 	{
-		char confName[] = "tims/_";
-		confName[5] = num + '0';
+		char confName[8];
+		sprintf(confName, "tims/%d", num);
 		if(Conf_ItemExist(dict, confName))
 			timService.timNum++;
 		else
@@ -58,18 +59,16 @@ void BSP_TIM_Init(ConfItem* dict)
 	timService.timList=pvPortMalloc(timService.timNum * sizeof(TIMInfo));
 	for(uint8_t num = 0; num < timService.timNum; num++)
 	{
-		char confName[] = "tims/_";
-		confName[5] = num + '0';
+		char confName[8];
+		sprintf(confName, "tims/%d", num);
 		BSP_TIM_InitInfo(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
-	}
-	for(uint8_t num = 0; num < timService.timNum; num++)
-	{
-		char confName[] = "tims/_";
-		confName[5] = num + '0';
 		BSP_TIM_StartHardware(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
-	//订阅话题
-	Bus_RegisterReceiver(NULL,BSP_TIM_SoftBusCallback,"/tim/set-pwm");
+
+	//注册接受
+	Bus_RegisterReceiver(NULL,BSP_TIM_BroadcastCallback,"/tim/set-pwm");
+	//注册远程服务
+	Bus_RegisterRemoteFunc(NULL,BSP_TIM_RemoteCallback,"/tim/encode");
 	timService.initFinished=1;
 }
 
@@ -78,26 +77,6 @@ void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict)
 {
 	info->htim = Conf_GetPtr(dict,"htim",TIM_HandleTypeDef);
 	info->number = Conf_GetValue(dict,"number",uint8_t,0);
-	if(!strcmp(Conf_GetPtr(dict,"mode",char),"encode"))
-	{
-		char topic[14];
-		sprintf(topic,"/tim%d/encode",info->number);
-		info->fastHandle = Bus_CreateReceiverHandle(topic);
-		uint32_t sendInterval = Conf_GetValue(dict,"interval",uint32_t,100);  
-		//开启软件定时器
-		osTimerDef(TIM, BSP_TIM_TimerCallback);
-		osTimerStart(osTimerCreate(osTimer(TIM), osTimerPeriodic, info), sendInterval);
-	}
-}
-
-//TIM定时器回调函数
-void BSP_TIM_TimerCallback(void const *argument)
-{
-	if(!timService.initFinished)
-		return;
-	TIMInfo* info = pvTimerGetTimerID((TimerHandle_t)argument); 
-	uint32_t count=__HAL_TIM_GET_COUNTER(info->htim);
-	Bus_FastBroadcastSend(info->fastHandle,{&count});
 }
 
 //开启TIM硬件
@@ -117,13 +96,13 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 }
 
 
-//TIM软总线回调
-void BSP_TIM_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+//TIM软总线广播回调
+void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 
 	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","value"}))
 		return;
- uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
+	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
 	uint8_t	channelX=*(uint8_t*)Bus_GetMapValue(frame,"channel-x");
 	uint32_t pwmValue=*(uint32_t*)Bus_GetMapValue(frame,"value");
 	for(uint8_t num = 0;num<timService.timNum;num++)
@@ -151,5 +130,23 @@ void BSP_TIM_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindD
 			break;
 		}
 	}
+}
+
+//TIM软总线远程服务回调
+bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* request, void* bindData)
+{
+	if(!Bus_CheckMapKeys(request,{"tim-x","count"}))
+		return false;
+	uint8_t timX = *(uint8_t *)Bus_GetMapValue(request,"tim-x");
+	uint32_t *count = (uint32_t*)Bus_GetMapValue(request,"count");
+	for(uint8_t num = 0;num<timService.timNum;num++)
+	{
+		if(timX==timService.timList[num].number)
+		{
+			*count=__HAL_TIM_GetCounter(timService.timList[num].htim);
+			return true;
+		}
+	}
+	return false;
 }
 

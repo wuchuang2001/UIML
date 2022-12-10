@@ -14,6 +14,10 @@ typedef struct{
 	void* data;
 }SoftBusItem;//数据字段
 
+#ifndef IM_PTR
+#define IM_PTR(type,...) (&(type){__VA_ARGS__}) //取立即数的地址
+#endif
+
 typedef void* SoftBusReceiverHandle;//软总线快速句柄
 typedef void (*SoftBusBroadcastReceiver)(const char* name, SoftBusFrame* frame, void* bindData);//话题回调函数指针
 typedef bool (*SoftBusRemoteFunction)(const char* name, SoftBusFrame* request, void* bindData);//服务回调函数指针
