@@ -111,14 +111,14 @@ void DcMotor_SetStartAngle(Motor *motor, float startAngle)
 void DcMotor_StatAngle(DcMotor* dcMotor)
 {
 	int32_t dAngle=0;
-	uint32_t autoRelode=0;
+	uint32_t autoReload=0;
 	
-	Bus_RemoteCall("/tim/encode",{{"tim-x",&dcMotor->encodeTim.timX},{"count",&dcMotor->angle},{"auto-relode",&autoRelode}});
+	Bus_RemoteCall("/tim/encode",{{"tim-x",&dcMotor->encodeTim.timX},{"count",&dcMotor->angle},{"auto-reload",&autoReload}});
 	
-	if(dcMotor->angle - dcMotor->lastAngle < -(autoRelode/2.0f))
-		dAngle = dcMotor->angle+(autoRelode-dcMotor->lastAngle);
-	else if(dcMotor->angle - dcMotor->lastAngle > (autoRelode/2.0f))
-		dAngle = -dcMotor->lastAngle - (autoRelode - dcMotor->angle);
+	if(dcMotor->angle - dcMotor->lastAngle < -(autoReload/2.0f))
+		dAngle = dcMotor->angle+(autoReload-dcMotor->lastAngle);
+	else if(dcMotor->angle - dcMotor->lastAngle > (autoReload/2.0f))
+		dAngle = -dcMotor->lastAngle - (autoReload - dcMotor->angle);
 	else
 		dAngle = dcMotor->angle - dcMotor->lastAngle;
 	//将角度增量加入计数器
@@ -151,7 +151,7 @@ void DcMotor_CtrlerCalc(DcMotor* dcMotor, float reference)
   
 	if(output>0)
 	{
-		Bus_BroadcastSend("/tim/set-pwm-duty",{ 
+		Bus_BroadcastSend("/tim/pwm/set-duty",{ 
 												{"tim-x",&dcMotor->posRotateTim.timX},
 												{"channel-x",&dcMotor->posRotateTim.channelX},
 												{"duty",&output}
@@ -160,7 +160,7 @@ void DcMotor_CtrlerCalc(DcMotor* dcMotor, float reference)
 	else
 	{
 		output = ABS(output);
-		Bus_BroadcastSend("/tim/set-pwm-duty",{ 
+		Bus_BroadcastSend("/tim/pwm/set-duty",{ 
 												{"tim-x",&dcMotor->negRotateTim.timX},
 												{"channel-x",&dcMotor->negRotateTim.channelX},
 												{"duty",&output}

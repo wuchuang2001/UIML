@@ -66,7 +66,7 @@ void BSP_TIM_Init(ConfItem* dict)
 	}
 
 	//注册接受
-	Bus_RegisterReceiver(NULL,BSP_TIM_BroadcastCallback,"/tim/set-pwm-duty");
+	Bus_RegisterReceiver(NULL,BSP_TIM_BroadcastCallback,"/tim/pwm/set-duty");
 	//注册远程服务
 	Bus_RegisterRemoteFunc(NULL,BSP_TIM_RemoteCallback,"/tim/encode");
 	timService.initFinished=1;
@@ -140,15 +140,16 @@ bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* request, void* bindD
 		return false;
 	uint8_t timX = *(uint8_t *)Bus_GetMapValue(request,"tim-x");
 	uint32_t *count = (uint32_t*)Bus_GetMapValue(request,"count");
-	uint32_t *autoRelode; 
-	if(Bus_IsMapKeyExist(request,"auto-relode"))
-		autoRelode = (uint32_t *)Bus_GetMapValue(request,"auto-relode");
+	uint32_t *autoReload=NULL; 
+	if(Bus_IsMapKeyExist(request,"auto-reload"))
+		autoReload = (uint32_t *)Bus_GetMapValue(request,"auto-reload");
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
 		if(timX==timService.timList[num].number)
 		{
 			*count=__HAL_TIM_GetCounter(timService.timList[num].htim);
-			*autoRelode=__HAL_TIM_GetAutoreload(timService.timList[num].htim);
+			if(autoReload)
+				*autoReload=__HAL_TIM_GetAutoreload(timService.timList[num].htim);
 			return true;
 		}
 	}
