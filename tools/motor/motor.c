@@ -6,7 +6,8 @@
 	MOTOR_TYPE("M3508",M3508_Init) \
 	MOTOR_TYPE("M2006",M2006_Init) \
 	MOTOR_TYPE("M6020",M6020_Init) \
-	MOTOR_TYPE("Servo",Servo_Init)
+	MOTOR_TYPE("Servo",Servo_Init) \
+	MOTOR_TYPE("DcMotor",DcMotor_Init) 
 
 //内部函数声明
 void Motor_SetTarget(Motor* motor, float targetValue);

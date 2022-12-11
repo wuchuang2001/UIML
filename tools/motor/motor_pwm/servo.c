@@ -10,12 +10,10 @@ typedef struct _Servo
 	{
 		uint8_t timX;
 		uint8_t	channelX;
-		uint32_t pwmValue;
-		
 	}timInfo;
-	float  targetAngle;//目标值(输出轴扭矩矩/速度/角度(单位度))
+	float  targetAngle;//目标角度(单位度)
 	float  maxAngle;
-	
+	float  maxDuty,minDuty;
 }Servo;
 
 Motor* Servo_Init(ConfItem* dict);
@@ -41,9 +39,11 @@ Motor* Servo_Init(ConfItem* dict)
 	servo->motor.setTarget = Servo_SetTarget;
 	servo->motor.setStartAngle = Servo_SetStartAngle;
 	//初始化电机绑定TIM信息
-	servo->timInfo.timX=Conf_GetValue(dict,"timX",uint8_t,0);
-	servo->timInfo.channelX=Conf_GetValue(dict,"channelX",uint8_t,0);
-	servo->maxAngle=Conf_GetValue(dict,"maxAngle",float,180);
+	servo->timInfo.timX = Conf_GetValue(dict,"timX",uint8_t,0);
+	servo->timInfo.channelX = Conf_GetValue(dict,"channelX",uint8_t,0);
+	servo->maxAngle = Conf_GetValue(dict,"maxAngle",float,180);
+	servo->maxDuty = Conf_GetValue(dict,"maxDuty",float,0.05f);
+	servo->minDuty = Conf_GetValue(dict,"minDuty",float,0.1f);
 	//开启软件定时器
 	osTimerDef(Servo, Servo_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(Servo), osTimerPeriodic,servo), 2);
@@ -56,8 +56,8 @@ void Servo_SetStartAngle(Motor *motor, float startAngle)
 {
 	Servo* servo=(Servo*) motor;
 	servo->targetAngle=startAngle;
-	//将角度转为占空比
-	float pwmDuty=(servo->targetAngle/servo->maxAngle+1)/20.0f;
+	//将角度映射至占空比
+	float pwmDuty=servo->targetAngle/servo->maxAngle*servo->maxDuty+servo->minDuty;
 	Bus_BroadcastSend("/tim/set-pwm-duty",{{"timX",&servo->timInfo.timX},{"channelX",&servo->timInfo.channelX},{"duty",&pwmDuty}});
 }
 

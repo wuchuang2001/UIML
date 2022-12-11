@@ -49,7 +49,7 @@ void Chassis_MoveCallback(const char* topic, SoftBusFrame* frame, void* bindData
     Chassis chassis = *(Chassis*) bindData;
     if(!strcmp(topic,"rc/key"))
     {
-        char *key_type = SoftBus_GetMapValue(frame, "key");
+        char *key_type = Bus_GetMapValue(frame, "key");
         switch (*key_type) {
             case 'W':
                 Slope_SetTarget(&chassis.move.ySlope, -chassis.move.maxVy * chassis.speedRto);
@@ -74,7 +74,7 @@ void Chassis_StopCallback(const char* topic, SoftBusFrame* frame, void* bindData
     Chassis chassis = *(Chassis*)bindData;
     if(!strcmp(topic,"rc/key"))
     {
-        char* key_type = SoftBus_GetMapValue(frame,"key");
+        char* key_type = Bus_GetMapValue(frame,"key");
         switch (*key_type)
         {
             case 'W':
@@ -97,7 +97,7 @@ void Chassis_SwitchModeCallback(const char* topic,SoftBusFrame* frame,void* bind
     float speedRto = 1;
     if(!strcmp(topic,"rc/key"))
     {
-        char* key_type = SoftBus_GetMapValue(frame,"key");
+        char* key_type = Bus_GetMapValue(frame,"key");
         if(chassis.rotate.mode != ChassisMode_Follow && \
         !strcmp(key_type,"Q") || !strcmp(key_type,"E") || !strcmp(key_type,"R"))
         {
@@ -138,7 +138,7 @@ void Chassis_SwitchSpeedCallback(const char* topic,SoftBusFrame* frame,void* bin
     Chassis chassis = *(Chassis*)bindData;
     if(!strcmp(topic,"rc/key"))
     {
-        char* key_type = (char *) SoftBus_GetMapValue(frame, "key");
+        char* key_type = (char *) Bus_GetMapValue(frame, "key");
         if(chassis.speedRto == 1 && !strcmp(key_type,"C") )
             chassis.speedRto = 0.5;
         else
@@ -173,10 +173,10 @@ void Chassis_isRockerCtrlCallback(const char* topic,SoftBusFrame* frame,void* bi
 //底盘功能任务
 void Chassis_ControlTaskCallback(const void* argument)
 {
-    SoftBus_MultiSubscribe(NULL,Chassis_MoveCallback,{"rc/key/on-pressing"}); //WASD按下底盘移动
-    SoftBus_MultiSubscribe(NULL,Chassis_StopCallback,{"rc/key/on-up"}); //WASD松开底盘停止
-    SoftBus_MultiSubscribe(NULL,Chassis_SwitchModeCallback,{"rc/key/on-down"}); //QER按下切换底盘模式
-    SoftBus_MultiSubscribe(NULL,Chassis_isRockerCtrlCallback,{"rc/wheel"});  //左拨轮拨下-遥控器控制
+    Bus_MultiRegisterReceiver(NULL,Chassis_MoveCallback,{"rc/key/on-pressing"}); //WASD按下底盘移动
+    Bus_MultiRegisterReceiver(NULL,Chassis_StopCallback,{"rc/key/on-up"}); //WASD松开底盘停止
+    Bus_MultiRegisterReceiver(NULL,Chassis_SwitchModeCallback,{"rc/key/on-down"}); //QER按下切换底盘模式
+    Bus_MultiRegisterReceiver(NULL,Chassis_isRockerCtrlCallback,{"rc/wheel"});  //左拨轮拨下-遥控器控制
     SoftBus_Subscribe(NULL,Chassis_SwitchSpeedCallback,"rc/key/on-down"); //C按下"下蹲"
 }
 
