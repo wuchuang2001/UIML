@@ -8,22 +8,18 @@
 typedef struct {
 	SPI_HandleTypeDef* hspi;
 	uint8_t number; //SPIX中的X
+		struct 
+	{
+		uint8_t  *data;  	
+		uint8_t MaxSize;
+	}SPIBuffer;
 	SoftBusReceiverHandle fastHandle;
 }SPIInfo;
-typedef	struct 
-{
-	SPIInfo* SPIinfo;//数据缓冲区指的SPI
-	uint8_t  *data;  	
-	uint8_t *BufSize;
-	uint8_t buffNum;
-	uint8_t buffsize;
-}SPIBuffer;
 
 
 //SPI服务数据
 typedef struct {
 	SPIInfo* spiList;
-	SPIBuffer* bufs;
 	uint8_t spiNum;
 	uint8_t initFinished;
 }SPIService;
@@ -34,13 +30,14 @@ SPIService spiService={0};
 void BSP_SPI_Init(ConfItem* dict);
 void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict);
 void BSP_SPI_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
-void BSP_SPI_InitBuffer(SPIBuffer* buffer, ConfItem* dict);
-
+void BSP_SPI_InitBuffer(SPIInfo* info, ConfItem* dict);
 
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-		
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+	
 }
 
 //SPI任务回调函数
@@ -82,12 +79,10 @@ void BSP_SPI_Init(ConfItem* dict)
 		char confName[] = "spibuffer/_";
 		confName[10] = num + '0';
 		//初始化接收缓冲区
-		BSP_SPI_InitBuffer(&spiService.bufs[num],Conf_GetPtr(dict, confName, ConfItem));
+		BSP_SPI_InitBuffer(&spiService.spiList[num],Conf_GetPtr(dict, confName, ConfItem)); 
 	}
-	
-	
 	//订阅话题
-	Bus_RegisterReceiver(NULL,BSP_SPI_SoftBusCallback,"");
+	Bus_MultiRegisterReceiver(NULL,BSP_SPI_SoftBusCallback,{"/spi/trans/dam","/spi/trans/block","/exti/pin4","/exti/pin5"});
 	spiService.initFinished = 1;
 }
 //初始化spi信息
@@ -101,37 +96,67 @@ void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 }
 
 //初始化spi缓冲区
-void BSP_SPI_InitBuffer(SPIBuffer* buffer, ConfItem* dict)
+void BSP_SPI_InitBuffer(SPIInfo* info, ConfItem* dict)
 {
-	uint8_t spiX = Conf_GetValue(dict, "spi_num", uint8_t, 0);
-	for(uint8_t i = 0; i < spiService.spiNum; ++i)
-		if(spiService.spiList[i].number == spiX)
-			buffer->SPIinfo = &spiService.spiList[i];
-  //计算buff缓冲区数量		
-	buffer->buffNum=0;	
-	buffer->buffsize=0;
-	for(uint8_t num = 0; ; num++)
-	{
-		char confName[] = "buff/size_";
-		confName[9] = num + '0';
-		if(Conf_ItemExist(dict, confName))
-		{
-			buffer->BufSize[num]=Conf_GetValue(dict,confName,uint8_t,0);
-			buffer->buffsize+=buffer->BufSize[num];
-			buffer->buffNum++;
-		}
-		else
-			break;
-	}
-	buffer->data=pvPortMalloc(buffer->buffsize);
-	memset(buffer->data,0,buffer->buffsize);
+
+	info->SPIBuffer.data=pvPortMalloc(info->SPIBuffer.MaxSize);
+	memset(info->SPIBuffer.data,0,info->SPIBuffer.MaxSize);
 
 }
 
 void BSP_SPI_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-     if(!strcmp(name, "   "))
-		 {    
+	
+	  if(!Bus_CheckMapKeys(frame, {"chip","state"}))
+		return;
+		
+		uint8_t *accel_tx = (uint8_t*)Bus_GetMapValue(frame, "accel_tx");
+		uint16_t transSize_Acc = *(uint16_t*)Bus_GetMapValue(frame, "transSize_Acc");
+    uint8_t *temp_tx = (uint8_t*)Bus_GetMapValue(frame, "temp_tx");
+		uint16_t transSize_Tem = *(uint16_t*)Bus_GetMapValue(frame, "transSize_Tem");
+		uint8_t *gyro_tx = (uint8_t*)Bus_GetMapValue(frame, "gyro_tx");
+		uint16_t transSize_Gyr = *(uint16_t*)Bus_GetMapValue(frame, "transSize_Gyr");
 
-		 }
+		
+		for(uint8_t i = 0; i < spiService.spiNum; i++)
+		{
+			SPIInfo* info = &spiService.spiList[i];
+
+			  if(!strcmp(name, "/exti/pin4"))
+				{
+				char* chip = (char*)Bus_GetMapValue(frame, "chip");
+				char*state = (char*)Bus_GetMapValue(frame, "state");
+					if(!strcmp(state, "on"))
+					{
+						if(!strcmp(chip, "ACCEL"))
+						{
+						Bus_FastBroadcastSend(info->fastHandle,{"chip",chip});	
+					  HAL_SPI_TransmitReceive_DMA(info->hspi,accel_tx,info->SPIBuffer.data,transSize_Acc);
+						Bus_FastBroadcastSend(info->fastHandle,{"acc_buf",info->SPIBuffer.data});
+						}
+						else if(!strcmp(chip, "TEMP"))
+						{
+							Bus_FastBroadcastSend(info->fastHandle,{"chip",chip});	
+						HAL_SPI_TransmitReceive_DMA(info->hspi,temp_tx,info->SPIBuffer.data,transSize_Tem);		
+							Bus_FastBroadcastSend(info->fastHandle,{"tem_buf",info->SPIBuffer.data});
+						}
+					}
+				}
+				else if(!strcmp(name, "/exti/pin5"))
+				{
+				char* chip = (char*)Bus_GetMapValue(frame, "chip");
+				char*state = (char*)Bus_GetMapValue(frame, "state");
+					if(!strcmp(state, "on"))
+					{
+						if(!strcmp(chip, "GYRO"))
+						{
+							Bus_FastBroadcastSend(info->fastHandle,{"chip",chip});
+				  		HAL_SPI_TransmitReceive_DMA(info->hspi,gyro_tx,info->SPIBuffer.data,transSize_Gyr);
+							Bus_FastBroadcastSend(info->fastHandle,{"gyr_buf",info->SPIBuffer.data});
+					
+						}
+					}
+				}
+			
+		}
 }
