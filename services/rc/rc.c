@@ -152,22 +152,22 @@ void RC_PublishData(RC *rc)
 	static RC_TypeDef lastData={0};
 
 	if(lastData.ch1 != rc->rcInfo.ch1 || lastData.ch2 != rc->rcInfo.ch2)
-		Bus_BroadcastSend("rc/right-stick",{{"x",&rc->rcInfo.ch1},{"y",&rc->rcInfo.ch2}}); 
+		Bus_BroadcastSend("/rc/right-stick",{{"x",&rc->rcInfo.ch1},{"y",&rc->rcInfo.ch2}}); 
 	
 	if(lastData.ch3 != rc->rcInfo.ch3 || lastData.ch4 != rc->rcInfo.ch4)
-		Bus_BroadcastSend("rc/left-stick",{{"x",&rc->rcInfo.ch3},{"y",&rc->rcInfo.ch4}});
+		Bus_BroadcastSend("/rc/left-stick",{{"x",&rc->rcInfo.ch3},{"y",&rc->rcInfo.ch4}});
 
 	if(lastData.mouse.x != rc->rcInfo.mouse.x || lastData.mouse.y != rc->rcInfo.mouse.y)
-		Bus_BroadcastSend("rc/mouse-move",{{"x",&rc->rcInfo.mouse.x},{"y",&rc->rcInfo.mouse.y}});
+		Bus_BroadcastSend("/rc/mouse-move",{{"x",&rc->rcInfo.mouse.x},{"y",&rc->rcInfo.mouse.y}});
 	
 	if(lastData.left != rc->rcInfo.left)
-		Bus_BroadcastSend("rc/switch",{{"left",&rc->rcInfo.left}});
+		Bus_BroadcastSend("/rc/switch",{{"left",&rc->rcInfo.left}});
 
 	if(lastData.right != rc->rcInfo.right)
-		Bus_BroadcastSend("rc/switch",{{"right",&rc->rcInfo.right}});
+		Bus_BroadcastSend("/rc/switch",{{"right",&rc->rcInfo.right}});
 
 	if(lastData.wheel != rc->rcInfo.wheel)
-		Bus_BroadcastSend("rc/wheel",{{"value",&rc->rcInfo.wheel}});
+		Bus_BroadcastSend("/rc/wheel",{{"value",&rc->rcInfo.wheel}});
 	
 	//更新按键状态并发布
 	RC_UpdateKeys(rc);
@@ -190,7 +190,7 @@ void RC_UpdateKeys(RC* rc)
 		//读取按键状态
 		uint8_t thisState=0;
 		if(key==4||key==5) continue;
-		char name[20] = "rc/key/";
+		char name[22] = "/rc/key/";
 		if(key<16) 
 		{
 			thisState=(rc->rcInfo.kb.key_code&(0x01<<key))?1:0;//取出键盘对应位
@@ -214,7 +214,7 @@ void RC_UpdateKeys(RC* rc)
 			rc->keyList[key].startPressTime=presentTime;//记录按下时间
 			rc->keyList[key].isPressing=1;
 			//发布topic
-			memcpy(name+7, "on-down", 7);
+			memcpy(name+8, "on-down", 8);
 			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
@@ -229,7 +229,7 @@ void RC_UpdateKeys(RC* rc)
 			//按键抬起
 			rc->keyList[key].isUp=1;
 			//发布topic
-			memcpy(name+7, "on-up", 5);
+			memcpy(name+8, "on-up", 6);
 			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
@@ -240,7 +240,7 @@ void RC_UpdateKeys(RC* rc)
 			{
 				rc->keyList[key].isClicked=1;
 				//发布topic
-				memcpy(name+7, "on-click", 8);
+				memcpy(name+8, "on-click", 9);
 				Bus_BroadcastSend(name, {
 					{"key", keyType[key]},
 					{"combine-key", combineKey}
@@ -252,7 +252,7 @@ void RC_UpdateKeys(RC* rc)
 		{
 			//执行一直按下的事件回调
 			//发布topic
-			memcpy(name+7, "on-pressing", 11);
+			memcpy(name+8, "on-pressing", 12);
 			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
@@ -263,7 +263,7 @@ void RC_UpdateKeys(RC* rc)
 			{
 				rc->keyList[key].isLongPressed=1;
 				//发布topic
-				memcpy(name+7, "on-long-press", 13);
+				memcpy(name+8, "on-long-press", 14);
 				Bus_BroadcastSend(name, {
 					{"key", keyType[key]},
 					{"combine-key", combineKey}
