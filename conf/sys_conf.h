@@ -39,8 +39,9 @@
 	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)         \
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,256) \
 	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) \
-	SERVICE(tim, BSP_TIM_TaskCallback, osPriorityNormal,256)
-	
+	SERVICE(tim, BSP_TIM_TaskCallback, osPriorityNormal,256)	\
+	SERVICE(gimbal, Gimbal_TaskCallback, osPriorityNormal,256)	
+
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
 	//底盘服务配置
@@ -144,6 +145,88 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
+	//云台服务配置
+	{"gimbal", CF_DICT{
+
+			//任务循环周期
+			{"taskInterval", IM_PTR(uint8_t, 2)},
+			
+			//云台速度设置
+			{"moveYaw", CF_DICT{													//yaw电机速度设置
+
+				{"maxSpeed", IM_PTR(float, 2000)},
+
+				CF_DICT_END
+			}},
+
+			{"movePitch", CF_DICT{												//pitch电机速度设置
+
+				{"maxSpeed", IM_PTR(float, 2000)},
+
+				CF_DICT_END
+			}},
+			
+			//云台电机配置
+			{"motorYaw", CF_DICT{
+
+				{"type", "M6020"},
+				{"id", IM_PTR(uint16_t, 1)},
+				{"canX", IM_PTR(uint8_t, 1)},
+				{"reductionRatio", IM_PTR(float, 1)},   		//若使用改装减速箱或者拆掉减速箱的电机则修改此参数，若使用原装电机则无需配置此参数
+
+				{"anglePID", CF_DICT{                  			//串级pid
+					{"inner", CF_DICT{													//内环pid参数设置
+						{"p", IM_PTR(float, 1)},
+						{"i", IM_PTR(float, 0)},
+						{"d", IM_PTR(float, 0)},
+						{"maxI", IM_PTR(float, 10000)},
+						{"maxOut", IM_PTR(float, 20000)},
+						CF_DICT_END
+					}},
+					{"outer", CF_DICT{													//外环pid参数设置
+						{"p", IM_PTR(float, 0.5)},
+						{"i", IM_PTR(float, 0)},
+						{"d", IM_PTR(float, 0)},
+						{"maxI", IM_PTR(float, 25)},
+						{"maxOut", IM_PTR(float, 50)},
+						CF_DICT_END
+					}},
+					CF_DICT_END
+				}},
+				CF_DICT_END
+			}},			
+
+			{"motorPitch", CF_DICT{
+
+				{"type", "M6020"},
+				{"id", IM_PTR(uint16_t, 2)},
+				{"canX", IM_PTR(uint8_t, 1)},
+				{"reductionRatio", IM_PTR(float, 1)},   		//若使用改装减速箱或者拆掉减速箱的电机则修改此参数，若使用原装电机则无需配置此参数
+
+				{"anglePID", CF_DICT{                  			//串级pid
+						{"inner", CF_DICT{								//内环pid参数设置
+							{"p", IM_PTR(float, 1)},
+							{"i", IM_PTR(float, 0)},
+							{"d", IM_PTR(float, 0)},
+							{"maxI", IM_PTR(float, 10000)},
+							{"maxOut", IM_PTR(float, 20000)},
+							CF_DICT_END
+						}},
+						{"outer", CF_DICT{								//外环pid参数设置
+							{"p", IM_PTR(float, 0.5)},
+							{"i", IM_PTR(float, 0)},
+							{"d", IM_PTR(float, 0)},
+							{"maxI", IM_PTR(float, 25)},
+							{"maxOut", IM_PTR(float, 50)},
+							CF_DICT_END
+						}},
+					CF_DICT_END
+				}},
+				CF_DICT_END
+			}},	
+			CF_DICT_END		
+		}},
+		
 	//CAN服务配置
 	{"can", CF_DICT{
 		//CAN控制器信息
