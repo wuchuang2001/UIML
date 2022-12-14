@@ -91,11 +91,11 @@ void DcMotor_PIDInit(DcMotor* dcMotor, ConfItem* dict)
 //初始化tim
 void DcMotor_TimInit(DcMotor* dcMotor, ConfItem* dict)
 {
-	dcMotor->posRotateTim.timX = Conf_GetValue(dict,"posRotateTim/timX",uint8_t,0);
-	dcMotor->posRotateTim.channelX = Conf_GetValue(dict,"posRotateTim/channelX",uint8_t,0);
-	dcMotor->negRotateTim.timX = Conf_GetValue(dict,"negRotateTim/",uint8_t,0);
-	dcMotor->negRotateTim.channelX = Conf_GetValue(dict,"negRotateTim/",uint8_t,0);
-	dcMotor->encodeTim.channelX = Conf_GetValue(dict,"encodeTim/timX",uint8_t,0);
+	dcMotor->posRotateTim.timX = Conf_GetValue(dict,"posRotateTim/tim-x",uint8_t,0);
+	dcMotor->posRotateTim.channelX = Conf_GetValue(dict,"posRotateTim/channel-x",uint8_t,0);
+	dcMotor->negRotateTim.timX = Conf_GetValue(dict,"negRotateTim/tim-x",uint8_t,0);
+	dcMotor->negRotateTim.channelX = Conf_GetValue(dict,"negRotateTim/channel-x",uint8_t,0);
+	dcMotor->encodeTim.channelX = Conf_GetValue(dict,"encodeTim/tim-x",uint8_t,0);
 }
 
 //开始统计电机累计角度
@@ -124,7 +124,6 @@ void DcMotor_StatAngle(DcMotor* dcMotor)
 	//将角度增量加入计数器
 	dcMotor->totalAngle += dAngle;
 	//计算速度
-  
 	dcMotor->speed = (float)dAngle/(dcMotor->circleEncode*dcMotor->reductionRatio)*500*60;//rpm  
 	//记录角度
 	dcMotor->lastAngle=dcMotor->angle;
@@ -151,20 +150,14 @@ void DcMotor_CtrlerCalc(DcMotor* dcMotor, float reference)
   
 	if(output>0)
 	{
-		Bus_BroadcastSend("/tim/pwm/set-duty",{ 
-												{"tim-x",&dcMotor->posRotateTim.timX},
-												{"channel-x",&dcMotor->posRotateTim.channelX},
-												{"duty",&output}
-											});
+		Bus_BroadcastSend("/tim/pwm/set-duty",{{"tim-x",&dcMotor->posRotateTim.timX},{"channel-x",&dcMotor->posRotateTim.channelX},{"duty",&output}});
+		Bus_BroadcastSend("/tim/pwm/set-duty",{{"tim-x",&dcMotor->posRotateTim.timX},{"channel-x",&dcMotor->negRotateTim.channelX},{"duty",IM_PTR(float, 0)}});
 	}
 	else
 	{
 		output = ABS(output);
-		Bus_BroadcastSend("/tim/pwm/set-duty",{ 
-												{"tim-x",&dcMotor->negRotateTim.timX},
-												{"channel-x",&dcMotor->negRotateTim.channelX},
-												{"duty",&output}
-											});
+		Bus_BroadcastSend("/tim/pwm/set-duty",{{"tim-x",&dcMotor->posRotateTim.timX},{"channel-x",&dcMotor->posRotateTim.channelX},{"duty",IM_PTR(float, 0)});
+		Bus_BroadcastSend("/tim/pwm/set-duty",{{"tim-x",&dcMotor->posRotateTim.timX},{"channel-x",&dcMotor->negRotateTim.channelX},{"duty",&output}});
 	}
 
 }

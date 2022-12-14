@@ -5,6 +5,10 @@
 #include "tim.h"
 #include "stdio.h"
 
+#ifndef LIMIT
+#define LIMIT(x,min,max) (x)=(((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
+#endif
+
 //TIM¾ä±úÐÅÏ¢
 typedef struct 
 {
@@ -105,6 +109,7 @@ void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bind
 	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
 	uint8_t	channelX=*(uint8_t*)Bus_GetMapValue(frame,"channel-x");
 	float duty=*(float*)Bus_GetMapValue(frame,"duty");
+	LIMIT(duty,0,1);
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
 		if(timX==timService.timList[num].number)

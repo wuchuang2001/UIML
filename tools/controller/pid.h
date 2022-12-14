@@ -5,7 +5,9 @@
 
 #include <stdint.h>
 
+#ifndef LIMIT
 #define LIMIT(x,min,max) (x)=(((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
+#endif
 
 #ifndef ABS
 #define ABS(x) ((x)>=0?(x):-(x))
