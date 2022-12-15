@@ -1,5 +1,5 @@
 #include "softbus.h"
-#include  "cmsis_os.h"
+#include "cmsis_os.h"
 #include "config.h"
 #include "gpio.h"
 #include "stdio.h"
@@ -7,7 +7,7 @@
 //EXTI GPIO信息
 typedef struct
 {
-	GPIO_TypeDef* GPIOX;
+	GPIO_TypeDef* gpioX;
 	uint16_t pin;
 	SoftBusReceiverHandle fastHandle;
 }EXTIInfo;
@@ -32,7 +32,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		return;  
 	uint8_t pin = 31 - __clz((uint32_t)GPIO_Pin);//使用内核函数__clz就算GPIO_Pin前导0的个数，从而得到中断线号
 	EXTIInfo* extiInfo = &extiService.extiList[pin];
-	GPIO_PinState state = HAL_GPIO_ReadPin(extiInfo->GPIOX, GPIO_Pin);
+	GPIO_PinState state = HAL_GPIO_ReadPin(extiInfo->gpioX, GPIO_Pin);
 	Bus_FastBroadcastSend(extiInfo->fastHandle,{&state});
 }
 //EXTI任务回调函数
@@ -52,7 +52,7 @@ void BSP_EXTI_Init(ConfItem* dict)
 	extiService.extiNum = 0;
 	for(uint8_t num = 0; ; num++)
 	{
-		char confName[9];
+		char confName[9] = {0};
 		sprintf(confName,"extis/%d",num);
 		if(Conf_ItemExist(dict, confName))
 			extiService.extiNum++;
@@ -62,7 +62,7 @@ void BSP_EXTI_Init(ConfItem* dict)
 
 	for(uint8_t num = 0; num < extiService.extiNum; num++)
 	{
-		char confName[9] = "extis/_";
+		char confName[9] = {0};
 		sprintf(confName,"extis/%d",num);
 		BSP_EXIT_InitInfo(extiService.extiList, Conf_GetPtr(dict, confName, ConfItem));
 	}
@@ -73,8 +73,8 @@ void BSP_EXTI_Init(ConfItem* dict)
 void BSP_EXIT_InitInfo(EXTIInfo* info, ConfItem* dict)
 {
 	uint8_t pin = Conf_GetValue(dict, "pin-x", uint8_t, 0);
-	info[pin].GPIOX = Conf_GetPtr(dict, "gpio-x", GPIO_TypeDef);
-	char name[12];
+	info[pin].gpioX = Conf_GetPtr(dict, "gpio-x", GPIO_TypeDef);
+	char name[12] = {0};
 	sprintf(name,"/exti/pin%d",pin);
 	//重新映射至GPIO_PIN=2^pin
 	info[pin].pin = 1 << pin;

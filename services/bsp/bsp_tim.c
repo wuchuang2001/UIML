@@ -3,7 +3,7 @@
 #include "cmsis_os.h"
 
 #include "tim.h"
-#include "stdio.h"
+#include <stdio.h>
 
 #ifndef LIMIT
 #define LIMIT(x,min,max) (x)=(((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
@@ -30,8 +30,7 @@ void BSP_TIM_Init(ConfItem* dict);
 void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict);
 void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict);
 void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData);
-bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* request, void* bindData);
-void BSP_TIM_TimerCallback(void const *argument);
+bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 TIMService timService={0};
 
@@ -53,7 +52,7 @@ void BSP_TIM_Init(ConfItem* dict)
 	timService.timNum = 0;
 	for(uint8_t num = 0; ; num++)
 	{
-		char confName[8];
+		char confName[8] = {0};
 		sprintf(confName, "tims/%d", num);
 		if(Conf_ItemExist(dict, confName))
 			timService.timNum++;
@@ -63,7 +62,7 @@ void BSP_TIM_Init(ConfItem* dict)
 	timService.timList=pvPortMalloc(timService.timNum * sizeof(TIMInfo));
 	for(uint8_t num = 0; num < timService.timNum; num++)
 	{
-		char confName[8];
+		char confName[8] = {0};
 		sprintf(confName, "tims/%d", num);
 		BSP_TIM_InitInfo(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
 		BSP_TIM_StartHardware(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
@@ -139,15 +138,15 @@ void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bind
 }
 
 //TIM软总线远程服务回调
-bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* request, void* bindData)
+bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(request,{"tim-x","count"}))
+	if(!Bus_CheckMapKeys(frame,{"tim-x","count"}))
 		return false;
-	uint8_t timX = *(uint8_t *)Bus_GetMapValue(request,"tim-x");
-	uint32_t *count = (uint32_t*)Bus_GetMapValue(request,"count");
+	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
+	uint32_t *count = (uint32_t*)Bus_GetMapValue(frame,"count");
 	uint32_t *autoReload=NULL; 
-	if(Bus_IsMapKeyExist(request,"auto-reload"))
-		autoReload = (uint32_t *)Bus_GetMapValue(request,"auto-reload");
+	if(Bus_IsMapKeyExist(frame,"auto-reload"))
+		autoReload = (uint32_t *)Bus_GetMapValue(frame,"auto-reload");
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
 		if(timX==timService.timList[num].number)

@@ -156,7 +156,7 @@ void DcMotor_CtrlerCalc(DcMotor* dcMotor, float reference)
 	else
 	{
 		output = ABS(output);
-		Bus_BroadcastSend("/tim/pwm/set-duty",{{"tim-x",&dcMotor->posRotateTim.timX},{"channel-x",&dcMotor->posRotateTim.channelX},{"duty",IM_PTR(float, 0)});
+		Bus_BroadcastSend("/tim/pwm/set-duty",{{"tim-x",&dcMotor->posRotateTim.timX},{"channel-x",&dcMotor->posRotateTim.channelX},{"duty",IM_PTR(float, 0)}});
 		Bus_BroadcastSend("/tim/pwm/set-duty",{{"tim-x",&dcMotor->posRotateTim.timX},{"channel-x",&dcMotor->negRotateTim.channelX},{"duty",&output}});
 	}
 
