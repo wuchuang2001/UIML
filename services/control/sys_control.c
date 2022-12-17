@@ -2,6 +2,7 @@
 #include "softbus.h"
 #include "config.h"
 #include "pid.h"
+#include "main.h"
 
 typedef enum
 {
@@ -16,22 +17,23 @@ typedef struct
 	{
 		float vx,vy,vw;
 		float ax,ay;
-	}chassisData;
+	}chassisData; //Â∫ïÁõòÊï∞ÊçÆ
 
 	struct
 	{
 		float yaw,pitch;
-		float relativeAngle;
-	}gimbalData;
+		float relativeAngle; //‰∫ëÂè∞ÂÅèÁ¶ªËßíÂ∫¶
+	}gimbalData; //‰∫ëÂè∞Êï∞ÊçÆ
 
 	uint8_t mode;
-	bool rockerCtrl;
+	bool rockerCtrl; // ÈÅ•ÊéßÂô®ÊéßÂà∂Ê†áÂøó‰Ωç
+	bool errFlag;  // ÊÄ•ÂÅúÊ†áÂøó‰Ωç
 	PID rotatePID;
 }SysControl;
 
 SysControl sysCtrl={0};
 
-//∫Ø ˝…˘√˜
+//ÂáΩÊï∞Â£∞Êòé
 void Sys_InitInfo(ConfItem *dict);
 void Sys_InitReceiver(void);
 void Sys_Broadcast(void);
@@ -43,43 +45,54 @@ void Sys_Gimbal_RotateCallback(const char* name, SoftBusFrame* frame, void* bind
 void Sys_Shoot_Callback(const char* name, SoftBusFrame* frame, void* bindData);
 void Sys_ErrorHandle(void);
 
-//≥ı ºªØøÿ÷∆–≈œ¢
+//ÂàùÂßãÂåñÊéßÂà∂‰ø°ÊÅØ
 void Sys_InitInfo(ConfItem *dict)
 {
-	sysCtrl.mode = Conf_GetValue(dict, "InitMode", uint8_t, SYS_FOLLOW_MODE); //ƒ¨»œ∏˙ÀÊƒ£ Ω
-	sysCtrl.rockerCtrl = Conf_GetValue(dict, "rockerCtrl", bool, false);  //ƒ¨»œº¸ Ûøÿ÷∆
+	sysCtrl.mode = Conf_GetValue(dict, "InitMode", uint8_t, SYS_FOLLOW_MODE); //ÈªòËÆ§Ë∑üÈöèÊ®°Âºè
+	sysCtrl.rockerCtrl = Conf_GetValue(dict, "rockerCtrl", bool, false);  //ÈªòËÆ§ÈîÆÈº†ÊéßÂà∂
 	PID_Init(&sysCtrl.rotatePID, Conf_GetPtr(dict, "rotatePID", ConfItem)); 
 }
 
-//≥ı ºªØΩ” ’
+//ÂàùÂßãÂåñÊé•Êî∂
 void Sys_InitReceiver()
 {
+	//Â∫ïÁõò
 	Bus_MultiRegisterReceiver(NULL, Sys_Chassis_MoveCallback, {"/rc/key/on-pressing","rc/left-stick"});
 	Bus_RegisterReceiver(NULL, Sys_Chassis_StopCallback, "/rc/key/on-up");
-	Bus_MultiRegisterReceiver(NULL, Sys_Gimbal_RotateCallback, {"/rc/mouse-move","rc/right-stick","/gimbal/yaw/relative-angle"});	
+	//‰∫ëÂè∞
+	Bus_MultiRegisterReceiver(NULL, Sys_Gimbal_RotateCallback, {"/rc/mouse-move",
+																"rc/right-stick",
+																"/gimbal/yaw/relative-angle"});	
+	//Ê®°ÂºèÂàáÊç¢
 	Bus_MultiRegisterReceiver(NULL, Sys_Mode_ChangeCallback, {"/rc/key/on-click","rc/switch"});
-	Bus_MultiRegisterReceiver(NULL, Sys_Shoot_Callback, {"/rc/key/on-click","/rc/key/on-pressing","rc/wheel",});
+	//ÂèëÂ∞Ñ  
+	Bus_MultiRegisterReceiver(NULL, Sys_Shoot_Callback, {"/rc/key/on-click",
+														"/rc/key/on-pressing",
+														"rc/wheel"});
 }
 
 void SYS_CTRL_TaskCallback(void const * argument)
 {
-	//Ω¯»Î¡ŸΩÁ«¯
+	//ËøõÂÖ•‰∏¥ÁïåÂå∫
 	portENTER_CRITICAL();
 	Sys_InitInfo((ConfItem *)argument);
 	Sys_InitReceiver();
 	portEXIT_CRITICAL();
 	while(1)
 	{
-		if(sysCtrl.mode==SYS_FOLLOW_MODE)//∏˙ÀÊƒ£ Ω
+		if(sysCtrl.errFlag==1)
+			Sys_ErrorHandle();
+
+		if(sysCtrl.mode==SYS_FOLLOW_MODE)//Ë∑üÈöèÊ®°Âºè
 		{
 			PID_SingleCalc(&sysCtrl.rotatePID, 0, sysCtrl.gimbalData.relativeAngle);
 			sysCtrl.chassisData.vw = sysCtrl.rotatePID.output;
 		}
-		else if(sysCtrl.mode==SYS_SPIN_MODE)//–°Õ”¬›ƒ£ Ω
+		else if(sysCtrl.mode==SYS_SPIN_MODE)//Â∞èÈôÄËû∫Ê®°Âºè
 		{
 			sysCtrl.chassisData.vw = 240;
 		}
-		else if(sysCtrl.mode==SYS_SEPARATE_MODE)// ∑÷¿Îƒ£ Ω
+		else if(sysCtrl.mode==SYS_SEPARATE_MODE)// ÂàÜÁ¶ªÊ®°Âºè
 		{
 			sysCtrl.chassisData.vw = 0;
 		}
@@ -88,29 +101,29 @@ void SYS_CTRL_TaskCallback(void const * argument)
 	}
 }
 
-//∑¢ÀÕπ„≤•
+//ÂèëÈÄÅÂπøÊí≠
 void Sys_Broadcast()
 {
 	Bus_BroadcastSend("/chassis/move", {{"vx", &sysCtrl.chassisData.vx},
-	                                    {"vy", &sysCtrl.chassisData.vy},
-	                                    {"vw", &sysCtrl.chassisData.vw}});
+										{"vy", &sysCtrl.chassisData.vy},
+										{"vw", &sysCtrl.chassisData.vw}});
 	Bus_BroadcastSend("/chassis/relativeAngle", {{"angle", &sysCtrl.gimbalData.relativeAngle}});
 	Bus_BroadcastSend("/gimbal", {{"yaw", &sysCtrl.gimbalData.yaw},{"pitch", &sysCtrl.gimbalData.pitch}});
 }
 
-//µ◊≈Ã‘À∂Øº∞Õ£÷πªÿµ˜∫Ø ˝
+//Â∫ïÁõòËøêÂä®ÂèäÂÅúÊ≠¢ÂõûË∞ÉÂáΩÊï∞
 void Sys_Chassis_MoveCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	float speedRatio=0;
-	if(!strcmp(name,"rc/key/on-pressing") && !sysCtrl.rockerCtrl) //º¸ Ûøÿ÷∆
+	if(!strcmp(name,"rc/key/on-pressing") && !sysCtrl.rockerCtrl) //ÈîÆÈº†ÊéßÂà∂
 	{
 		if(!Bus_CheckMapKeys(frame,{"combine-key","key"}))
 			return;
-		if(!strcmp(Bus_GetMapValue(frame,"combine-key"), "none"))  //’˝≥£
+		if(!strcmp(Bus_GetMapValue(frame,"combine-key"), "none"))  //Ê≠£Â∏∏
 			speedRatio=1; 
-		else if(!strcmp(Bus_GetMapValue(frame,"combine-key"), "shift")) //øÏÀŸ
+		else if(!strcmp(Bus_GetMapValue(frame,"combine-key"), "shift")) //Âø´ÈÄü
 			speedRatio=5; 
-		else if(!strcmp(Bus_GetMapValue(frame,"combine-key"), "ctrl")) //¬˝ÀŸ
+		else if(!strcmp(Bus_GetMapValue(frame,"combine-key"), "ctrl")) //ÊÖ¢ÈÄü
 			speedRatio=0.2;
 		switch(*(char*)Bus_GetMapValue(frame,"key"))
 		{
@@ -128,7 +141,7 @@ void Sys_Chassis_MoveCallback(const char* name, SoftBusFrame* frame, void* bindD
 				break;
 		}
 	}
-	else if(!strcmp(name,"rc/left-stick") && sysCtrl.rockerCtrl) //“£øÿ∆˜øÿ÷∆
+	else if(!strcmp(name,"rc/left-stick") && sysCtrl.rockerCtrl) //ÈÅ•ÊéßÂô®ÊéßÂà∂
 	{
 		if(!Bus_CheckMapKeys(frame,{"x","y"}))
 			return;
@@ -154,17 +167,17 @@ void Sys_Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindD
 	}
 }
 
-//‘∆Ã®–˝◊™ªÿµ˜∫Ø ˝
+//‰∫ëÂè∞ÊóãËΩ¨ÂõûË∞ÉÂáΩÊï∞
 void Sys_Gimbal_RotateCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!strcmp(name,"rc/mouse-move") && !sysCtrl.rockerCtrl)  //º¸ Ûøÿ÷∆
+	if(!strcmp(name,"rc/mouse-move") && !sysCtrl.rockerCtrl)  //ÈîÆÈº†ÊéßÂà∂
 	{
 		if(!Bus_CheckMapKeys(frame,{"x","y"}))
 			return;
 		sysCtrl.gimbalData.yaw =*(int16_t*)Bus_GetMapValue(frame,"x");
 		sysCtrl.gimbalData.pitch =*(int16_t*)Bus_GetMapValue(frame,"y"); 
 	}
-	else if(!strcmp(name,"rc/right-stick") && sysCtrl.rockerCtrl)  //“£øÿ∆˜øÿ÷∆
+	else if(!strcmp(name,"rc/right-stick") && sysCtrl.rockerCtrl)  //ÈÅ•ÊéßÂô®ÊéßÂà∂
 	{
 		if(!Bus_CheckMapKeys(frame,{"x","y"}))
 			return;
@@ -179,40 +192,40 @@ void Sys_Gimbal_RotateCallback(const char* name, SoftBusFrame* frame, void* bind
 	}
 }
 
-//ƒ£ Ω«–ªªªÿµ˜
+//Ê®°ÂºèÂàáÊç¢ÂõûË∞É
 void Sys_Mode_ChangeCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!strcmp(name,"/rc/key/on-click") && !sysCtrl.rockerCtrl)  //º¸ Ûøÿ÷∆
+	if(!strcmp(name,"/rc/key/on-click") && !sysCtrl.rockerCtrl)  //ÈîÆÈº†ÊéßÂà∂
 	{
 		if(!Bus_IsMapKeyExist(frame,"key"))
 			return;
 		switch(*(char*)Bus_GetMapValue(frame,"key"))
 		{
 			case 'Q':  
-				sysCtrl.mode = SYS_SPIN_MODE;  //–°Õ”¬›ƒ£ Ω
+				sysCtrl.mode = SYS_SPIN_MODE;  //Â∞èÈôÄËû∫Ê®°Âºè
 				break;
 			case 'E':  
-				sysCtrl.mode = SYS_FOLLOW_MODE;  //∏˙ÀÊƒ£ Ω
+				sysCtrl.mode = SYS_FOLLOW_MODE;  //Ë∑üÈöèÊ®°Âºè
 				break;
 			case 'R':
-				sysCtrl.mode = SYS_SEPARATE_MODE; //∑÷¿Îƒ£ Ω
+				sysCtrl.mode = SYS_SEPARATE_MODE; //ÂàÜÁ¶ªÊ®°Âºè
 				break;
 		}
 	}
-	else if(!strcmp(name,"rc/switch") && sysCtrl.rockerCtrl)  //“£øÿ∆˜øÿ÷∆
+	else if(!strcmp(name,"rc/switch") && sysCtrl.rockerCtrl)  //ÈÅ•ÊéßÂô®ÊéßÂà∂
 	{
 		if(!Bus_IsMapKeyExist(frame, "right"))
 			return;
 		switch(*(uint8_t*)Bus_GetMapValue(frame, "right"))
 		{
 			case 1:
-				sysCtrl.mode = SYS_SPIN_MODE; //–°Õ”¬›ƒ£ Ω
+				sysCtrl.mode = SYS_SPIN_MODE; //Â∞èÈôÄËû∫Ê®°Âºè
 				break;                        
 			case 2:                         
-				sysCtrl.mode = SYS_FOLLOW_MODE;  //∏˙ÀÊƒ£ Ω
+				sysCtrl.mode = SYS_FOLLOW_MODE;  //Ë∑üÈöèÊ®°Âºè
 				break;                        
 			case 3:                         
-				sysCtrl.mode = SYS_SEPARATE_MODE; //∑÷¿Îƒ£ Ω
+				sysCtrl.mode = SYS_SEPARATE_MODE; //ÂàÜÁ¶ªÊ®°Âºè
 				break;
 		}
 	}
@@ -223,54 +236,59 @@ void Sys_Mode_ChangeCallback(const char* name, SoftBusFrame* frame, void* bindDa
 		switch(*(uint8_t*)Bus_GetMapValue(frame, "left"))
 		{
 			case 1:
-				sysCtrl.rockerCtrl = true; //«–ªª÷¡“£øÿ∆˜øÿ÷∆
+				sysCtrl.rockerCtrl = true; //ÂàáÊç¢Ëá≥ÈÅ•ÊéßÂô®ÊéßÂà∂
+				sysCtrl.errFlag = 0;
 				break;
 			case 2:
-				sysCtrl.rockerCtrl = false; //«–ªª÷¡º¸ Ûøÿ÷∆
+				sysCtrl.rockerCtrl = false; //ÂàáÊç¢Ëá≥ÈîÆÈº†ÊéßÂà∂
+				sysCtrl.errFlag = 0;
 				break;
 			case 3:   
-				Sys_ErrorHandle();  //º±Õ£
+				sysCtrl.errFlag = 1;
 				break;
 		}
 	}
 }
 
-//∑¢…‰ªÿµ˜∫Ø ˝
+//ÂèëÂ∞ÑÂõûË∞ÉÂáΩÊï∞
 void Sys_Shoot_Callback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!strcmp(name,"/rc/key/on-click") && !sysCtrl.rockerCtrl)//º¸ Ûøÿ÷∆
+	if(!strcmp(name,"/rc/key/on-click") && !sysCtrl.rockerCtrl)//ÈîÆÈº†ÊéßÂà∂
 	{
 		if(!Bus_IsMapKeyExist(frame,"left"))
 			return;
-		Bus_BroadcastSend("/shooter",{{"once", IM_PTR(uint8_t,1)}});  //µ„…‰
+		Bus_BroadcastSend("/shooter",{{"once", IM_PTR(uint8_t,1)}});  //ÁÇπÂ∞Ñ
 	}
 	else if(!strcmp(name,"/rc/key/on-pressing") && !sysCtrl.rockerCtrl)
 	{
 		if(!Bus_IsMapKeyExist(frame,"left"))
 			return;
-		Bus_BroadcastSend("/shooter",{{"continue",IM_PTR(uint8_t,1)},{"num",IM_PTR(uint8_t,1)}}); //¡¨∑¢
+		Bus_BroadcastSend("/shooter",{{"continue",IM_PTR(uint8_t,1)},{"num",IM_PTR(uint8_t,1)}}); //ËøûÂèë
 	}
-	else if(!strcmp(name,"rc/wheel") && sysCtrl.rockerCtrl)//“£øÿ∆˜øÿ÷∆
+	else if(!strcmp(name,"rc/wheel") && sysCtrl.rockerCtrl)//ÈÅ•ÊéßÂô®ÊéßÂà∂
 	{
 		if(!Bus_IsMapKeyExist(frame,"value"))
 			return;
 		int16_t wheel = *(int16_t*)Bus_GetMapValue(frame,"value");
 
 		if(wheel > 600)
-			Bus_BroadcastSend("/shooter", {{"once", IM_PTR(uint8_t,1)}}); //µ„…‰
+			Bus_BroadcastSend("/shooter", {{"once", IM_PTR(uint8_t,1)}}); //ÁÇπÂ∞Ñ
 		else if(wheel < -600)
-			Bus_BroadcastSend("/shooter", {{"continue", IM_PTR(uint8_t,1)}, {"num", IM_PTR(uint8_t,1)}}); //¡¨∑¢
+			Bus_BroadcastSend("/shooter", {{"continue", IM_PTR(uint8_t,1)}, {"num", IM_PTR(uint8_t,1)}}); //ËøûÂèë
 	}
 }
 
-//º±Õ£¥¶¿Ì
-void Sys_ErrorHandle()
+//ÊÄ•ÂÅú
+void Sys_ErrorHandle(void)
 {
-	uint8_t data[8]={0};
-	Bus_BroadcastSend("/can/send-once",{{"can-x",&((uint8_t){1})},{"id",&((uint16_t){0x200})}, {"data", data}});
-	Bus_BroadcastSend("/can/send-once",{{"can-x",&((uint8_t){1})},{"id",&((uint16_t){0x1FF})}, {"data", data}});
-	Bus_BroadcastSend("/can/send-once",{{"can-x",&((uint8_t){2})},{"id",&((uint16_t){0x200})}, {"data", data}});
-	Bus_BroadcastSend("/can/send-once",{{"can-x",&((uint8_t){2})},{"id",&((uint16_t){0x1FF})}, {"data", data}});
-	while(1);
+	Bus_BroadcastSend("/motor/stop",{"",0});
+	while(1)
+	{
+		if(!sysCtrl.errFlag)
+		{
+			__disable_irq();
+			NVIC_SystemReset();
+		}
+		osDelay(2);
+	}
 }
-

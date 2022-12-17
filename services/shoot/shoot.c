@@ -2,170 +2,181 @@
 #include "softbus.h"
 #include "motor.h"
 #include "cmsis_os.h"
-#include "math.h"
+#include "main.h"
 
-#ifndef ecd_range
-#define ecd_range 8191
-#endif
-
-//卡单时间 以及反转时间
-#define BLOCK_TRIGGER_SPEED         1.0f
-#define BLOCK_TIME                  350		
-#define REVERSE_TIME                500
-
-typedef struct _Shoot
+typedef enum
 {
+	SHOOTER_MODE_IDLE,
+	SHOOTER_MODE_ONCE,
+	SHOOTER_MODE_CONTINUE,
+	SHOOTER_MODE_BLOCK
+}ShooterMode;
 
-		//3个电机
-		Motor* motors[3];
-		
-		float speed[3];											//摩擦轮速度 	[0]为左摩擦轮 [1]为右摩擦轮 [2]为拨弹轮
-		float target_ecd[3];
-		float ecd[3];
-		float target[3];
-	
-		struct
+typedef struct
+{
+	Motor *fricMotors[2],*triggerMotor;
+	bool fricEnable;
+	float fricSpeed; //摩擦轮速度
+	float triggerAngle,totalTrigAngle; //拨弹一次角度及累计角度
+	uint16_t continueNum;  //连发次数
+	uint16_t intervalTime; //连发间隔ms
+	uint8_t mode;
+	uint8_t taskInterval;
+}Shooter;
+
+void Shooter_Init(Shooter* shooter, ConfItem* dict);
+void Shooter_shootCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Shooter_ChangeArgumentCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindData);
+  
+void Shooter_TaskCallback(void const * argument)
+{
+	portENTER_CRITICAL();
+	Shooter shooter={0};
+	Shooter_Init(&shooter, (ConfItem*)argument);
+	TickType_t tick = xTaskGetTickCount();
+	portEXIT_CRITICAL();
+
+  osDelay(2000);
+	while(1)
+	{
+		switch(shooter.mode)
 		{
-				uint16_t block_time;
-				uint16_t reverse_time;
-					
-				float target_set;
-				float speed;
-		} shoot_control;
-	
-		uint8_t taskInterval;
-	
-}Shoot;
-
-void Shoot_Init(Shoot* shoot, ConfItem* dict);
-void Shoot_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
-static float Shoot_ecd_zero(uint16_t ecd, uint16_t offset_ecd);
-static void Feedsprocket_turn_back(Shoot *shoot);
-
-void Shoot_TaskCallback(void const * argument)
-{
-		//进入临界区
-		portENTER_CRITICAL();
-		Shoot shoot={0};
-		Shoot_Init(&shoot, (ConfItem*)argument);
-		portEXIT_CRITICAL();
-
-		osDelay(2000);
-		TickType_t tick = xTaskGetTickCount();	
-	
-		while(1)
-		{	
-				//过零处理
-				shoot.target[0] = Shoot_ecd_zero(shoot.target_ecd[0], shoot.ecd[0]);
-				shoot.target[1] = Shoot_ecd_zero(shoot.target_ecd[1], shoot.ecd[1]);
-				shoot.target[2] = Shoot_ecd_zero(shoot.target_ecd[2], shoot.ecd[2]);
-						
-				//堵转处理
-				Feedsprocket_turn_back(&shoot);
+			case SHOOTER_MODE_IDLE:
+				break;
+			case SHOOTER_MODE_BLOCK:
+				shooter.triggerMotor->setStartAngle(shooter.triggerMotor,shooter.totalTrigAngle); //重置电机角度为当前累计角度
+				shooter.totalTrigAngle -= shooter.triggerAngle*0.5f;  //反转
+				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
+				osDelay(500);   //等待电机堵转恢复
+				shooter.mode = SHOOTER_MODE_IDLE;
+				break;
+			case SHOOTER_MODE_ONCE:   //单发
 			
-				//电机输出
-				shoot.motors[0]->setTarget(shoot.motors[0], shoot.target[0]);
-				shoot.motors[1]->setTarget(shoot.motors[1], shoot.target[1]);
-				shoot.motors[2]->setTarget(shoot.motors[2], shoot.shoot_control.target_set);
-	
-				osDelayUntil(&tick,shoot.taskInterval);
+				if(shooter.fricEnable == false)   //若摩擦轮未开启则先开启
+				{
+					Bus_BroadcastSend("/shooter/fricCtrl",{"enable",IM_PTR(bool,true)});
+					osDelay(200);     //等待摩擦轮转速稳定
+				}
+
+				shooter.totalTrigAngle += shooter.triggerAngle; 
+				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
+				shooter.mode = SHOOTER_MODE_IDLE;
+				break;
+			case SHOOTER_MODE_CONTINUE:  //以一定的时间间隔连续发射n发 
+			
+				if(shooter.fricEnable == false)   //若摩擦轮未开启则先开启
+				{
+					Bus_BroadcastSend("/shooter/fricCtrl",{"enable",IM_PTR(bool,true)});
+					osDelay(200);   //等待摩擦轮转速稳定
+				}
+				//连发
+				for(uint16_t num;num<shooter.continueNum;num++)
+				{
+					shooter.totalTrigAngle += shooter.triggerAngle; 
+					shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
+					osDelay(shooter.intervalTime);
+				}
+				shooter.mode = SHOOTER_MODE_IDLE;
+				break;
+			default:
+				break;
 		}
-	
+		osDelayUntil(&tick,shooter.taskInterval);
+	}	
 }
-	
-void Shoot_Init(Shoot* shoot, ConfItem* dict)
-{	
-	
-		//任务间隔
-		shoot->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
-	
-		//摩擦轮速度初始化
-		shoot->speed[0] = Conf_GetValue(dict, "Frictiongear_L/velocity", float, 2000);
-		shoot->speed[1] = Conf_GetValue(dict, "Frictiongear_R/velocity", float, 2000);
-	
-		//拨弹轮速度初始化
-		shoot->speed[2] = Conf_GetValue(dict, "Feedsprocket/velocity", float, 2);
-		shoot->shoot_control.speed = 0.0f;
-	
-		//摩擦轮电机初始化
-		shoot->motors[0] = Motor_Init(Conf_GetPtr(dict, "motorFrictiongear_L", ConfItem));
-		shoot->motors[1] = Motor_Init(Conf_GetPtr(dict, "motorFrictiongear_R", ConfItem));
-	
-		//拨弹轮电机初始化
-		shoot->motors[2] = Motor_Init(Conf_GetPtr(dict, "motorFeedsprocket", ConfItem));
-	
-		for(uint8_t i = 0; i<3; i++)
-		{
-			shoot->motors[i]->changeMode(shoot->motors[i], MOTOR_ANGLE_MODE);
-		}	
-	
-		Bus_MultiRegisterReceiver(shoot, Shoot_SoftBusCallback, {"/shoot/target_ecd", "/shoot/ecd"});
-}
-	
-void Shoot_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
+
+void Shooter_Init(Shooter* shooter, ConfItem* dict)
 {
-		Shoot* shoot = (Shoot*)bindData;
-
-		if(!strcmp(name, "/shoot/target_ecd"))
-		{
-			if(Bus_IsMapKeyExist(frame, "Frictiongear_L_target_ecd"))
-				shoot->target_ecd[0] = *(float*)Bus_GetMapValue(frame, "Frictiongear_L_target_ecd");
-			if(Bus_IsMapKeyExist(frame, "Frictiongear_R_target_ecd"))
-				shoot->target_ecd[1] = *(float*)Bus_GetMapValue(frame, "Frictiongear_R_target_ecd");
-			if(Bus_IsMapKeyExist(frame, "Feedsprocket_target_ecd"))
-				shoot->target_ecd[2] = *(float*)Bus_GetMapValue(frame, "Feedsprocket_target_ecd");
-		}
-		
-		if(!strcmp(name, "/shoot/ecd"))
-		{
-			if(Bus_IsMapKeyExist(frame, "Frictiongear_L_ecd"))
-				shoot->ecd[0] = *(float*)Bus_GetMapValue(frame, "Frictiongear_L_ecd");
-			if(Bus_IsMapKeyExist(frame, "Frictiongear_R_ecd"))
-				shoot->ecd[1] = *(float*)Bus_GetMapValue(frame, "Frictiongear_R_ecd");
-			if(Bus_IsMapKeyExist(frame, "Feedsprocket_ecd"))
-				shoot->ecd[2] = *(float*)Bus_GetMapValue(frame, "Feedsprocket_ecd");
-		}
-
+	//任务间隔
+	shooter->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 5);
+	//初始弹速
+	shooter->fricSpeed = Conf_GetValue(dict,"fricSpeed",float,5450);
+	//拨弹轮拨出一发弹丸转角
+	shooter->triggerAngle = Conf_GetValue(dict,"triggerAngle",float,1/7.0*360);
+	//发射机构电机初始化
+	shooter->fricMotors[0] = Motor_Init(Conf_GetPtr(dict, "fricMotorLeft", ConfItem));
+	shooter->fricMotors[1] = Motor_Init(Conf_GetPtr(dict, "fricMotorRight", ConfItem));
+	shooter->triggerMotor = Motor_Init(Conf_GetPtr(dict, "triggerMotor", ConfItem));
+	//设置发射机构电机模式
+	for(uint8_t i = 0; i<2; i++)
+	{
+		shooter->fricMotors[i]->changeMode(shooter->fricMotors[i], MOTOR_SPEED_MODE);
+	}
+	shooter->triggerMotor->changeMode(shooter->triggerMotor,MOTOR_ANGLE_MODE);
+  
+	Bus_MultiRegisterReceiver(shooter, Shooter_shootCallback, {"/shooter/once","/shooter/continue"});
+	Bus_MultiRegisterReceiver(shooter, Shooter_ChangeArgumentCallback, {"/shooter/fricSpeed","/shooter/triggerAngle"});
+	Bus_RegisterReceiver(shooter,Shooter_BlockCallback,"/motor/stall");
+	Bus_RegisterReceiver(shooter,Shooter_FricCtrlCallback,"/shooter/fricCtrl");
 }
 
-static float Shoot_ecd_zero(uint16_t ecd, uint16_t offset_ecd)
+//射击模式
+void Shooter_shootCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-		int32_t relative_ecd = ecd - offset_ecd;
-
-		if(relative_ecd > (ecd_range/2))
-		{
-					relative_ecd -= ecd_range;
-		}
-		if(relative_ecd < - (ecd_range/2))
-		{
-					relative_ecd += ecd_range;
-		}
-
-		return relative_ecd;
+	Shooter *shooter = (Shooter*)bindData ;
+	if(!strcmp(name,"/shooter/once")&&shooter->mode == SHOOTER_MODE_IDLE)  //空闲时才允许修改模式
+	{
+		shooter->mode = SHOOTER_MODE_ONCE;
+	}
+	else if(!strcmp(name,"/shooter/continue")&&shooter->mode == SHOOTER_MODE_IDLE)
+	{
+		if(!Bus_CheckMapKeys(frame,{"num","intervalTime"}))
+			return;
+		shooter->continueNum = *(uint16_t*)Bus_GetMapValue(frame,"num");
+		shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
+		shooter->mode = SHOOTER_MODE_CONTINUE;
+	}
 }
 
-static void Feedsprocket_turn_back(Shoot *shoot)
+//修改摩擦轮转速或拨弹角度
+void Shooter_ChangeArgumentCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-    if( shoot->shoot_control.block_time < BLOCK_TIME)
-    {
-        shoot->shoot_control.target_set = 	shoot->target_ecd[2];
-    }
-    else
-    {
-        shoot->shoot_control.target_set = - shoot->target_ecd[2];
-    }
-
-    if(fabs(shoot->shoot_control.speed) < BLOCK_TRIGGER_SPEED && shoot->shoot_control.block_time < BLOCK_TIME)
-    {
-        shoot->shoot_control.block_time++;
-        shoot->shoot_control.reverse_time = 0;
-    }
-    else if (shoot->shoot_control.block_time == BLOCK_TIME && shoot->shoot_control.reverse_time < REVERSE_TIME)
-    {
-        shoot->shoot_control.reverse_time++;
-    }
-    else
-    {
-        shoot->shoot_control.block_time = 0;
-    }
+	Shooter *shooter = (Shooter*)bindData;
+	if(!strcmp(name,"/shooter/fricSpeed"))
+	{
+		if(!Bus_IsMapKeyExist(frame,"speed"))
+			return;
+		shooter->fricSpeed = *(float*)Bus_GetMapValue(frame,"speed");
+	}
+	else if(!strcmp(name,"/shooter/triggerAngle"))
+	{
+		if(!Bus_IsMapKeyExist(frame,"angle"))
+			return;
+		shooter->triggerAngle = *(float*)Bus_GetMapValue(frame,"angle");
+	}
 }
+
+//堵转
+void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	Shooter *shooter = (Shooter*)bindData;
+	if(!Bus_IsMapKeyExist(frame,"motor"))
+		return;
+	Motor *motor = (Motor *)Bus_GetMapValue(frame,"motor");
+	if(motor == shooter->triggerMotor)
+	{
+		shooter->mode = SHOOTER_MODE_BLOCK;
+	}
+}
+
+//摩擦轮控制
+void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	Shooter *shooter = (Shooter*)bindData;
+		if(!Bus_IsMapKeyExist(frame,"enable"))
+		return;
+	shooter->fricEnable = *(bool*)Bus_GetMapValue(frame,"enable");
+	if(shooter->fricEnable == false)
+	{
+		shooter->fricMotors[0]->setTarget(shooter->fricMotors[0],0);
+		shooter->fricMotors[1]->setTarget(shooter->fricMotors[0],0);
+	}
+	else
+	{
+		shooter->fricMotors[0]->setTarget(shooter->fricMotors[0],-shooter->fricSpeed);
+		shooter->fricMotors[1]->setTarget(shooter->fricMotors[1], shooter->fricSpeed);
+	}
+	}
+
