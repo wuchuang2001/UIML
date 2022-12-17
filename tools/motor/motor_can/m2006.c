@@ -20,13 +20,15 @@ typedef struct _M2006
 	}canInfo;
 	MotorCtrlMode mode;
 	
-	int16_t angle,speed;
+	int16_t angle,speed,torque;
 	
 	int16_t lastAngle;//记录上一次得到的角度
 	
 	int32_t totalAngle;//累计转过的编码器值
 	
 	float  targetValue;//目标值(输出轴扭矩矩/速度/角度(单位度))
+
+	uint16_t stallTime;//堵转时间
 	
 	PID speedPID;//速度pid(单级)
 	CascadePID anglePID;//角度pid，串级
@@ -39,6 +41,7 @@ void M2006_SetStartAngle(Motor *motor, float startAngle);
 void M2006_SetTarget(Motor* motor, float targetValue);
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode);
 void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void M2006_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M2006_Update(M2006* m2006,uint8_t* data);
 void M2006_PIDInit(M2006* m2006, ConfItem* dict);
@@ -51,6 +54,12 @@ void M2006_TimerCallback(void const *argument)
 	M2006* m2006 = pvTimerGetTimerID((TimerHandle_t)argument);
 	M2006_StatAngle(m2006);
 	M2006_CtrlerCalc(m2006, m2006->targetValue);
+	m2006->stallTime = (m2006->speed == 0 && m2006->torque > 7000) ? m2006->stallTime + 2 : 0;
+	if (m2006->stallTime > 500)
+	{
+		Bus_BroadcastSend("/motor/stall", {{"motor", m2006}});
+		m2006->stallTime = 0;
+	}
 }
 
 Motor* M2006_Init(ConfItem* dict)
@@ -78,6 +87,7 @@ Motor* M2006_Init(ConfItem* dict)
 	char name[] = "/can_/recv";
 	name[4] = m2006->canInfo.canX + '0';
 	Bus_RegisterReceiver(m2006, M2006_SoftBusCallback, name);
+	Bus_RegisterReceiver(m2006, M2006_StopCallback, "/motor/stop");
 	//开启软件定时器
 	osTimerDef(M2006, M2006_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);
@@ -104,6 +114,14 @@ void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData
 	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 1);
 	if(data)
 		M2006_Update(m2006, data);
+}
+
+//电机急停回调函数
+void M2006_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	M2006* m2006 = (M2006*)bindData;
+	m2006->targetValue = 0;
+	m2006->mode = MOTOR_STOP_MODE;
 }
 
 //开始统计电机累计角度
@@ -181,6 +199,9 @@ void M2006_SetTarget(Motor* motor, float targetValue)
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M2006* m2006 = (M2006*)motor;
+	if(m2006->mode == MOTOR_STOP_MODE) //急停模式下不允许切换模式
+		return;
+
 	if(m2006->mode == MOTOR_SPEED_MODE)
 	{
 		PID_Clear(&m2006->speedPID);
@@ -198,4 +219,5 @@ void M2006_Update(M2006* m2006,uint8_t* data)
 {
 	m2006->angle = (data[0]<<8 | data[1]);
 	m2006->speed = (data[2]<<8 | data[3]);
+	m2006->torque = (data[4]<<8 | data[5]);
 }

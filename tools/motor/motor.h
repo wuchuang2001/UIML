@@ -14,7 +14,8 @@ typedef enum
 {
 	MOTOR_TORQUE_MODE,
 	MOTOR_SPEED_MODE,
-	MOTOR_ANGLE_MODE
+	MOTOR_ANGLE_MODE,
+	MOTOR_STOP_MODE
 }MotorCtrlMode;
 //父类，包含所有子类的方法
 typedef struct _Motor

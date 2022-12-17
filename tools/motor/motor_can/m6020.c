@@ -39,6 +39,7 @@ void M6020_SetStartAngle(Motor *motor, float startAngle);
 void M6020_SetTarget(Motor* motor, float targetValue);
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode);
 void M6020_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void M6020_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M6020_Update(M6020* m6020,uint8_t* data);
 void M6020_PIDInit(M6020* m6020, ConfItem* dict);
@@ -78,6 +79,7 @@ Motor* M6020_Init(ConfItem* dict)
 	char name[] = "/can_/recv";
 	name[4] = m6020->canInfo.canX + '0';
 	Bus_RegisterReceiver(m6020, M6020_SoftBusCallback, name);
+	Bus_RegisterReceiver(m6020, M6020_StopCallback, "/motor/stop");
 	//开启软件定时器
 	osTimerDef(M6020, M6020_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M6020), osTimerPeriodic, m6020), 2);
@@ -104,6 +106,14 @@ void M6020_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData
 	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 1);
 	if(data)
 		M6020_Update(m6020, data);
+}
+
+//电机急停回调函数
+void M6020_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	M6020* m6020 = (M6020*)bindData;
+	m6020->targetValue = 0;
+	m6020->mode = MOTOR_STOP_MODE;
 }
 
 //开始统计电机累计角度
@@ -180,6 +190,9 @@ void M6020_SetTarget(Motor* motor, float targetValue)
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M6020* m6020 = (M6020*)motor;
+	if(m6020->mode == MOTOR_STOP_MODE) //急停模式下不允许切换模式
+		return;
+	
 	if(m6020->mode == MOTOR_SPEED_MODE)
 	{
 		PID_Clear(&m6020->speedPID);

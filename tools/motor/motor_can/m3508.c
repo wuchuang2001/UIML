@@ -20,13 +20,15 @@ typedef struct _M3508
 	}canInfo;
 	MotorCtrlMode mode;
 	
-	int16_t angle,speed;
+	int16_t angle,speed,torque;
 	
 	int16_t lastAngle;//记录上一次得到的角度
 	
 	int32_t totalAngle;//累计转过的编码器值
 	
 	float  targetValue;//目标值(输出轴扭矩矩/速度/角度(单位度))
+
+	uint16_t stallTime;//堵转时间
 	
 	PID speedPID;//速度pid(单级)
 	CascadePID anglePID;//角度pid，串级
@@ -39,6 +41,7 @@ void M3508_SetStartAngle(Motor *motor, float startAngle);
 void M3508_SetTarget(Motor* motor, float targetValue);
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode);
 void M3508_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void M3508_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M3508_Update(M3508* m3508,uint8_t* data);
 void M3508_PIDInit(M3508* m3508, ConfItem* dict);
@@ -51,6 +54,12 @@ void M3508_TimerCallback(void const *argument)
 	M3508* m3508 = pvTimerGetTimerID((TimerHandle_t)argument); 
 	M3508_StatAngle(m3508);
 	M3508_CtrlerCalc(m3508, m3508->targetValue);
+	m3508->stallTime = (m3508->speed == 0 && m3508->torque > 7000) ? m3508->stallTime + 2 : 0;
+	if (m3508->stallTime > 500)
+	{
+		Bus_BroadcastSend("/motor/stall", {{"motor", m3508}});
+		m3508->stallTime = 0;
+	}
 }
 
 Motor* M3508_Init(ConfItem* dict)
@@ -78,6 +87,7 @@ Motor* M3508_Init(ConfItem* dict)
 	char name[] = "/can_/recv";
 	name[4] = m3508->canInfo.canX + '0';
 	Bus_RegisterReceiver(m3508, M3508_SoftBusCallback, name);
+	Bus_RegisterReceiver(m3508, M3508_StopCallback, "/motor/stop");
 	//开启软件定时器
 	osTimerDef(M3508, M3508_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M3508), osTimerPeriodic, m3508), 2);
@@ -104,6 +114,14 @@ void M3508_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData
 	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 1);
 	if(data)
 		M3508_Update(m3508, data);
+}
+
+//电机急停回调函数
+void M3508_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	M3508* m3508 = (M3508*)bindData;
+	m3508->targetValue = 0;
+	m3508->mode = MOTOR_STOP_MODE;
 }
 
 //开始统计电机累计角度
@@ -180,6 +198,9 @@ void M3508_SetTarget(Motor* motor, float targetValue)
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M3508* m3508 = (M3508*)motor;
+	if(m3508->mode == MOTOR_STOP_MODE) //急停模式下不允许切换模式
+		return;
+	
 	if(m3508->mode == MOTOR_SPEED_MODE)
 	{
 		PID_Clear(&m3508->speedPID);
@@ -197,4 +218,5 @@ void M3508_Update(M3508* m3508,uint8_t* data)
 {
 	m3508->angle = (data[0]<<8 | data[1]);
 	m3508->speed = (data[2]<<8 | data[3]);
+	m3508->torque = (data[4]<<8 | data[5]);
 }
