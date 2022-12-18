@@ -219,13 +219,13 @@ void M6020_GetValve(const char* name, SoftBusFrame* frame, void* bindData) //·Ç³
 	M6020* m6020 = (M6020*)bindData;
 	if(Bus_IsMapKeyExist(frame, "motor"))
 	{
-		if((M6020*)Bus_GetMapValue("motor") != m6020)
+		if((M6020*)Bus_GetMapValue(frame, "motor") != m6020)
 			return;
 	}
 
 	if(Bus_IsMapKeyExist(frame, "angle"))
-		*(int16_t*)Bus_GetMapValue("angle") = m6020->angle;
+		*(int16_t*)Bus_GetMapValue(frame, "angle") = m6020->angle;
 	
 	if(Bus_IsMapKeyExist(frame, "totalAngle"))
-		*(int32_t*)Bus_GetMapValue("totalAngle") = M6020_CODE2DGR(m6020->totalAngle, m6020->reductionRatio);
+		*(int32_t*)Bus_GetMapValue(frame, "totalAngle") = M6020_CODE2DGR(m6020->totalAngle, m6020->reductionRatio);
 }

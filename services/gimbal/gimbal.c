@@ -1,6 +1,7 @@
 #include "config.h"
 #include "softbus.h"
 #include "pid.h"
+#include "motor.h"
 #include "cmsis_os.h"
 
 #ifndef PI
@@ -34,6 +35,8 @@ typedef struct _Gimbal
 }Gimbal;
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict);
+void Gimbal_startAngleInit(Gimbal* gimbal);
+void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll);
 
 void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
@@ -52,18 +55,19 @@ void Gimbal_TaskCallback(void const * argument)
 	{
 		if(gimbal.mode == GIMBAL_ECD_MODE)
 		{
-			gimbal.motors[0]->getAngle(&gimbal.motors[0], gimbal.angle[0]);
-			gimbal.motors[1]->getAngle(&gimbal.motors[1], gimbal.angle[1]);
+			gimbal.motors[0]->setTarget(gimbal.motors[0], gimbal.angle[0]);
+			gimbal.motors[1]->setTarget(gimbal.motors[1], gimbal.angle[1]);
 		}
 		else if(gimbal.mode == GIMBAL_IMU_MODE)
 		{
 			PID_SingleCalc(&gimbal.imu.pid[0], gimbal.angle[0], gimbal.imu.totalEulerAngle[0]);
 			PID_SingleCalc(&gimbal.imu.pid[1], gimbal.angle[1], gimbal.imu.totalEulerAngle[1]);
-			gimbal.motors[0]->setSpeed(&gimbal.motors[0], gimbal.imu.pid[0].output);
-			gimbal.motors[1]->setSpeed(&gimbal.motors[1], gimbal.imu.pid[1].output);
+			gimbal.motors[0]->setTarget(gimbal.motors[0], gimbal.imu.pid[0].output);
+			gimbal.motors[1]->setTarget(gimbal.motors[1], gimbal.imu.pid[1].output);
 		}
-		Bus_BroadcastSend("/motor/getValve", {{"motor", &gimbal->motors[0]}, {"totalAngle", &gimbal.relativeAngle}});
-		gimbal.relativeAngle %= 360;
+		Bus_BroadcastSend("/motor/getValve", {{"motor", gimbal.motors[0]}, {"totalAngle", &gimbal.relativeAngle}});
+		uint16_t temp = gimbal.relativeAngle / 360;
+		gimbal.relativeAngle -= temp*360;
 		if(gimbal.relativeAngle > 180)
 			gimbal.relativeAngle -= 360;
 		Bus_BroadcastSend("/gimbal/yaw/relative-angle", {{"angle", &gimbal.relativeAngle}});
@@ -81,20 +85,20 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	gimbal->motors[0] = Motor_Init(Conf_GetPtr(dict, "motorYaw", ConfItem));
 	gimbal->motors[1] = Motor_Init(Conf_GetPtr(dict, "motorPitch", ConfItem));
 
-	gimbal->imu.pid[0] = PID_Init(Conf_GetPtr(dict, "motorYaw/imu", ConfItem));
-	gimbal->imu.pid[1] = PID_Init(Conf_GetPtr(dict, "motorPitch/imu", ConfItem));
+	PID_Init(&gimbal->imu.pid[0], Conf_GetPtr(dict, "motorYaw/imu", ConfItem));
+	PID_Init(&gimbal->imu.pid[1], Conf_GetPtr(dict, "motorPitch/imu", ConfItem));
 
 	//初始化云台模式为 编码器模式
 	gimbal->mode = Conf_GetValue(dict, "mode", GimbalCtrlMode, GIMBAL_ECD_MODE);
 	if(gimbal->mode == GIMBAL_ECD_MODE)
 	{
-		gimbal->motors[0]->changeMode(&gimbal->motors[0], MOTOR_ANGLE_MODE);
-		gimbal->motors[1]->changeMode(&gimbal->motors[1], MOTOR_ANGLE_MODE);
+		gimbal->motors[0]->changeMode(gimbal->motors[0], MOTOR_ANGLE_MODE);
+		gimbal->motors[1]->changeMode(gimbal->motors[1], MOTOR_ANGLE_MODE);
 	}
 	else if(gimbal->mode == GIMBAL_IMU_MODE)
 	{
-		gimbal->motors[0]->changeMode(&gimbal->motors[0], MOTOR_SPEED_MODE);
-		gimbal->motors[1]->changeMode(&gimbal->motors[1], MOTOR_SPEED_MODE);
+		gimbal->motors[0]->changeMode(gimbal->motors[0], MOTOR_SPEED_MODE);
+		gimbal->motors[1]->changeMode(gimbal->motors[1], MOTOR_SPEED_MODE);
 	}
 
 	Bus_MultiRegisterReceiver(gimbal, Gimbal_SoftBusCallback, {"/imu/euler-angle", "/gimbal"});		
@@ -108,20 +112,20 @@ void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDa
 	{
 		if(!Bus_CheckMapKeys(frame, {"yaw", "pitch", "roll"}))
 			return;
-		float yaw = *(float*)Bus_GetFloat(frame, "yaw");
-		float pitch = *(float*)Bus_GetFloat(frame, "pitch");
-		float roll = *(float*)Bus_GetFloat(frame, "roll");
+		float yaw = *(float*)Bus_GetMapValue(frame, "yaw");
+		float pitch = *(float*)Bus_GetMapValue(frame, "pitch");
+		float roll = *(float*)Bus_GetMapValue(frame, "roll");
 		Gimbal_StatAngle(gimbal, yaw, pitch, roll);
 	}
 	else if (!strcmp(topic, "/gimbal"))
 	{
 		if(Bus_IsMapKeyExist(frame, "yaw"))
 		{
-			gimbal->angle[0] = *(float*)Bus_GetFloat(frame, "yaw");
+			gimbal->angle[0] = *(float*)Bus_GetMapValue(frame, "yaw");
 		}
 		if(Bus_IsMapKeyExist(frame, "pitch"))
 		{
-			gimbal->angle[1] = *(float*)Bus_GetFloat(frame, "pitch");
+			gimbal->angle[1] = *(float*)Bus_GetMapValue(frame, "pitch");
 		}
 	}
 }
@@ -148,18 +152,18 @@ void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
 void Gimbal_startAngleInit(Gimbal* gimbal)
 {
 	int16_t angle[2] = {0};
-	Bus_BroadcastSend("/motor/getValve", {{"motor", &gimbal->motors[0]}, {"angle", &angle[0]}});
-	Bus_BroadcastSend("/motor/getValve", {{"motor", &gimbal->motors[1]}, {"angle", &angle[1]}});
+	Bus_BroadcastSend("/motor/getValve", {{"motor", gimbal->motors[0]}, {"angle", &angle[0]}});
+	Bus_BroadcastSend("/motor/getValve", {{"motor", gimbal->motors[1]}, {"angle", &angle[1]}});
 	for(uint8_t i = 0; i<2; i++)
 	{
-		Bus_BroadcastSend("/motor/getValve", {{"motor", &gimbal->motors[i]}, {"angle", &angle[i]}});
+		Bus_BroadcastSend("/motor/getValve", {{"motor", gimbal->motors[i]}, {"angle", &angle[i]}});
 		angle[i] = (gimbal->zeroAngle[i] - angle[i])/22.7528f;    //未做处理
 		if(angle[i] < -180)
 			angle[i] += 360;
 		else if(angle[i] > 180)
 			angle[i] -= 360;
 		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle[i]);
-		totalEulerAngle[i] = angle[i];
+		gimbal->imu.totalEulerAngle[i] = angle[i];
 	}
 	
 }
