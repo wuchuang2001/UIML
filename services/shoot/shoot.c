@@ -38,7 +38,7 @@ void Shooter_TaskCallback(void const * argument)
 	TickType_t tick = xTaskGetTickCount();
 	portEXIT_CRITICAL();
 
-  osDelay(2000);
+	osDelay(2000);
 	while(1)
 	{
 		switch(shooter.mode)
@@ -178,5 +178,5 @@ void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindD
 		shooter->fricMotors[0]->setTarget(shooter->fricMotors[0],-shooter->fricSpeed);
 		shooter->fricMotors[1]->setTarget(shooter->fricMotors[1], shooter->fricSpeed);
 	}
-	}
+}
 

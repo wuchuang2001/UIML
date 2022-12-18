@@ -40,6 +40,7 @@ void M6020_SetTarget(Motor* motor, float targetValue);
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode);
 void M6020_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void M6020_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void M6020_GetValve(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M6020_Update(M6020* m6020,uint8_t* data);
 void M6020_PIDInit(M6020* m6020, ConfItem* dict);
@@ -80,6 +81,7 @@ Motor* M6020_Init(ConfItem* dict)
 	name[4] = m6020->canInfo.canX + '0';
 	Bus_RegisterReceiver(m6020, M6020_SoftBusCallback, name);
 	Bus_RegisterReceiver(m6020, M6020_StopCallback, "/motor/stop");
+	Bus_RegisterReceiver(m6020, M6020_GetValve, "/motor/getValve");
 	//开启软件定时器
 	osTimerDef(M6020, M6020_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M6020), osTimerPeriodic, m6020), 2);
@@ -210,4 +212,20 @@ void M6020_Update(M6020* m6020,uint8_t* data)
 {
 	m6020->angle = (data[0]<<8 | data[1]);
 	m6020->speed = (data[2]<<8 | data[3]);
+}
+
+void M6020_GetValve(const char* name, SoftBusFrame* frame, void* bindData) //非常不标准，日后改
+{
+	M6020* m6020 = (M6020*)bindData;
+	if(Bus_IsMapKeyExist(frame, "motor"))
+	{
+		if((M6020*)Bus_GetMapValue("motor") != m6020)
+			return;
+	}
+
+	if(Bus_IsMapKeyExist(frame, "angle"))
+		*(int16_t*)Bus_GetMapValue("angle") = m6020->angle;
+	
+	if(Bus_IsMapKeyExist(frame, "totalAngle"))
+		*(int32_t*)Bus_GetMapValue("totalAngle") = M6020_CODE2DGR(m6020->totalAngle, m6020->reductionRatio);
 }

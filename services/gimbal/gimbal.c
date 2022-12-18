@@ -1,6 +1,6 @@
 #include "config.h"
 #include "softbus.h"
-#include "motor.h"
+#include "pid.h"
 #include "cmsis_os.h"
 
 #ifndef PI
@@ -9,43 +9,31 @@
 
 typedef enum
 {
-	GIMBAL_ZERO_FORCE = 0, 		//无力模式
-	GIMBAL_ECD_CONTROL = 1, 	//ECD模式
-	GIMBAL_IMU_GIMBAL = 2, 		//IMU模式
-	
-}GIMBAL_MODE_e; //云台模式
+	GIMBAL_ECD_MODE, 	//编码器模式
+	GIMBAL_IMU_MODE		//IMU模式
+}GimbalCtrlMode; //云台模式
 
 typedef struct _Gimbal
 {
-
-	float ins_angle[3];
-	float target_angle[2];
-
-	//2个电机
+	//yaw、pitch电机
 	Motor* motors[2];
-	
-	struct _Yaw
-	{		
-		float yaw_velocity;				//当前速度 mm/s			
-		float maxV; 							//最大速度				
-		float Target_Yaw;		
-	}yaw;
-		
-	struct _Pitch
-	{		
-		float pitch_velocity;			//当前速度 mm/s			
-		float maxV; 							//最大速度
-		float Target_Pitch;							
-	}pitch;
-				
-	uint8_t taskInterval;
-	uint8_t GIMBAL_MODE;
-		
+
+	GimbalCtrlMode mode;
+
+	int16_t zeroAngle[2];	//零点
+	float relativeAngle;	//云台偏离角度
+	struct 
+	{
+		// float eulerAngle[3];	//欧拉角
+		float lastEulerAngle[3];
+		float totalEulerAngle[3];
+		PID pid[2];
+	}imu;
+	float angle[2];	//云台角度
+	uint8_t taskInterval;		
 }Gimbal;
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict);
-void Gimbal_Limit(Gimbal* gimbal);
-float Gimbal_angle_zero(float angle, float offset_angle);
 
 void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 
@@ -57,26 +45,30 @@ void Gimbal_TaskCallback(void const * argument)
 	Gimbal gimbal={0};
 	Gimbal_Init(&gimbal, (ConfItem*)argument);
 	portEXIT_CRITICAL();
-	
 	osDelay(2000);
+	Gimbal_startAngleInit(&gimbal);
 	TickType_t tick = xTaskGetTickCount();
-
 	while(1)
 	{
-		//角度限制
-		Gimbal_Limit(&gimbal);		
-		
-		//过零处理
-		gimbal.yaw.Target_Yaw 		= Gimbal_angle_zero(gimbal.target_angle[0], gimbal.ins_angle[0]);		
-		gimbal.pitch.Target_Pitch = Gimbal_angle_zero(gimbal.target_angle[1], gimbal.ins_angle[1]);		
-	
-		//电机输入
-		gimbal.motors[0]->setTarget(gimbal.motors[0], gimbal.yaw.Target_Yaw);
-		gimbal.motors[1]->setTarget(gimbal.motors[1], gimbal.pitch.Target_Pitch);
-
+		if(gimbal.mode == GIMBAL_ECD_MODE)
+		{
+			gimbal.motors[0]->getAngle(&gimbal.motors[0], gimbal.angle[0]);
+			gimbal.motors[1]->getAngle(&gimbal.motors[1], gimbal.angle[1]);
+		}
+		else if(gimbal.mode == GIMBAL_IMU_MODE)
+		{
+			PID_SingleCalc(&gimbal.imu.pid[0], gimbal.angle[0], gimbal.imu.totalEulerAngle[0]);
+			PID_SingleCalc(&gimbal.imu.pid[1], gimbal.angle[1], gimbal.imu.totalEulerAngle[1]);
+			gimbal.motors[0]->setSpeed(&gimbal.motors[0], gimbal.imu.pid[0].output);
+			gimbal.motors[1]->setSpeed(&gimbal.motors[1], gimbal.imu.pid[1].output);
+		}
+		Bus_BroadcastSend("/motor/getValve", {{"motor", &gimbal->motors[0]}, {"totalAngle", &gimbal.relativeAngle}});
+		gimbal.relativeAngle %= 360;
+		if(gimbal.relativeAngle > 180)
+			gimbal.relativeAngle -= 360;
+		Bus_BroadcastSend("/gimbal/yaw/relative-angle", {{"angle", &gimbal.relativeAngle}});
 		osDelayUntil(&tick,gimbal.taskInterval);
 	}
-
 }
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
@@ -85,73 +77,89 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	//任务间隔
 	gimbal->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
 
-	gimbal->motors[0] = Motor_Init(Conf_GetPtr(dict, "motorYaw", ConfItem));
-	gimbal->motors[1] = Motor_Init(Conf_GetPtr(dict, "motorPitch", ConfItem));
-
-	//移动参数初始化
-	gimbal->yaw.maxV 	 = Conf_GetValue(dict, "moveYaw/maxSpeed", float, 2000);
-	gimbal->pitch.maxV = Conf_GetValue(dict, "movePitch/maxSpeed", float, 2000);	
-
 	//云台电机初始化
 	gimbal->motors[0] = Motor_Init(Conf_GetPtr(dict, "motorYaw", ConfItem));
 	gimbal->motors[1] = Motor_Init(Conf_GetPtr(dict, "motorPitch", ConfItem));
 
-	for(uint8_t i = 0; i<2; i++)
+	gimbal->imu.pid[0] = PID_Init(Conf_GetPtr(dict, "motorYaw/imu", ConfItem));
+	gimbal->imu.pid[1] = PID_Init(Conf_GetPtr(dict, "motorPitch/imu", ConfItem));
+
+	//初始化云台模式为 编码器模式
+	gimbal->mode = Conf_GetValue(dict, "mode", GimbalCtrlMode, GIMBAL_ECD_MODE);
+	if(gimbal->mode == GIMBAL_ECD_MODE)
 	{
-		gimbal->motors[i]->changeMode(gimbal->motors[i], MOTOR_ANGLE_MODE);
+		gimbal->motors[0]->changeMode(&gimbal->motors[0], MOTOR_ANGLE_MODE);
+		gimbal->motors[1]->changeMode(&gimbal->motors[1], MOTOR_ANGLE_MODE);
 	}
-			
-	//初始化云台模式为 云台无力模式
-	gimbal->GIMBAL_MODE = GIMBAL_ZERO_FORCE;
-	
-	Bus_RegisterReceiver(gimbal, Gimbal_SoftBusCallback, "/gimbal/ins_angle");		
+	else if(gimbal->mode == GIMBAL_IMU_MODE)
+	{
+		gimbal->motors[0]->changeMode(&gimbal->motors[0], MOTOR_SPEED_MODE);
+		gimbal->motors[1]->changeMode(&gimbal->motors[1], MOTOR_SPEED_MODE);
+	}
+
+	Bus_MultiRegisterReceiver(gimbal, Gimbal_SoftBusCallback, {"/imu/euler-angle", "/gimbal"});		
 }
 
 void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	Gimbal* gimbal = (Gimbal*)bindData;
 
-	if(!strcmp(topic, "/gimbal/ins_angle"))
+	if(!strcmp(topic, "/imu/euler-angle"))
 	{
-		if(Bus_IsMapKeyExist(frame, "ins_angle[0]"))
-			gimbal->ins_angle[0] = *(float*)Bus_GetMapValue(frame, "ins_angle[0]");
-		if(Bus_IsMapKeyExist(frame, "ins_angle[1]"))
-			gimbal->ins_angle[1] = *(float*)Bus_GetMapValue(frame, "ins_angle[1]");
-		if(Bus_IsMapKeyExist(frame, "ins_angle[2]"))
-			gimbal->ins_angle[2] = *(float*)Bus_GetMapValue(frame, "ins_angle[2]");				
+		if(!Bus_CheckMapKeys(frame, {"yaw", "pitch", "roll"}))
+			return;
+		float yaw = *(float*)Bus_GetFloat(frame, "yaw");
+		float pitch = *(float*)Bus_GetFloat(frame, "pitch");
+		float roll = *(float*)Bus_GetFloat(frame, "roll");
+		Gimbal_StatAngle(gimbal, yaw, pitch, roll);
+	}
+	else if (!strcmp(topic, "/gimbal"))
+	{
+		if(Bus_IsMapKeyExist(frame, "yaw"))
+		{
+			gimbal->angle[0] = *(float*)Bus_GetFloat(frame, "yaw");
+		}
+		if(Bus_IsMapKeyExist(frame, "pitch"))
+		{
+			gimbal->angle[1] = *(float*)Bus_GetFloat(frame, "pitch");
+		}
 	}
 }
 
-void Gimbal_Limit(Gimbal* gimbal)
+void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
 {
-	
-	//yaw角度限制
-	if(gimbal->target_angle[0] > PI)
-		gimbal->target_angle[0] = -PI;
-	if(gimbal->target_angle[0] < -PI)
-		gimbal->target_angle[0] = PI;	
-
-	//pitch角度限制
-	if(gimbal->target_angle[1] > PI)
-		gimbal->target_angle[1] = -PI;
-	if(gimbal->target_angle[1] < -PI)
-		gimbal->target_angle[1] = PI;	
-			
+	float dAngle=0;
+	float eulerAngle[3] = {yaw, pitch, roll};
+	for (uint8_t i = 0; i < 3; i++)
+	{
+		if(eulerAngle[i] - gimbal->imu.lastEulerAngle[i] < -180)
+			dAngle = eulerAngle[i] + (360 - gimbal->imu.lastEulerAngle[i]);
+		else if(eulerAngle[i] - gimbal->imu.lastEulerAngle[i] > 180)
+			dAngle = -gimbal->imu.lastEulerAngle[i] - (360 - eulerAngle[i]);
+		else
+			dAngle = eulerAngle[i] - gimbal->imu.lastEulerAngle[i];
+		//将角度增量加入计数器
+		gimbal->imu.totalEulerAngle[i] += dAngle;
+		//记录角度
+		gimbal->imu.lastEulerAngle[i] = eulerAngle[i];
+	}
 }
-	
-float Gimbal_angle_zero(float angle, float offset_angle)
+
+void Gimbal_startAngleInit(Gimbal* gimbal)
 {
-	float relative_angle = angle - offset_angle;
-
-	if(relative_angle >  1.25f * PI)
+	int16_t angle[2] = {0};
+	Bus_BroadcastSend("/motor/getValve", {{"motor", &gimbal->motors[0]}, {"angle", &angle[0]}});
+	Bus_BroadcastSend("/motor/getValve", {{"motor", &gimbal->motors[1]}, {"angle", &angle[1]}});
+	for(uint8_t i = 0; i<2; i++)
 	{
-		relative_angle -= 2*PI;
+		Bus_BroadcastSend("/motor/getValve", {{"motor", &gimbal->motors[i]}, {"angle", &angle[i]}});
+		angle[i] = (gimbal->zeroAngle[i] - angle[i])/22.7528f;    //未做处理
+		if(angle[i] < -180)
+			angle[i] += 360;
+		else if(angle[i] > 180)
+			angle[i] -= 360;
+		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle[i]);
+		totalEulerAngle[i] = angle[i];
 	}
-	else if(relative_angle < - 1.25f * PI)
-	{
-		relative_angle += 2*PI;		
-	}
-
-	return relative_angle;
+	
 }
-
