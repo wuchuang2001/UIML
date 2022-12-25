@@ -57,18 +57,18 @@ void Sys_InitInfo(ConfItem *dict)
 void Sys_InitReceiver()
 {
 	//底盘
-	Bus_MultiRegisterReceiver(NULL, Sys_Chassis_MoveCallback, {"/rc/key/on-pressing","rc/left-stick"});
+	Bus_MultiRegisterReceiver(NULL, Sys_Chassis_MoveCallback, {"/rc/key/on-pressing","/rc/left-stick"});
 	Bus_RegisterReceiver(NULL, Sys_Chassis_StopCallback, "/rc/key/on-up");
 	//云台
 	Bus_MultiRegisterReceiver(NULL, Sys_Gimbal_RotateCallback, {"/rc/mouse-move",
-																"rc/right-stick",
+																"/rc/right-stick",
 																"/gimbal/yaw/relative-angle"});	
 	//模式切换
 	Bus_MultiRegisterReceiver(NULL, Sys_Mode_ChangeCallback, {"/rc/key/on-click","rc/switch"});
 	//发射  
 	Bus_MultiRegisterReceiver(NULL, Sys_Shoot_Callback, {"/rc/key/on-click",
 														"/rc/key/on-pressing",
-														"rc/wheel"});
+														"/rc/wheel"});
 }
 
 void SYS_CTRL_TaskCallback(void const * argument)

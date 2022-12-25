@@ -149,21 +149,15 @@ void BSP_UART_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindD
 	uint8_t uartX = *(uint8_t*)Bus_GetMapValue(frame, "uart-x");
 	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
 	uint16_t transSize = *(uint16_t*)Bus_GetMapValue(frame, "transSize");
-	for(uint8_t i = 0; i < uartService.uartNum; i++)
+
+	if(!strcmp(name, "/uart/trans/it")) //中断发送
+		HAL_UART_Transmit_IT(uartService.uartList[uartX - 1].huart,data,transSize);
+	else if(!strcmp(name, "/uart/trans/dma")) //dma发送
+		HAL_UART_Transmit_DMA(uartService.uartList[uartX - 1].huart,data,transSize);
+	else if(!strcmp(name, "/uart/trans/block") && Bus_IsMapKeyExist(frame, "timeout"))//阻塞式发送
 	{
-		UARTInfo* info = &uartService.uartList[i];
-		if(info->number == uartX)
-		{
-			if(!strcmp(name, "/uart/trans/it")) //中断发送
-				HAL_UART_Transmit_IT(info->huart,data,transSize);
-			else if(!strcmp(name, "/uart/trans/dma")) //dma发送
-				HAL_UART_Transmit_DMA(info->huart,data,transSize);
-			else if(!strcmp(name, "/uart/trans/block") && Bus_IsMapKeyExist(frame, "timeout"))//阻塞式发送
-			{
-				uint32_t timeout = *(uint32_t*)Bus_GetMapValue(frame, "timeout");
-				HAL_UART_Transmit(info->huart,data,transSize,timeout);
-			}
-		}
+		uint32_t timeout = *(uint32_t*)Bus_GetMapValue(frame, "timeout");
+		HAL_UART_Transmit(uartService.uartList[uartX - 1].huart,data,transSize,timeout);
 	}
 }
 
