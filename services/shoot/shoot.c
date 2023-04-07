@@ -25,7 +25,7 @@ typedef struct
 }Shooter;
 
 void Shooter_Init(Shooter* shooter, ConfItem* dict);
-void Shooter_shootCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Shooter_ShootCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_ChangeArgumentCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindData);
@@ -106,14 +106,14 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 	}
 	shooter->triggerMotor->changeMode(shooter->triggerMotor,MOTOR_ANGLE_MODE);
   
-	Bus_MultiRegisterReceiver(shooter, Shooter_shootCallback, {"/shooter/once","/shooter/continue"});
+	Bus_MultiRegisterReceiver(shooter, Shooter_ShootCallback, {"/shooter/once","/shooter/continue"});
 	Bus_MultiRegisterReceiver(shooter, Shooter_ChangeArgumentCallback, {"/shooter/fricSpeed","/shooter/triggerAngle"});
 	Bus_RegisterReceiver(shooter,Shooter_BlockCallback,"/motor/stall");
 	Bus_RegisterReceiver(shooter,Shooter_FricCtrlCallback,"/shooter/fricCtrl");
 }
 
 //射击模式
-void Shooter_shootCallback(const char* name, SoftBusFrame* frame, void* bindData)
+void Shooter_ShootCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData ;
 	if(!strcmp(name,"/shooter/once")&&shooter->mode == SHOOTER_MODE_IDLE)  //空闲时才允许修改模式
@@ -136,15 +136,13 @@ void Shooter_ChangeArgumentCallback(const char* name, SoftBusFrame* frame, void*
 	Shooter *shooter = (Shooter*)bindData;
 	if(!strcmp(name,"/shooter/fricSpeed"))
 	{
-		if(!Bus_IsMapKeyExist(frame,"speed"))
-			return;
-		shooter->fricSpeed = *(float*)Bus_GetMapValue(frame,"speed");
+		if(Bus_IsMapKeyExist(frame,"speed"))
+			shooter->fricSpeed = *(float*)Bus_GetMapValue(frame,"speed");
 	}
 	else if(!strcmp(name,"/shooter/triggerAngle"))
 	{
-		if(!Bus_IsMapKeyExist(frame,"angle"))
-			return;
-		shooter->triggerAngle = *(float*)Bus_GetMapValue(frame,"angle");
+		if(Bus_IsMapKeyExist(frame,"angle"))
+			shooter->triggerAngle = *(float*)Bus_GetMapValue(frame,"angle");
 	}
 }
 
@@ -165,7 +163,7 @@ void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData
 void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData;
-		if(!Bus_IsMapKeyExist(frame,"enable"))
+	if(!Bus_IsMapKeyExist(frame,"enable"))
 		return;
 	shooter->fricEnable = *(bool*)Bus_GetMapValue(frame,"enable");
 	if(shooter->fricEnable == false)

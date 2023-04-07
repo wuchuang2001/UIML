@@ -54,6 +54,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 			}
 			//½âËø
 			osSemaphoreRelease(spiService.spiList[num].lock);
+			break;
 		}
 	}
 }

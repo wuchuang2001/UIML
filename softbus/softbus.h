@@ -20,7 +20,7 @@ typedef struct{
 
 typedef void* SoftBusReceiverHandle;//软总线快速句柄
 typedef void (*SoftBusBroadcastReceiver)(const char* name, SoftBusFrame* frame, void* bindData);//话题回调函数指针
-typedef bool (*SoftBusRemoteFunction)(const char* name, SoftBusFrame* request, void* bindData);//服务回调函数指针
+typedef bool (*SoftBusRemoteFunction)(const char* name, SoftBusFrame* frame, void* bindData);//服务回调函数指针
 
 //操作函数声明(不直接调用，应使用下方define定义的接口)
 int8_t _Bus_MultiRegisterReceiver(void* bindData, SoftBusBroadcastReceiver callback, uint16_t namesNum, char** names);
@@ -71,7 +71,7 @@ int8_t Bus_RegisterReceiver(void* bindData, SoftBusBroadcastReceiver callback, c
 	@param callback:响应服务时的回调函数
 	@param name:服务名
 	@retval 0:成功 -1:堆空间不足 -2:参数为空 -3:服务已存在
-	@note 回调函数的形式应为bool callback(const char* name, SoftBusFrame* request, void* bindData)
+	@note 回调函数的形式应为bool callback(const char* name, SoftBusFrame* frame, void* bindData)
 */
 int8_t Bus_RegisterRemoteFunc(void* bindData, SoftBusRemoteFunction callback, const char* name);
 

@@ -115,7 +115,7 @@ void Sys_Broadcast()
 void Sys_Chassis_MoveCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	float speedRatio=0;
-	if(!strcmp(name,"rc/key/on-pressing") && !sysCtrl.rockerCtrl) //¼üÊó¿ØÖÆ
+	if(!strcmp(name,"/rc/key/on-pressing") && !sysCtrl.rockerCtrl) //¼üÊó¿ØÖÆ
 	{
 		if(!Bus_CheckMapKeys(frame,{"combine-key","key"}))
 			return;
@@ -141,7 +141,7 @@ void Sys_Chassis_MoveCallback(const char* name, SoftBusFrame* frame, void* bindD
 				break;
 		}
 	}
-	else if(!strcmp(name,"rc/left-stick") && sysCtrl.rockerCtrl) //Ò£¿ØÆ÷¿ØÖÆ
+	else if(!strcmp(name,"/rc/left-stick") && sysCtrl.rockerCtrl) //Ò£¿ØÆ÷¿ØÖÆ
 	{
 		if(!Bus_CheckMapKeys(frame,{"x","y"}))
 			return;
@@ -170,14 +170,14 @@ void Sys_Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindD
 //ÔÆÌ¨Ðý×ª»Øµ÷º¯Êý
 void Sys_Gimbal_RotateCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!strcmp(name,"rc/mouse-move") && !sysCtrl.rockerCtrl)  //¼üÊó¿ØÖÆ
+	if(!strcmp(name,"/rc/mouse-move") && !sysCtrl.rockerCtrl)  //¼üÊó¿ØÖÆ
 	{
 		if(!Bus_CheckMapKeys(frame,{"x","y"}))
 			return;
 		sysCtrl.gimbalData.yaw =*(int16_t*)Bus_GetMapValue(frame,"x");
 		sysCtrl.gimbalData.pitch =*(int16_t*)Bus_GetMapValue(frame,"y"); 
 	}
-	else if(!strcmp(name,"rc/right-stick") && sysCtrl.rockerCtrl)  //Ò£¿ØÆ÷¿ØÖÆ
+	else if(!strcmp(name,"/rc/right-stick") && sysCtrl.rockerCtrl)  //Ò£¿ØÆ÷¿ØÖÆ
 	{
 		if(!Bus_CheckMapKeys(frame,{"x","y"}))
 			return;
@@ -212,7 +212,7 @@ void Sys_Mode_ChangeCallback(const char* name, SoftBusFrame* frame, void* bindDa
 				break;
 		}
 	}
-	else if(!strcmp(name,"rc/switch") && sysCtrl.rockerCtrl)  //Ò£¿ØÆ÷¿ØÖÆ
+	else if(!strcmp(name,"/rc/switch") && sysCtrl.rockerCtrl)  //Ò£¿ØÆ÷¿ØÖÆ
 	{
 		if(!Bus_IsMapKeyExist(frame, "right"))
 			return;
@@ -229,7 +229,7 @@ void Sys_Mode_ChangeCallback(const char* name, SoftBusFrame* frame, void* bindDa
 				break;
 		}
 	}
-	else if(!strcmp(name,"rc/switch"))
+	else if(!strcmp(name,"/rc/switch"))
 	{
 		if(!Bus_IsMapKeyExist(frame, "left"))
 			return;
@@ -265,7 +265,7 @@ void Sys_Shoot_Callback(const char* name, SoftBusFrame* frame, void* bindData)
 			return;
 		Bus_BroadcastSend("/shooter",{{"continue",IM_PTR(uint8_t,1)},{"num",IM_PTR(uint8_t,1)}}); //Á¬·¢
 	}
-	else if(!strcmp(name,"rc/wheel") && sysCtrl.rockerCtrl)//Ò£¿ØÆ÷¿ØÖÆ
+	else if(!strcmp(name,"/rc/wheel") && sysCtrl.rockerCtrl)//Ò£¿ØÆ÷¿ØÖÆ
 	{
 		if(!Bus_IsMapKeyExist(frame,"value"))
 			return;

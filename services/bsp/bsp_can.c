@@ -55,6 +55,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		{
 			uint16_t frameID = header.StdId;
 			Bus_FastBroadcastSend(canInfo->fastHandle, {&frameID, rx_data});
+			break;
 		}
 	}
 }
@@ -188,7 +189,7 @@ void BSP_CAN_TimerCallback(void const *argument)
 }
 
 //CAN·¢ËÍÊý¾ÝÖ¡
-uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t stdId,uint8_t data[8])
+uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t stdId,uint8_t* data)
 {
 	CAN_TxHeaderTypeDef txHeader;
 	uint32_t canTxMailBox;
