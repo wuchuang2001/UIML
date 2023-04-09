@@ -40,8 +40,9 @@ Motor* M2006_Init(ConfItem* dict);
 void M2006_SetStartAngle(Motor *motor, float startAngle);
 void M2006_SetTarget(Motor* motor, float targetValue);
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode);
+float M2006_GetData(Motor* motor, const char* data);
+void M2006_Stop(Motor* motor);
 void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
-void M2006_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M2006_Update(M2006* m2006,uint8_t* data);
 void M2006_PIDInit(M2006* m2006, ConfItem* dict);
@@ -71,6 +72,8 @@ Motor* M2006_Init(ConfItem* dict)
 	m2006->motor.setTarget = M2006_SetTarget;
 	m2006->motor.changeMode = M2006_ChangeMode;
 	m2006->motor.setStartAngle = M2006_SetStartAngle;
+	m2006->motor.getData = M2006_GetData;
+	m2006->motor.stop = M2006_Stop;
 	//电机减速比
 	m2006->reductionRatio = Conf_GetValue(dict, "reductionRatio", float, 36);//如果未配置电机减速比参数，则使用原装电机默认减速比
 	//初始化电机绑定can信息
@@ -87,7 +90,6 @@ Motor* M2006_Init(ConfItem* dict)
 	char name[] = "/can_/recv";
 	name[4] = m2006->canInfo.canX + '0';
 	Bus_RegisterReceiver(m2006, M2006_SoftBusCallback, name);
-	Bus_RegisterReceiver(m2006, M2006_StopCallback, "/motor/stop");
 	//开启软件定时器
 	osTimerDef(M2006, M2006_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);
@@ -114,14 +116,6 @@ void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData
 	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 1);
 	if(data)
 		M2006_Update(m2006, data);
-}
-
-//电机急停回调函数
-void M2006_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
-{
-	M2006* m2006 = (M2006*)bindData;
-	m2006->targetValue = 0;
-	m2006->mode = MOTOR_STOP_MODE;
 }
 
 //开始统计电机累计角度
@@ -212,6 +206,29 @@ void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode)
 		PID_Clear(&m2006->anglePID.outer);
 	}
 	m2006->mode = mode;
+}
+
+//获取电机数据
+float M2006_GetData(Motor* motor, const char* data)
+{
+	M2006* m2006 = (M2006*)motor;
+	if(!strcmp(data, "angle"))
+	{
+		return M2006_CODE2DGR(m2006->angle, m2006->reductionRatio);
+	}
+	else if(!strcmp(data, "totalAngle"))
+	{
+		return M2006_CODE2DGR(m2006->totalAngle, m2006->reductionRatio);
+	}
+	return 0;
+}
+
+//电机急停函数
+void M2006_Stop(Motor* motor)
+{
+	M2006* m2006 = (M2006*)motor;
+	m2006->targetValue = 0;
+	m2006->mode = MOTOR_STOP_MODE;
 }
 
 //更新电机数据(可能进行滤波)

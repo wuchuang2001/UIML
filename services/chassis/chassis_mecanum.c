@@ -40,6 +40,7 @@ typedef struct _Chassis
 void Chassis_Init(Chassis* chassis, ConfItem* dict);
 void Chassis_UpdateSlope(Chassis* chassis);
 void Chassis_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 //底盘任务回调函数
 void Chassis_TaskCallback(void const * argument)
@@ -119,6 +120,7 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
 	}
 	Bus_MultiRegisterReceiver(chassis, Chassis_SoftBusCallback, {"/chassis/move", "/chassis/acc", "/chassis/relativeAngle"});
+	Bus_RegisterReceiver(chassis, Chassis_StopCallback, "/system/stop");
 }
 
 
@@ -152,5 +154,14 @@ void Chassis_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindDa
 	{
 		if(Bus_IsMapKeyExist(frame, "angle"))
 			chassis->relativeAngle = *(float*)Bus_GetMapValue(frame, "angle");
+	}
+}
+
+void Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	Chassis* chassis = (Chassis*)bindData;
+	for(uint8_t i = 0; i<4; i++)
+	{
+		chassis->motors[i]->stop(chassis->motors[i]);
 	}
 }

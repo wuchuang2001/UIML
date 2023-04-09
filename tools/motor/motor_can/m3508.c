@@ -40,8 +40,9 @@ Motor* M3508_Init(ConfItem* dict);
 void M3508_SetStartAngle(Motor *motor, float startAngle);
 void M3508_SetTarget(Motor* motor, float targetValue);
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode);
+float M3508_GetData(Motor* motor, const char* data);
+void M3508_Stop(Motor* motor);
 void M3508_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
-void M3508_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void M3508_Update(M3508* m3508,uint8_t* data);
 void M3508_PIDInit(M3508* m3508, ConfItem* dict);
@@ -71,6 +72,8 @@ Motor* M3508_Init(ConfItem* dict)
 	m3508->motor.setTarget = M3508_SetTarget;
 	m3508->motor.changeMode = M3508_ChangeMode;
 	m3508->motor.setStartAngle = M3508_SetStartAngle;
+	m3508->motor.getData = M3508_GetData;
+	m3508->motor.stop = M3508_Stop;
 	//电机减速比
 	m3508->reductionRatio = Conf_GetValue(dict, "reductionRatio", float, 19.2f);//如果未配置电机减速比参数，则使用原装电机默认减速比
 	//初始化电机绑定can信息
@@ -87,7 +90,6 @@ Motor* M3508_Init(ConfItem* dict)
 	char name[] = "/can_/recv";
 	name[4] = m3508->canInfo.canX + '0';
 	Bus_RegisterReceiver(m3508, M3508_SoftBusCallback, name);
-	Bus_RegisterReceiver(m3508, M3508_StopCallback, "/motor/stop");
 	//开启软件定时器
 	osTimerDef(M3508, M3508_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M3508), osTimerPeriodic, m3508), 2);
@@ -211,6 +213,30 @@ void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode)
 		PID_Clear(&m3508->anglePID.outer);
 	}
 	m3508->mode = mode;
+}
+
+//获取电机数据
+float M3508_GetData(Motor* motor, const char* data)
+{
+	M3508* m3508 = (M3508*)motor;
+
+	if(!strcmp(data, "angle"))
+	{
+		return M3508_CODE2DGR(m3508->angle, m3508->reductionRatio);
+	}
+	else if(!strcmp(data, "totalAngle"))
+	{
+		return M3508_CODE2DGR(m3508->totalAngle, m3508->reductionRatio);
+	}
+	return 0;
+}
+
+//电机急停函数
+void M3508_Stop(Motor* motor)
+{
+	M3508* m3508 = (M3508*)motor;
+	m3508->targetValue = 0;
+	m3508->mode = MOTOR_STOP_MODE;
 }
 
 //更新电机数据(可能进行滤波)

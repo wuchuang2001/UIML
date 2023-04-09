@@ -13,6 +13,8 @@
 void Motor_SetTarget(Motor* motor, float targetValue);
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode ctrlerType);
 void Motor_SetStartAngle(Motor* motor, float angle);
+float Motor_GetData(Motor* motor, const char* data);
+void Motor_Stop(Motor* motor);
 void Motor_InitDefault(Motor* motor);
 
 //声明子类初始化函数
@@ -48,6 +50,10 @@ void Motor_InitDefault(Motor* motor)
 		motor->setTarget = Motor_SetTarget;
 	if(!motor->setStartAngle)
 		motor->setStartAngle = Motor_SetStartAngle;
+	if(!motor->getData)
+		motor->getData = Motor_GetData;
+	if(!motor->stop)
+		motor->stop = Motor_Stop;
 }
 
 //纯虚函数
@@ -57,3 +63,6 @@ void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode mode) { }
 
 void Motor_SetStartAngle(Motor* motor, float angle) { }
 
+float Motor_GetData(Motor* motor, const char* data) {return 0;}
+
+void Motor_Stop(Motor* motor) { }

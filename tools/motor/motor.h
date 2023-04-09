@@ -24,6 +24,8 @@ typedef struct _Motor
 	void (*setTarget)(struct _Motor* motor,float targetValue);
 	
 	void (*setStartAngle)(struct _Motor* motor, float angle);
+	float (*getData)(struct _Motor* motor,  const char* data);
+	void (*stop)(struct _Motor* motor);
 }Motor;
 
 Motor* Motor_Init(ConfItem* dict);

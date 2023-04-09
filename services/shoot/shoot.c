@@ -29,6 +29,7 @@ void Shooter_ShootCallback(const char* name, SoftBusFrame* frame, void* bindData
 void Shooter_ChangeArgumentCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
   
 void Shooter_TaskCallback(void const * argument)
 {
@@ -110,6 +111,7 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 	Bus_MultiRegisterReceiver(shooter, Shooter_ChangeArgumentCallback, {"/shooter/fricSpeed","/shooter/triggerAngle"});
 	Bus_RegisterReceiver(shooter,Shooter_BlockCallback,"/motor/stall");
 	Bus_RegisterReceiver(shooter,Shooter_FricCtrlCallback,"/shooter/fricCtrl");
+	Bus_RegisterReceiver(shooter,Shoot_StopCallback,"/system/stop");
 }
 
 //Éä»÷Ä£Ê½
@@ -178,3 +180,12 @@ void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindD
 	}
 }
 
+void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	Shooter *shooter = (Shooter*)bindData;
+	for(uint8_t i = 0; i<2; i++)
+	{
+		shooter->fricMotors[i]->stop(shooter->fricMotors[i]);
+	}
+	shooter->triggerMotor->stop(shooter->triggerMotor);
+}

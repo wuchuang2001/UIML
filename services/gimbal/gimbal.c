@@ -35,21 +35,21 @@ typedef struct _Gimbal
 }Gimbal;
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict);
-void Gimbal_startAngleInit(Gimbal* gimbal);
+void Gimbal_StartAngleInit(Gimbal* gimbal);
 void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll);
 
 void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
+void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void Gimbal_TaskCallback(void const * argument)
 {
-	
 	//进入临界区
 	portENTER_CRITICAL();
 	Gimbal gimbal={0};
 	Gimbal_Init(&gimbal, (ConfItem*)argument);
 	portEXIT_CRITICAL();
 	osDelay(2000);
-	Gimbal_startAngleInit(&gimbal);
+	Gimbal_StartAngleInit(&gimbal);
 	TickType_t tick = xTaskGetTickCount();
 	while(1)
 	{
@@ -77,7 +77,6 @@ void Gimbal_TaskCallback(void const * argument)
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 {
-
 	//任务间隔
 	gimbal->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
 
@@ -101,7 +100,8 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 		gimbal->motors[1]->changeMode(gimbal->motors[1], MOTOR_SPEED_MODE);
 	}
 
-	Bus_MultiRegisterReceiver(gimbal, Gimbal_SoftBusCallback, {"/imu/euler-angle", "/gimbal"});		
+	Bus_MultiRegisterReceiver(gimbal, Gimbal_SoftBusCallback, {"/imu/euler-angle", "/gimbal"});	
+	Bus_RegisterReceiver(gimbal, Gimbal_StopCallback, "/system/stop");
 }
 
 void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
@@ -149,21 +149,27 @@ void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
 	}
 }
 
-void Gimbal_startAngleInit(Gimbal* gimbal)
+void Gimbal_StartAngleInit(Gimbal* gimbal)
 {
-	int16_t angle[2] = {0};
-	Bus_BroadcastSend("/motor/getValve", {{"motor", gimbal->motors[0]}, {"angle", &angle[0]}});
-	Bus_BroadcastSend("/motor/getValve", {{"motor", gimbal->motors[1]}, {"angle", &angle[1]}});
+	float angle[2] = {0};
 	for(uint8_t i = 0; i<2; i++)
 	{
-		Bus_BroadcastSend("/motor/getValve", {{"motor", gimbal->motors[i]}, {"angle", &angle[i]}});
+		angle[i] = gimbal->motors[i]->getData(gimbal->motors[i], "angle");
 		angle[i] = (gimbal->zeroAngle[i] - angle[i])/22.7528f;    //未做处理
 		if(angle[i] < -180)
 			angle[i] += 360;
 		else if(angle[i] > 180)
 			angle[i] -= 360;
-		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle[i]);
 		gimbal->imu.totalEulerAngle[i] = angle[i];
+		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle[i]);
+	}	
+}
+
+void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	Gimbal* gimbal = (Gimbal*)bindData;
+	for(uint8_t i = 0; i<2; i++)
+	{
+		gimbal->motors[i]->stop(gimbal->motors[i]);
 	}
-	
 }
