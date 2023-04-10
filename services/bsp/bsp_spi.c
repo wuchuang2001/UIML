@@ -130,7 +130,8 @@ void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict)
 	{
 		char confName[11] = {0};
 		sprintf(confName, "%d/pin", num);
-		info->csList[num].pin = Conf_GetValue(dict, confName, uint16_t, 0);
+    	//ÖØÐÂÓ³ÉäÖÁGPIO_PIN=2^pin
+		info->csList[num].pin =1<<Conf_GetValue(dict, confName, uint8_t, 0);
 		sprintf(confName, "%d/name", num);
 		info->csList[num].name = Conf_GetPtr(dict, confName, char);
 		sprintf(confName, "%d/gpio-x", num);
