@@ -18,7 +18,7 @@ typedef struct
 	bool fricEnable;
 	float fricSpeed; //摩擦轮速度
 	float triggerAngle,totalTrigAngle; //拨弹一次角度及累计角度
-	uint16_t continueNum;  //连发次数
+	bool startFlag;  //连发开启标志位
 	uint16_t intervalTime; //连发间隔ms
 	uint8_t mode;
 	uint8_t taskInterval;
@@ -73,7 +73,7 @@ void Shooter_TaskCallback(void const * argument)
 					osDelay(200);   //等待摩擦轮转速稳定
 				}
 				//连发
-				for(uint16_t num;num<shooter.continueNum;num++)
+				for(shooter.startFlag)
 				{
 					shooter.totalTrigAngle += shooter.triggerAngle; 
 					shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
@@ -124,9 +124,9 @@ void Shooter_ShootCallback(const char* name, SoftBusFrame* frame, void* bindData
 	}
 	else if(!strcmp(name,"/shooter/continue")&&shooter->mode == SHOOTER_MODE_IDLE)
 	{
-		if(!Bus_CheckMapKeys(frame,{"num","intervalTime"}))
+		if(!Bus_CheckMapKeys(frame,{"start","intervalTime"}))
 			return;
-		shooter->continueNum = *(uint16_t*)Bus_GetMapValue(frame,"num");
+		shooter->startFlag = *(bool*)Bus_GetMapValue(frame,"start");
 		shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
 		shooter->mode = SHOOTER_MODE_CONTINUE;
 	}
