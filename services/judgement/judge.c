@@ -427,57 +427,57 @@ typedef struct
 	uint16_t frameLength;
 }JudgeTxFrame;
 
-
-
-
 /*****************系统数据定义**********************/
-ext_game_status_t       				GameState;							//0x0001
-ext_game_result_t            		GameResult;							//0x0002
-ext_game_robot_HP_t          		GameRobotHP;						//0x0003
-ext_event_data_t        				EventData;							//0x0101
-ext_supply_projectile_action_t	SupplyProjectileAction;	//0x0102
-ext_referee_warning_t						RefereeWarning;					//0x0104
-ext_dart_remaining_time_t				DartRemainingTime;			//0x0105
-ext_game_robot_status_t			  	GameRobotStat;					//0x0201
-ext_power_heat_data_t		  			PowerHeatData;					//0x0202
-ext_game_robot_pos_t						GameRobotPos;						//0x0203
-ext_buff_musk_t									BuffMusk;								//0x0204
-aerial_robot_energy_t						AerialRobotEnergy;			//0x0205
-ext_robot_hurt_t								RobotHurt;							//0x0206
-ext_shoot_data_t								ShootData;							//0x0207
-ext_bullet_remaining_t					BulletRemaining;				//0x0208
-ext_rfid_status_t								RfidStatus;							//0x0209
-ext_dart_client_cmd_t						DartClientCmd;					//0x020A
+typedef struct _judge
+{
+	xFrameHeader              			FrameHeader;						//帧头信息
+	ext_game_status_t       				GameState;							//0x0001     
+	ext_game_result_t            		GameResult;							//0x0002
+	ext_game_robot_HP_t          		GameRobotHP;						//0x0003    
+	ext_event_data_t        				EventData;							//0x0101
+	ext_supply_projectile_action_t	SupplyProjectileAction;	//0x0102
+	ext_referee_warning_t						RefereeWarning;					//0x0104
+	ext_dart_remaining_time_t				DartRemainingTime;			//0x0105
+	ext_game_robot_status_t			  	GameRobotStat;					//0x0201  ***
+	ext_power_heat_data_t		  			PowerHeatData;					//0x0202  ***
+	ext_game_robot_pos_t						GameRobotPos;						//0x0203  ***
+	ext_buff_musk_t									BuffMusk;								//0x0204
+	aerial_robot_energy_t						AerialRobotEnergy;			//0x0205
+	ext_robot_hurt_t								RobotHurt;							//0x0206  ***
+	ext_shoot_data_t								ShootData;							//0x0207  ***
+	ext_bullet_remaining_t					BulletRemaining;				//0x0208  ***
+	ext_rfid_status_t								RfidStatus;							//0x0209
+	ext_dart_client_cmd_t						DartClientCmd;					//0x020A
+}JudgeRecInfo;
 
-xFrameHeader              			FrameHeader;						//发送帧头信息
 /****************************************************/
-bool Judge_Data_TF = FALSE;//裁判数据是否可用,辅助函数调用
-
 typedef struct _Judge
 {
-
-	uint8_t uartX;
-	uint8_t taskInterval;	
-	
+	JudgeRecInfo judgeRecInfo;
+  bool Judge_Data_TF; //裁判数据是否可用,辅助函数调用
+	uint8_t uartX;	
 }Judge;
 
 void Judge_Init(Judge *judge,ConfItem* dict);
 void Judge_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
-bool JUDGE_Read_Data(uint8_t *ReadFromUsart);
+bool JUDGE_Read_Data(Judge *judge,uint8_t *ReadFromUsart);
+void Judge_publishData(Judge * judge);
+void Judge_TimerCallback(void const *argument);
+
+Judge judge={0};
 
 void Judge_TaskCallback(void const * argument)
 {
 	//进入临界区
 	portENTER_CRITICAL();
-	Judge judge={0};
 	Judge_Init(&judge, (ConfItem*)argument);
 	portEXIT_CRITICAL();
 	osDelay(2000);
 	TickType_t tick = xTaskGetTickCount();
 	while (1)
 	{
-		
-		osDelayUntil(&tick,judge.taskInterval);
+		Judge_publishData(&judge);
+		osDelayUntil(&tick,20);
 	}		
 }
 
@@ -486,16 +486,84 @@ void Judge_Init(Judge *judge,ConfItem* dict)
 	char name[] = "/uart_/recv";
 	judge->uartX = Conf_GetValue(dict, "uart-x", uint8_t, 0);
 	name[5] = judge->uartX + '0';
-	Bus_RegisterReceiver(NULL, Judge_SoftBusCallback, name);
-	judge->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 150);
+	Bus_RegisterReceiver(judge, Judge_SoftBusCallback, name);
+	//开启软件定时器定时发送UI
+	uint16_t sendInterval = Conf_GetValue(dict, "sendInterval", uint16_t, 100);
+	osTimerDef(judge, Judge_TimerCallback);
+	osTimerStart(osTimerCreate(osTimer(judge), osTimerPeriodic, judge), sendInterval);
 }
+
 void Judge_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
-	
+	Judge *judge = (Judge*)bindData;
 	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 0);
 	if(data)
-		JUDGE_Read_Data(data);
+		JUDGE_Read_Data(judge,data);
 }
+void Judge_publishData(Judge * judge)
+{ 
+  //准备带发布的数据
+  uint8_t robot_id = judge->judgeRecInfo.GameRobotStat.robot_id; 
+  uint8_t robot_color = robot_id<10?RobotColor_Blue:RobotColor_Red;//机器人颜色
+  uint16_t chassis_power_limit = judge->judgeRecInfo.GameRobotStat.chassis_power_limit; //底盘功率限制	
+  bool isShooterPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_shooter_output; //电管发射机构是否断电
+  bool isChassisPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_chassis_output; //电管底盘是否断电
+  float chassis_power = judge->judgeRecInfo.PowerHeatData.chassis_power;	 //底盘功率
+  uint16_t chassis_power_buffer = judge->judgeRecInfo.PowerHeatData.chassis_power_buffer; //底盘缓冲
+	float bullet_speed = judge->judgeRecInfo.ShootData.bullet_speed; //发射弹丸速度
+  //数据发布
+  Bus_BroadcastSend("/judge/valid",{{"isValid",&judge->Judge_Data_TF}}); //裁判系统数据正确性
+  if(robot_id == 1|| robot_id == 101)   //英雄
+  {
+    uint16_t shooter_id1_42mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_42mm_speed_limit; //42mm弹速上限	
+    uint16_t shooter_id1_42mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_42mm_cooling_heat;	//42mm枪口热量
+    uint16_t bullet_remaining_num_42mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_42mm; //42mm剩余弹丸数量
+    Bus_BroadcastSend("/judge/recv/robot-state",{{"color",&robot_color},
+                                                {"42mm-speed-limit",&shooter_id1_42mm_speed_limit},
+                                                {"chassis-power-limit",&chassis_power_limit},
+                                                {"is-shooter-power-output",&isShooterPowerOutput},
+                                                {"is-chassis-power-output",&isChassisPowerOutput}
+                                                });
+    Bus_BroadcastSend("/judge/recv/power-Heat",{{"chassis-power",&chassis_power},
+                                                {"chassis-power_buffer",&chassis_power_buffer},
+                                                {"42mm-cooling-heat",&shooter_id1_42mm_cooling_heat}
+                                              }); 
+    Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
+    Bus_BroadcastSend("/judge/recv/bullet",{ {"42mm-bullet-remain",&bullet_remaining_num_42mm}});
+  }
+  else //非英雄单位
+  {
+    uint16_t shooter_id1_17mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_17mm_speed_limit;	//17mm弹速上限	
+    uint16_t shooter_id1_17mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_17mm_cooling_heat; //17mm枪口热量
+    uint16_t bullet_remaining_num_17mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_17mm; //17mm剩余弹丸数量
+    bool isGimbalPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_gimbal_output; //电管云台是否断电
+    Bus_BroadcastSend("/judge/recv/robot-state",{{"color",&robot_color},
+                                                {"17mm-speed-limit",&shooter_id1_17mm_speed_limit},
+                                                {"chassis-power-limit",&chassis_power_limit},
+                                                {"is-shooter-power-output",&isShooterPowerOutput},
+                                                {"is-chassis-power-output",&isChassisPowerOutput},
+                                                {"is-gimabal-power-output",&isGimbalPowerOutput}
+                                                });
+    Bus_BroadcastSend("/judge/recv/power-Heat",{{"chassis-power",&chassis_power},
+                                                {"chassis-power_buffer",&chassis_power_buffer},
+                                                {"17mm-cooling-heat",&shooter_id1_17mm_cooling_heat}
+                                                }); 
+    Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
+    Bus_BroadcastSend("/judge/recv/bullet",{{"17mm-bullet-remain",&bullet_remaining_num_17mm}});
+  }	
+}
+
+//系统定时器回调
+/************发送UI***************/
+void Judge_TimerCallback(void const *argument)
+{
+  static uint32_t i=0;
+  Judge *judge =(Judge*)argument;
+  JudgeTxFrame txframe[JUDGE_MAX_TX_LENGTH];
+  Bus_BroadcastSend("/uart/trans/dma",{{"uart-x",&judge->uartX},{"data",txframe[i].data},{"transSize",&txframe[i].frameLength}});
+  i++;
+}
+
 
 /**************裁判系统数据辅助****************/
 
@@ -505,7 +573,7 @@ void Judge_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
   * @retval 是否对正误判断做处理
   * @attention  在此判断帧头和CRC校验,无误再写入数据，不重复判断帧头
   */
-bool JUDGE_Read_Data(uint8_t *ReadFromUsart)
+bool JUDGE_Read_Data(Judge *judge,uint8_t *ReadFromUsart)
 {
 	bool retval_tf = FALSE;//数据正确与否标志,每次调用读取裁判系统数据函数都先默认为错误
 	
@@ -521,7 +589,7 @@ bool JUDGE_Read_Data(uint8_t *ReadFromUsart)
 	}
 	
 	//写入帧头数据,用于判断是否开始存储裁判数据
-	memcpy(&FrameHeader, ReadFromUsart, LEN_HEADER);
+	memcpy(&judge->judgeRecInfo.FrameHeader, ReadFromUsart, LEN_HEADER);
 	
 	//判断帧头数据是否为0xA5
 	if(ReadFromUsart[ SOF ] == JUDGE_FRAME_HEADER)
@@ -542,103 +610,103 @@ bool JUDGE_Read_Data(uint8_t *ReadFromUsart)
 				switch(CmdID)
 				{
 					case ID_game_state:        			//0x0001
-						memcpy(&GameState, (ReadFromUsart + DATA), LEN_game_state);
+						memcpy(&judge->judgeRecInfo.GameState, (ReadFromUsart + DATA), LEN_game_state);
 					break;
 					
 					case ID_game_result:          		//0x0002
-						memcpy(&GameResult, (ReadFromUsart + DATA), LEN_game_result);
+						memcpy(&judge->judgeRecInfo.GameResult, (ReadFromUsart + DATA), LEN_game_result);
 					break;
 					
 					case ID_game_robot_HP:       //0x0003
-						memcpy(&GameRobotHP, (ReadFromUsart + DATA), LEN_game_robot_HP);
+						memcpy(&judge->judgeRecInfo.GameRobotHP, (ReadFromUsart + DATA), LEN_game_robot_HP);
 					break;
 					
 					case ID_event_data:    				//0x0101
-						memcpy(&EventData, (ReadFromUsart + DATA), LEN_event_data);
+						memcpy(&judge->judgeRecInfo.EventData, (ReadFromUsart + DATA), LEN_event_data);
 					break;
 					
 					case ID_supply_projectile_action:   //0x0102
-						memcpy(&SupplyProjectileAction, (ReadFromUsart + DATA), LEN_supply_projectile_action);
+						memcpy(&judge->judgeRecInfo.SupplyProjectileAction, (ReadFromUsart + DATA), LEN_supply_projectile_action);
 					break;
 					
 					case ID_referee_warning:  //0x0104
-						memcpy(&RefereeWarning, (ReadFromUsart + DATA), LEN_referee_warning);
+						memcpy(&judge->judgeRecInfo.RefereeWarning, (ReadFromUsart + DATA), LEN_referee_warning);
 					break;
 					
 					case ID_dart_remaining_time:  //0x0105
-						memcpy(&DartRemainingTime, (ReadFromUsart + DATA), LEN_dart_remaining_time);
+						memcpy(&judge->judgeRecInfo.DartRemainingTime, (ReadFromUsart + DATA), LEN_dart_remaining_time);
 					break;
 					
 					case ID_game_robot_state:      		//0x0201
-						memcpy(&GameRobotStat, (ReadFromUsart + DATA), LEN_game_robot_state);
+						memcpy(&judge->judgeRecInfo.GameRobotStat, (ReadFromUsart + DATA), LEN_game_robot_state);
 					break;
 					
 					case ID_power_heat_data:      		//0x0202
-						memcpy(&PowerHeatData, (ReadFromUsart + DATA), LEN_power_heat_data);
+						memcpy(&judge->judgeRecInfo.PowerHeatData, (ReadFromUsart + DATA), LEN_power_heat_data);
 					break;
 					
 					case ID_game_robot_pos:      		//0x0203
-						memcpy(&GameRobotPos, (ReadFromUsart + DATA), LEN_game_robot_pos);
+						memcpy(&judge->judgeRecInfo.GameRobotPos, (ReadFromUsart + DATA), LEN_game_robot_pos);
 					break;
 					
 					case ID_buff_musk:      			//0x0204
-						memcpy(&BuffMusk, (ReadFromUsart + DATA), LEN_buff_musk);
+						memcpy(&judge->judgeRecInfo.BuffMusk, (ReadFromUsart + DATA), LEN_buff_musk);
 					break;
 					
 					case ID_aerial_robot_energy:      	//0x0205
-						memcpy(&AerialRobotEnergy, (ReadFromUsart + DATA), LEN_aerial_robot_energy);
+						memcpy(&judge->judgeRecInfo.AerialRobotEnergy, (ReadFromUsart + DATA), LEN_aerial_robot_energy);
 					break;
 					
 					case ID_robot_hurt:      			//0x0206
-						memcpy(&RobotHurt, (ReadFromUsart + DATA), LEN_robot_hurt);
+						memcpy(&judge->judgeRecInfo.RobotHurt, (ReadFromUsart + DATA), LEN_robot_hurt);
 					break;
 					
 					case ID_shoot_data:      			//0x0207
-						memcpy(&ShootData, (ReadFromUsart + DATA), LEN_shoot_data);
+						memcpy(&judge->judgeRecInfo.ShootData, (ReadFromUsart + DATA), LEN_shoot_data);
 						//Vision_SendShootSpeed(ShootData.bullet_speed);
 					break;
 					
 					case ID_bullet_remaining:      			//0x0208
-						memcpy(&BulletRemaining, (ReadFromUsart + DATA), LEN_bullet_remaining);
+						memcpy(&judge->judgeRecInfo.BulletRemaining, (ReadFromUsart + DATA), LEN_bullet_remaining);
 					break;
 					
 					case ID_rfid_status:      			//0x0209
-						memcpy(&RfidStatus, (ReadFromUsart + DATA), LEN_rfid_status);
+						memcpy(&judge->judgeRecInfo.RfidStatus, (ReadFromUsart + DATA), LEN_rfid_status);
 					break;
 					
 					case ID_dart_client_cmd:      			//0x020A
-						memcpy(&DartClientCmd, (ReadFromUsart + DATA), LEN_dart_client_cmd);
+						memcpy(&judge->judgeRecInfo.DartClientCmd, (ReadFromUsart + DATA), LEN_dart_client_cmd);
 					break;
 				}
 				//首地址加帧长度,指向CRC16下一字节,用来判断是否为0xA5,用来判断一个数据包是否有多帧数据
-				if(*(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + FrameHeader.DataLength + LEN_TAIL) == 0xA5)
+				if(*(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL) == 0xA5)
 				{
 					//如果一个数据包出现了多帧数据,则再次读取
-					JUDGE_Read_Data(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + FrameHeader.DataLength + LEN_TAIL);
+					JUDGE_Read_Data(judge,ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID +judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL);
 				}
 			}
 		}
 		//首地址加帧长度,指向CRC16下一字节,用来判断是否为0xA5,用来判断一个数据包是否有多帧数据
-		if(*(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + FrameHeader.DataLength + LEN_TAIL) == 0xA5)
+		if(*(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL) == 0xA5)
 		{
 			//如果一个数据包出现了多帧数据,则再次读取
-			JUDGE_Read_Data(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + FrameHeader.DataLength + LEN_TAIL);
+			JUDGE_Read_Data(judge,ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID +judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL);
 		}
 	}
 	
 	if (retval_tf == TRUE)
 	{
-		Judge_Data_TF = TRUE;//辅助函数用
+		judge->Judge_Data_TF = TRUE;//辅助函数用
 	}
 	else		//只要CRC16校验不通过就为FALSE
 	{
-		Judge_Data_TF = FALSE;//辅助函数用
+		judge->Judge_Data_TF = FALSE;//辅助函数用
 	}
 	
 	return retval_tf;//对数据正误做处理
 }
 
-/*
+
 void JUDGE_SendTextStruct(graphic_data_struct_t *textConf,uint8_t text[30],uint8_t len)
 {
 	JudgeTxFrame txFrame;
@@ -651,8 +719,8 @@ void JUDGE_SendTextStruct(graphic_data_struct_t *textConf,uint8_t text[30],uint8
 	
 	textData.CmdID=0x301;//数据帧ID
 	textData.dataFrameHeader.data_cmd_id=0x0110;//数据段ID
-	textData.dataFrameHeader.send_ID 	 = JUDGE_GetSelfID();//发送者的ID
-	textData.dataFrameHeader.receiver_ID = JUDGE_GetClientID();//客户端的ID，只能为发送者机器人对应的客户端
+	textData.dataFrameHeader.send_ID 	 = judge.judgeRecInfo.GameRobotStat.robot_id;//发送者的ID
+	textData.dataFrameHeader.receiver_ID = 0x100+judge.judgeRecInfo.GameRobotStat.robot_id;//客户端的ID，只能为发送者机器人对应的客户端
 	
 	textData.textData.grapic_data_struct=*textConf;
 	memcpy(textData.textData.data,text,len);
@@ -680,8 +748,8 @@ void JUDGE_SendGraphStruct(graphic_data_struct_t *data)
 	
 	graphData.CmdID=0x301;//数据帧ID
 	graphData.dataFrameHeader.data_cmd_id=0x0101;//数据段ID
-	graphData.dataFrameHeader.send_ID 	 = JUDGE_GetSelfID();//发送者的ID
-	graphData.dataFrameHeader.receiver_ID = JUDGE_GetClientID();//客户端的ID，只能为发送者机器人对应的客户端
+	graphData.dataFrameHeader.send_ID 	 = judge.judgeRecInfo.GameRobotStat.robot_id;//发送者的ID
+	graphData.dataFrameHeader.receiver_ID = 0x100+judge.judgeRecInfo.GameRobotStat.robot_id;//客户端的ID，只能为发送者机器人对应的客户端
 	
 	graphData.graphData.grapic_data_struct=*data;
 	
@@ -695,7 +763,7 @@ void JUDGE_SendGraphStruct(graphic_data_struct_t *data)
  // Queue_Enqueue(&judgeQueue,&txFrame);
 }
 
-*/
+
 #endif
 
 
