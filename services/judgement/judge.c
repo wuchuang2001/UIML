@@ -498,10 +498,12 @@ void Judge_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 	Judge *judge = (Judge*)bindData;
 	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 0);
 	if(data)
-		JUDGE_Read_Data(judge,data);
+		judge->Judge_Data_TF = JUDGE_Read_Data(judge,data);
 }
 void Judge_publishData(Judge* judge)
-{ 
+{
+	// if(!judge->Judge_Data_TF)
+	// 	return;
 	//准备带发布的数据
 	uint8_t robot_id = judge->judgeRecInfo.GameRobotStat.robot_id; 
 	uint8_t robot_color = robot_id<10?RobotColor_Blue:RobotColor_Red;//机器人颜色
@@ -512,7 +514,6 @@ void Judge_publishData(Judge* judge)
 	uint16_t chassis_power_buffer = judge->judgeRecInfo.PowerHeatData.chassis_power_buffer; //底盘缓冲
 	float bullet_speed = judge->judgeRecInfo.ShootData.bullet_speed; //发射弹丸速度
 	//数据发布
-	Bus_BroadcastSend("/judge/valid",{{"isValid",&judge->Judge_Data_TF}}); //裁判系统数据正确性
 	if(robot_id == 1|| robot_id == 101)   //英雄
 	{
 		uint16_t shooter_id1_42mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_42mm_speed_limit; //42mm弹速上限	
@@ -575,8 +576,6 @@ void Judge_TimerCallback(void const *argument)
   */
 bool JUDGE_Read_Data(Judge *judge,uint8_t *ReadFromUsart)
 {
-	bool retval_tf = FALSE;//数据正确与否标志,每次调用读取裁判系统数据函数都先默认为错误
-	
 	uint16_t judge_length;//统计一帧数据长度 
 	
 	int CmdID = 0;//数据命令码解析
@@ -585,7 +584,7 @@ bool JUDGE_Read_Data(Judge *judge,uint8_t *ReadFromUsart)
 	//无数据包，则不作任何处理
 	if (ReadFromUsart == NULL)
 	{
-		return -1;
+		return false;
 	}
 	
 	//写入帧头数据,用于判断是否开始存储裁判数据
@@ -595,115 +594,97 @@ bool JUDGE_Read_Data(Judge *judge,uint8_t *ReadFromUsart)
 	if(ReadFromUsart[ SOF ] == JUDGE_FRAME_HEADER)
 	{
 		//帧头CRC8校验
-		if (Verify_CRC8_Check_Sum( ReadFromUsart, LEN_HEADER ) == TRUE)
-		{
-			//统计一帧数据长度,用于CR16校验
-			judge_length = ReadFromUsart[ DATA_LENGTH ] + LEN_HEADER + LEN_CMDID + LEN_TAIL;;
+		if (!Verify_CRC8_Check_Sum( ReadFromUsart, LEN_HEADER ))
+			return false;
+		//统计一帧数据长度,用于CR16校验
+		judge_length = ReadFromUsart[ DATA_LENGTH ] + LEN_HEADER + LEN_CMDID + LEN_TAIL;
 
-			//帧尾CRC16校验
-			if(Verify_CRC16_Check_Sum(ReadFromUsart,judge_length) == TRUE)
-			{
-				retval_tf = TRUE;//都校验过了则说明数据可用
-				
-				CmdID = (ReadFromUsart[6] << 8 | ReadFromUsart[5]);
-				//解析数据命令码,将数据拷贝到相应结构体中(注意拷贝数据的长度)
-				switch(CmdID)
-				{
-					case ID_game_state:        			//0x0001
-						memcpy(&judge->judgeRecInfo.GameState, (ReadFromUsart + DATA), LEN_game_state);
-					break;
-					
-					case ID_game_result:          		//0x0002
-						memcpy(&judge->judgeRecInfo.GameResult, (ReadFromUsart + DATA), LEN_game_result);
-					break;
-					
-					case ID_game_robot_HP:       //0x0003
-						memcpy(&judge->judgeRecInfo.GameRobotHP, (ReadFromUsart + DATA), LEN_game_robot_HP);
-					break;
-					
-					case ID_event_data:    				//0x0101
-						memcpy(&judge->judgeRecInfo.EventData, (ReadFromUsart + DATA), LEN_event_data);
-					break;
-					
-					case ID_supply_projectile_action:   //0x0102
-						memcpy(&judge->judgeRecInfo.SupplyProjectileAction, (ReadFromUsart + DATA), LEN_supply_projectile_action);
-					break;
-					
-					case ID_referee_warning:  //0x0104
-						memcpy(&judge->judgeRecInfo.RefereeWarning, (ReadFromUsart + DATA), LEN_referee_warning);
-					break;
-					
-					case ID_dart_remaining_time:  //0x0105
-						memcpy(&judge->judgeRecInfo.DartRemainingTime, (ReadFromUsart + DATA), LEN_dart_remaining_time);
-					break;
-					
-					case ID_game_robot_state:      		//0x0201
-						memcpy(&judge->judgeRecInfo.GameRobotStat, (ReadFromUsart + DATA), LEN_game_robot_state);
-					break;
-					
-					case ID_power_heat_data:      		//0x0202
-						memcpy(&judge->judgeRecInfo.PowerHeatData, (ReadFromUsart + DATA), LEN_power_heat_data);
-					break;
-					
-					case ID_game_robot_pos:      		//0x0203
-						memcpy(&judge->judgeRecInfo.GameRobotPos, (ReadFromUsart + DATA), LEN_game_robot_pos);
-					break;
-					
-					case ID_buff_musk:      			//0x0204
-						memcpy(&judge->judgeRecInfo.BuffMusk, (ReadFromUsart + DATA), LEN_buff_musk);
-					break;
-					
-					case ID_aerial_robot_energy:      	//0x0205
-						memcpy(&judge->judgeRecInfo.AerialRobotEnergy, (ReadFromUsart + DATA), LEN_aerial_robot_energy);
-					break;
-					
-					case ID_robot_hurt:      			//0x0206
-						memcpy(&judge->judgeRecInfo.RobotHurt, (ReadFromUsart + DATA), LEN_robot_hurt);
-					break;
-					
-					case ID_shoot_data:      			//0x0207
-						memcpy(&judge->judgeRecInfo.ShootData, (ReadFromUsart + DATA), LEN_shoot_data);
-						//Vision_SendShootSpeed(ShootData.bullet_speed);
-					break;
-					
-					case ID_bullet_remaining:      			//0x0208
-						memcpy(&judge->judgeRecInfo.BulletRemaining, (ReadFromUsart + DATA), LEN_bullet_remaining);
-					break;
-					
-					case ID_rfid_status:      			//0x0209
-						memcpy(&judge->judgeRecInfo.RfidStatus, (ReadFromUsart + DATA), LEN_rfid_status);
-					break;
-					
-					case ID_dart_client_cmd:      			//0x020A
-						memcpy(&judge->judgeRecInfo.DartClientCmd, (ReadFromUsart + DATA), LEN_dart_client_cmd);
-					break;
-				}
-				//首地址加帧长度,指向CRC16下一字节,用来判断是否为0xA5,用来判断一个数据包是否有多帧数据
-				if(*(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL) == 0xA5)
-				{
-					//如果一个数据包出现了多帧数据,则再次读取
-					JUDGE_Read_Data(judge,ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID +judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL);
-				}
-			}
+		//帧尾CRC16校验
+		if(!Verify_CRC16_Check_Sum(ReadFromUsart,judge_length))
+			return false;
+		
+		CmdID = (ReadFromUsart[6] << 8 | ReadFromUsart[5]);
+		//解析数据命令码,将数据拷贝到相应结构体中(注意拷贝数据的长度)
+		switch(CmdID)
+		{
+			case ID_game_state:                 //0x0001
+				memcpy(&judge->judgeRecInfo.GameState, (ReadFromUsart + DATA), LEN_game_state);
+			break;
+			
+			case ID_game_result:                //0x0002
+				memcpy(&judge->judgeRecInfo.GameResult, (ReadFromUsart + DATA), LEN_game_result);
+			break;
+			
+			case ID_game_robot_HP:              //0x0003
+				memcpy(&judge->judgeRecInfo.GameRobotHP, (ReadFromUsart + DATA), LEN_game_robot_HP);
+			break;
+			
+			case ID_event_data:                 //0x0101
+				memcpy(&judge->judgeRecInfo.EventData, (ReadFromUsart + DATA), LEN_event_data);
+			break;
+			
+			case ID_supply_projectile_action:   //0x0102
+				memcpy(&judge->judgeRecInfo.SupplyProjectileAction, (ReadFromUsart + DATA), LEN_supply_projectile_action);
+			break;
+			
+			case ID_referee_warning:            //0x0104
+				memcpy(&judge->judgeRecInfo.RefereeWarning, (ReadFromUsart + DATA), LEN_referee_warning);
+			break;
+			
+			case ID_dart_remaining_time:        //0x0105
+				memcpy(&judge->judgeRecInfo.DartRemainingTime, (ReadFromUsart + DATA), LEN_dart_remaining_time);
+			break;
+			
+			case ID_game_robot_state:           //0x0201
+				memcpy(&judge->judgeRecInfo.GameRobotStat, (ReadFromUsart + DATA), LEN_game_robot_state);
+			break;
+			
+			case ID_power_heat_data:            //0x0202
+				memcpy(&judge->judgeRecInfo.PowerHeatData, (ReadFromUsart + DATA), LEN_power_heat_data);
+			break;
+			
+			case ID_game_robot_pos:             //0x0203
+				memcpy(&judge->judgeRecInfo.GameRobotPos, (ReadFromUsart + DATA), LEN_game_robot_pos);
+			break;
+			
+			case ID_buff_musk:                  //0x0204
+				memcpy(&judge->judgeRecInfo.BuffMusk, (ReadFromUsart + DATA), LEN_buff_musk);
+			break;
+			
+			case ID_aerial_robot_energy:      	//0x0205
+				memcpy(&judge->judgeRecInfo.AerialRobotEnergy, (ReadFromUsart + DATA), LEN_aerial_robot_energy);
+			break;
+			
+			case ID_robot_hurt:                 //0x0206
+				memcpy(&judge->judgeRecInfo.RobotHurt, (ReadFromUsart + DATA), LEN_robot_hurt);
+			break;
+			
+			case ID_shoot_data:                 //0x0207
+				memcpy(&judge->judgeRecInfo.ShootData, (ReadFromUsart + DATA), LEN_shoot_data);
+				//Vision_SendShootSpeed(ShootData.bullet_speed);
+			break;
+			
+			case ID_bullet_remaining:           //0x0208
+				memcpy(&judge->judgeRecInfo.BulletRemaining, (ReadFromUsart + DATA), LEN_bullet_remaining);
+			break;
+			
+			case ID_rfid_status:                //0x0209
+				memcpy(&judge->judgeRecInfo.RfidStatus, (ReadFromUsart + DATA), LEN_rfid_status);
+			break;
+			
+			case ID_dart_client_cmd:            //0x020A
+				memcpy(&judge->judgeRecInfo.DartClientCmd, (ReadFromUsart + DATA), LEN_dart_client_cmd);
+			break;
 		}
 		//首地址加帧长度,指向CRC16下一字节,用来判断是否为0xA5,用来判断一个数据包是否有多帧数据
 		if(*(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL) == 0xA5)
 		{
 			//如果一个数据包出现了多帧数据,则再次读取
-			JUDGE_Read_Data(judge,ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID +judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL);
+			JUDGE_Read_Data(judge,ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + judge->judgeRecInfo.FrameHeader.DataLength + LEN_TAIL);
 		}
-	}
-	
-	if (retval_tf == TRUE)
-	{
-		judge->Judge_Data_TF = TRUE;//辅助函数用
-	}
-	else		//只要CRC16校验不通过就为FALSE
-	{
-		judge->Judge_Data_TF = FALSE;//辅助函数用
-	}
-	
-	return retval_tf;//对数据正误做处理
+		return true;//都校验过了则说明数据可用
+	}	
+	return false;//帧头有问题
 }
 
 

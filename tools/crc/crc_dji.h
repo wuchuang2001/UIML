@@ -1,5 +1,5 @@
-#ifndef _CRC_H_
-#define _CRC_H_
+#ifndef _CRC_DJI_H_
+#define _CRC_DJI_H_
 
 #include "stdint.h"
 #include "string.h"

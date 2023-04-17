@@ -99,9 +99,9 @@ uint32_t Verify_CRC8_Check_Sum( uint8_t *pchMessage, uint16_t dwLength)
 			  return 0;
 		}
 		
-		ucExpected = Get_CRC8_Check_Sum( pchMessage, dwLength-1, CRC8_INIT);
+		ucExpected = Get_CRC8_Check_Sum( pchMessage, dwLength, CRC8_INIT);
 		
-		return ( ucExpected == pchMessage[dwLength-1] );
+		return (!ucExpected);
 }
 
 
@@ -163,9 +163,8 @@ uint32_t Verify_CRC16_Check_Sum(uint8_t *pchMessage, uint32_t dwLength)
         return FALSE;
 		}
 		
-		wExpected = Get_CRC16_Check_Sum ( pchMessage, dwLength - 2, CRC_INIT);
-		return ( (wExpected & 0xff) == pchMessage[dwLength - 2] 
-			     && ((wExpected >> 8) & 0xff) == pchMessage[dwLength - 1]);
+		wExpected = Get_CRC16_Check_Sum ( pchMessage, dwLength, CRC_INIT);
+		return (!wExpected);
 }
 
 
