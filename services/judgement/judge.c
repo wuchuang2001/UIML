@@ -43,24 +43,24 @@ typedef enum
 
 /* 
 
-	ID: 0x0001  Byte:  11    比赛状态数据       			发送频率 1Hz      
-	ID: 0x0002  Byte:  1    比赛结果数据         		比赛结束后发送      
-	ID: 0x0003  Byte:  32    比赛机器人血量数据   		1Hz发送  
-	ID: 0x0101  Byte:  4    场地事件数据   				事件改变后发送
-	ID: 0x0102  Byte:  4    场地补给站动作标识数据    	动作改变后发送
-	ID: 0x0104	Byte: 	2		裁判警告信息
-	ID: 0x0105	Byte: 	1		飞镖发射口倒计时
-	ID: 0X0201  Byte: 27    机器人状态数据        		10Hz
-	ID: 0X0202  Byte: 14    实时功率热量数据   			50Hz       
-	ID: 0x0203  Byte: 16    机器人位置数据           	10Hz
-	ID: 0x0204  Byte:  1    机器人增益数据           	增益状态改变后发送
+	ID: 0x0001  Byte:  11   比赛状态数据               发送频率 1Hz      
+	ID: 0x0002  Byte:  1    比赛结果数据               比赛结束后发送      
+	ID: 0x0003  Byte:  32   比赛机器人血量数据          1Hz发送  
+	ID: 0x0101  Byte:  4    场地事件数据               事件改变后发送
+	ID: 0x0102  Byte:  4    场地补给站动作标识数据      动作改变后发送
+	ID: 0x0104	Byte:  2    裁判警告信息
+	ID: 0x0105	Byte:  1    飞镖发射口倒计时
+	ID: 0X0201  Byte:  27   机器人状态数据             10Hz
+	ID: 0X0202  Byte:  14   实时功率热量数据           50Hz       
+	ID: 0x0203  Byte:  16   机器人位置数据             10Hz
+	ID: 0x0204  Byte:  1    机器人增益数据             增益状态改变后发送
 	ID: 0x0205  Byte:  1    空中机器人能量状态数据      10Hz
-	ID: 0x0206  Byte:  1    伤害状态数据           		伤害发生后发送
-	ID: 0x0207  Byte:  7    实时射击数据           		子弹发射后发送
+	ID: 0x0206  Byte:  1    伤害状态数据               伤害发生后发送
+	ID: 0x0207  Byte:  7    实时射击数据               子弹发射后发送
 	ID: 0x0208  Byte:  6    子弹剩余发射数
 	ID: 0x0209  Byte:  4    机器人RFID状态
 	ID: 0x020A  Byte:  6    飞镖机器人客户端指令数据
-	ID: 0x0301  Byte:  n    机器人间交互数据           	发送方触发发送,10Hz
+	ID: 0x0301  Byte:  n    机器人间交互数据            发送方触发发送,10Hz
 */
 
 
@@ -89,23 +89,23 @@ typedef enum
 //命令码数据段长,根据官方协议来定义长度
 typedef enum
 {
-	LEN_game_state       					= 11,	//0x0001
-	LEN_game_result       				= 1,	//0x0002
-	LEN_game_robot_HP							= 32,	//0x0003
-	LEN_event_data  							= 4,	//0x0101
-	LEN_supply_projectile_action  = 4,	//0x0102
-	LEN_referee_warning						= 2,	//0x0104
-	LEN_dart_remaining_time				= 1,	//0x0105
-	LEN_game_robot_state    			= 27,	//0x0201
-	LEN_power_heat_data   				= 16,	//0x0202
-	LEN_game_robot_pos        		= 16,	//0x0203
-	LEN_buff_musk        					= 1,	//0x0204
-	LEN_aerial_robot_energy       = 1,	//0x0205
-	LEN_robot_hurt        				= 1,	//0x0206
-	LEN_shoot_data       					= 7,	//0x0207
-	LEN_bullet_remaining					= 6,	//0x0208
-	LEN_rfid_status								= 4,	//0x0209
-	LEN_dart_client_cmd						= 6,	//0x020A
+	LEN_game_state                = 11,  //0x0001
+	LEN_game_result               = 1,   //0x0002
+	LEN_game_robot_HP             = 32,  //0x0003
+	LEN_event_data                = 4,   //0x0101
+	LEN_supply_projectile_action  = 4,   //0x0102
+	LEN_referee_warning           = 2,   //0x0104
+	LEN_dart_remaining_time       = 1,   //0x0105
+	LEN_game_robot_state          = 27,  //0x0201
+	LEN_power_heat_data           = 16,  //0x0202
+	LEN_game_robot_pos            = 16,  //0x0203
+	LEN_buff_musk                 = 1,   //0x0204
+	LEN_aerial_robot_energy       = 1,   //0x0205
+	LEN_robot_hurt                = 1,   //0x0206
+	LEN_shoot_data                = 7,   //0x0207
+	LEN_bullet_remaining          = 6,   //0x0208
+	LEN_rfid_status               = 4,   //0x0209
+	LEN_dart_client_cmd           = 6,   //0x020A
 } JudgeDataLength;
 
 /* 自定义帧头 */
@@ -324,16 +324,16 @@ typedef __packed struct
 	交互数据 机器人间通信：0x0301。
 	发送频率：上限 10Hz  
 
-	字节偏移量 	大小 	说明 			备注 
-	0 			2 		数据的内容 ID 	0x0200~0x02FF 
+	字节偏移量   大小       说明              备注 
+	    0        2     数据的内容 ID     0x0200~0x02FF 
 										可以在以上 ID 段选取，具体 ID 含义由参赛队自定义 
 	
-	2 			2 		发送者的 ID 	需要校验发送者的 ID 正确性， 
+	    2        2      发送者的 ID     需要校验发送者的 ID 正确性， 
 	
-	4 			2 		接收者的 ID 	需要校验接收者的 ID 正确性，
+	    4        2      接收者的 ID     需要校验接收者的 ID 正确性，
 										例如不能发送到敌对机器人的ID 
 	
-	6 			n 		数据段 			n 需要小于 113 
+	    6        n        数据段        n 需要小于 113 
 
 */
 typedef __packed struct 
@@ -383,41 +383,41 @@ typedef __packed struct {
 //机器人交互信息
 typedef __packed struct
 {
-	xFrameHeader   							txFrameHeader;//帧头
-	uint16_t								CmdID;//命令码
-	ext_student_interactive_header_data_t   dataFrameHeader;//数据段头结构
-	robot_interactive_data_t  	 			interactData;//数据段
-	uint16_t		 						FrameTail;//帧尾
+	xFrameHeader                           txFrameHeader;//帧头
+	uint16_t                               CmdID;//命令码
+	ext_student_interactive_header_data_t  dataFrameHeader;//数据段头结构
+	robot_interactive_data_t               interactData;//数据段
+	uint16_t                               FrameTail;//帧尾
 }ext_CommunatianData_t;
 
 //客户端自定义图形信息
 typedef __packed struct
 {
-	xFrameHeader   							txFrameHeader;//帧头
-	uint16_t								CmdID;//命令码
-	ext_student_interactive_header_data_t   dataFrameHeader;//数据段头结构
-	ext_client_custom_graphic_single_t  	 			graphData;//数据段
-	uint16_t		 						FrameTail;//帧尾
+	xFrameHeader                           txFrameHeader;//帧头
+	uint16_t                               CmdID;//命令码
+	ext_student_interactive_header_data_t  dataFrameHeader;//数据段头结构
+	ext_client_custom_graphic_single_t     graphData;//数据段
+	uint16_t                               FrameTail;//帧尾
 }ext_GraphData_t;
 
 //客户端自定义文字信息
 typedef __packed struct
 {
-	xFrameHeader   							txFrameHeader;//帧头
-	uint16_t								CmdID;//命令码
-	ext_student_interactive_header_data_t   dataFrameHeader;//数据段头结构
-	ext_client_custom_character_t  	 			textData;//数据段
-	uint16_t		 						FrameTail;//帧尾
+	xFrameHeader                           txFrameHeader;//帧头
+	uint16_t                               CmdID;//命令码
+	ext_student_interactive_header_data_t  dataFrameHeader;//数据段头结构
+	ext_client_custom_character_t          textData;//数据段
+	uint16_t                               FrameTail;//帧尾
 }ext_TextData_t;
 
 //客户端自定义UI删除形状
 typedef __packed struct
 {
-	xFrameHeader   							txFrameHeader;//帧头
-	uint16_t								CmdID;//命令码
-	ext_student_interactive_header_data_t   dataFrameHeader;//数据段头结构
-	ext_client_custom_graphic_delete_t  	 			deleteData;//数据段
-	uint16_t		 						FrameTail;//帧尾
+	xFrameHeader                           txFrameHeader;//帧头
+	uint16_t                               CmdID;//命令码
+	ext_student_interactive_header_data_t  dataFrameHeader;//数据段头结构
+	ext_client_custom_graphic_delete_t     deleteData;//数据段
+	uint16_t                               FrameTail;//帧尾
 }ext_DeleteData_t;
 
 //裁判系统发送数据帧
@@ -430,31 +430,31 @@ typedef struct
 /*****************系统数据定义**********************/
 typedef struct _judge
 {
-	xFrameHeader              			FrameHeader;						//帧头信息
-	ext_game_status_t       				GameState;							//0x0001     
-	ext_game_result_t            		GameResult;							//0x0002
-	ext_game_robot_HP_t          		GameRobotHP;						//0x0003    
-	ext_event_data_t        				EventData;							//0x0101
-	ext_supply_projectile_action_t	SupplyProjectileAction;	//0x0102
-	ext_referee_warning_t						RefereeWarning;					//0x0104
-	ext_dart_remaining_time_t				DartRemainingTime;			//0x0105
-	ext_game_robot_status_t			  	GameRobotStat;					//0x0201  ***
-	ext_power_heat_data_t		  			PowerHeatData;					//0x0202  ***
-	ext_game_robot_pos_t						GameRobotPos;						//0x0203  ***
-	ext_buff_musk_t									BuffMusk;								//0x0204
-	aerial_robot_energy_t						AerialRobotEnergy;			//0x0205
-	ext_robot_hurt_t								RobotHurt;							//0x0206  ***
-	ext_shoot_data_t								ShootData;							//0x0207  ***
-	ext_bullet_remaining_t					BulletRemaining;				//0x0208  ***
-	ext_rfid_status_t								RfidStatus;							//0x0209
-	ext_dart_client_cmd_t						DartClientCmd;					//0x020A
+	xFrameHeader                    FrameHeader;            //帧头信息
+	ext_game_status_t               GameState;              //0x0001     
+	ext_game_result_t               GameResult;             //0x0002
+	ext_game_robot_HP_t             GameRobotHP;            //0x0003    
+	ext_event_data_t                EventData;              //0x0101
+	ext_supply_projectile_action_t  SupplyProjectileAction; //0x0102
+	ext_referee_warning_t           RefereeWarning;         //0x0104
+	ext_dart_remaining_time_t       DartRemainingTime;      //0x0105
+	ext_game_robot_status_t         GameRobotStat;          //0x0201  ***
+	ext_power_heat_data_t           PowerHeatData;          //0x0202  ***
+	ext_game_robot_pos_t            GameRobotPos;           //0x0203  ***
+	ext_buff_musk_t                 BuffMusk;               //0x0204
+	aerial_robot_energy_t           AerialRobotEnergy;      //0x0205
+	ext_robot_hurt_t                RobotHurt;              //0x0206  ***
+	ext_shoot_data_t                ShootData;              //0x0207  ***
+	ext_bullet_remaining_t          BulletRemaining;        //0x0208  ***
+	ext_rfid_status_t               RfidStatus;             //0x0209
+	ext_dart_client_cmd_t           DartClientCmd;          //0x020A
 }JudgeRecInfo;
 
 /****************************************************/
 typedef struct _Judge
 {
 	JudgeRecInfo judgeRecInfo;
-  bool Judge_Data_TF; //裁判数据是否可用,辅助函数调用
+	bool Judge_Data_TF; //裁判数据是否可用,辅助函数调用
 	uint8_t uartX;	
 }Judge;
 
@@ -481,7 +481,7 @@ void Judge_TaskCallback(void const * argument)
 	}		
 }
 
-void Judge_Init(Judge *judge,ConfItem* dict)
+void Judge_Init(Judge* judge,ConfItem* dict)
 {
 	char name[] = "/uart_/recv";
 	judge->uartX = Conf_GetValue(dict, "uart-x", uint8_t, 0);
@@ -500,57 +500,57 @@ void Judge_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDat
 	if(data)
 		JUDGE_Read_Data(judge,data);
 }
-void Judge_publishData(Judge * judge)
+void Judge_publishData(Judge* judge)
 { 
-  //准备带发布的数据
-  uint8_t robot_id = judge->judgeRecInfo.GameRobotStat.robot_id; 
-  uint8_t robot_color = robot_id<10?RobotColor_Blue:RobotColor_Red;//机器人颜色
-  uint16_t chassis_power_limit = judge->judgeRecInfo.GameRobotStat.chassis_power_limit; //底盘功率限制	
-  bool isShooterPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_shooter_output; //电管发射机构是否断电
-  bool isChassisPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_chassis_output; //电管底盘是否断电
-  float chassis_power = judge->judgeRecInfo.PowerHeatData.chassis_power;	 //底盘功率
-  uint16_t chassis_power_buffer = judge->judgeRecInfo.PowerHeatData.chassis_power_buffer; //底盘缓冲
+	//准备带发布的数据
+	uint8_t robot_id = judge->judgeRecInfo.GameRobotStat.robot_id; 
+	uint8_t robot_color = robot_id<10?RobotColor_Blue:RobotColor_Red;//机器人颜色
+	uint16_t chassis_power_limit = judge->judgeRecInfo.GameRobotStat.chassis_power_limit; //底盘功率限制	
+	bool isShooterPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_shooter_output; //电管发射机构是否断电
+	bool isChassisPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_chassis_output; //电管底盘是否断电
+	float chassis_power = judge->judgeRecInfo.PowerHeatData.chassis_power;	 //底盘功率
+	uint16_t chassis_power_buffer = judge->judgeRecInfo.PowerHeatData.chassis_power_buffer; //底盘缓冲
 	float bullet_speed = judge->judgeRecInfo.ShootData.bullet_speed; //发射弹丸速度
-  //数据发布
-  Bus_BroadcastSend("/judge/valid",{{"isValid",&judge->Judge_Data_TF}}); //裁判系统数据正确性
-  if(robot_id == 1|| robot_id == 101)   //英雄
-  {
-    uint16_t shooter_id1_42mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_42mm_speed_limit; //42mm弹速上限	
-    uint16_t shooter_id1_42mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_42mm_cooling_heat;	//42mm枪口热量
-    uint16_t bullet_remaining_num_42mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_42mm; //42mm剩余弹丸数量
-    Bus_BroadcastSend("/judge/recv/robot-state",{{"color",&robot_color},
-                                                {"42mm-speed-limit",&shooter_id1_42mm_speed_limit},
-                                                {"chassis-power-limit",&chassis_power_limit},
-                                                {"is-shooter-power-output",&isShooterPowerOutput},
-                                                {"is-chassis-power-output",&isChassisPowerOutput}
-                                                });
-    Bus_BroadcastSend("/judge/recv/power-Heat",{{"chassis-power",&chassis_power},
-                                                {"chassis-power_buffer",&chassis_power_buffer},
-                                                {"42mm-cooling-heat",&shooter_id1_42mm_cooling_heat}
-                                              }); 
-    Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
-    Bus_BroadcastSend("/judge/recv/bullet",{ {"42mm-bullet-remain",&bullet_remaining_num_42mm}});
-  }
-  else //非英雄单位
-  {
-    uint16_t shooter_id1_17mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_17mm_speed_limit;	//17mm弹速上限	
-    uint16_t shooter_id1_17mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_17mm_cooling_heat; //17mm枪口热量
-    uint16_t bullet_remaining_num_17mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_17mm; //17mm剩余弹丸数量
-    bool isGimbalPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_gimbal_output; //电管云台是否断电
-    Bus_BroadcastSend("/judge/recv/robot-state",{{"color",&robot_color},
-                                                {"17mm-speed-limit",&shooter_id1_17mm_speed_limit},
-                                                {"chassis-power-limit",&chassis_power_limit},
-                                                {"is-shooter-power-output",&isShooterPowerOutput},
-                                                {"is-chassis-power-output",&isChassisPowerOutput},
-                                                {"is-gimabal-power-output",&isGimbalPowerOutput}
-                                                });
-    Bus_BroadcastSend("/judge/recv/power-Heat",{{"chassis-power",&chassis_power},
-                                                {"chassis-power_buffer",&chassis_power_buffer},
-                                                {"17mm-cooling-heat",&shooter_id1_17mm_cooling_heat}
-                                                }); 
-    Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
-    Bus_BroadcastSend("/judge/recv/bullet",{{"17mm-bullet-remain",&bullet_remaining_num_17mm}});
-  }	
+	//数据发布
+	Bus_BroadcastSend("/judge/valid",{{"isValid",&judge->Judge_Data_TF}}); //裁判系统数据正确性
+	if(robot_id == 1|| robot_id == 101)   //英雄
+	{
+		uint16_t shooter_id1_42mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_42mm_speed_limit; //42mm弹速上限	
+		uint16_t shooter_id1_42mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_42mm_cooling_heat;	//42mm枪口热量
+		uint16_t bullet_remaining_num_42mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_42mm; //42mm剩余弹丸数量
+		Bus_BroadcastSend("/judge/recv/robot-state",{{"color",&robot_color},
+		                                             {"42mm-speed-limit",&shooter_id1_42mm_speed_limit},
+		                                             {"chassis-power-limit",&chassis_power_limit},
+		                                             {"is-shooter-power-output",&isShooterPowerOutput},
+		                                             {"is-chassis-power-output",&isChassisPowerOutput}
+		                                            });
+		Bus_BroadcastSend("/judge/recv/power-Heat",{{"chassis-power",&chassis_power},
+		                                            {"chassis-power_buffer",&chassis_power_buffer},
+		                                            {"42mm-cooling-heat",&shooter_id1_42mm_cooling_heat}
+		                                            }); 
+		Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
+		Bus_BroadcastSend("/judge/recv/bullet",{ {"42mm-bullet-remain",&bullet_remaining_num_42mm}});
+	}
+	else //非英雄单位
+	{
+		uint16_t shooter_id1_17mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_17mm_speed_limit;	//17mm弹速上限	
+		uint16_t shooter_id1_17mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_17mm_cooling_heat; //17mm枪口热量
+		uint16_t bullet_remaining_num_17mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_17mm; //17mm剩余弹丸数量
+		bool isGimbalPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_gimbal_output; //电管云台是否断电
+		Bus_BroadcastSend("/judge/recv/robot-state",{{"color",&robot_color},
+		                                            {"17mm-speed-limit",&shooter_id1_17mm_speed_limit},
+		                                            {"chassis-power-limit",&chassis_power_limit},
+		                                            {"is-shooter-power-output",&isShooterPowerOutput},
+		                                            {"is-chassis-power-output",&isChassisPowerOutput},
+		                                            {"is-gimabal-power-output",&isGimbalPowerOutput}
+		                                            });
+		Bus_BroadcastSend("/judge/recv/power-Heat",{{"chassis-power",&chassis_power},
+		                                            {"chassis-power_buffer",&chassis_power_buffer},
+		                                            {"17mm-cooling-heat",&shooter_id1_17mm_cooling_heat}
+		                                            }); 
+		Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
+		Bus_BroadcastSend("/judge/recv/bullet",{{"17mm-bullet-remain",&bullet_remaining_num_17mm}});
+	}	
 }
 
 //系统定时器回调
@@ -732,8 +732,7 @@ void JUDGE_SendTextStruct(graphic_data_struct_t *textConf,uint8_t text[30],uint8
 	Append_CRC16_Check_Sum(txFrame.data,sizeof(textData));
 		
 	txFrame.frameLength=sizeof(textData);
-  //Queue_Enqueue(&judgeQueue,&txFrame);
- 
+//	Queue_Enqueue(&judgeQueue,&txFrame);
 }
 
 void JUDGE_SendGraphStruct(graphic_data_struct_t *data)
@@ -760,7 +759,7 @@ void JUDGE_SendGraphStruct(graphic_data_struct_t *data)
 	Append_CRC16_Check_Sum(txFrame.data,sizeof(graphData));
 		
 	txFrame.frameLength=sizeof(graphData);
- // Queue_Enqueue(&judgeQueue,&txFrame);
+//	Queue_Enqueue(&judgeQueue,&txFrame);
 }
 
 

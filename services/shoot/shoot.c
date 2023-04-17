@@ -73,7 +73,7 @@ void Shooter_TaskCallback(void const * argument)
 					osDelay(200);   //等待摩擦轮转速稳定
 				}
 				//连发
-				for(shooter.startFlag)
+				while(shooter.startFlag)
 				{
 					shooter.totalTrigAngle += shooter.triggerAngle; 
 					shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
