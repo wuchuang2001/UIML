@@ -13,7 +13,7 @@
 
 //起始字节,协议固定为0xA5
 #define    JUDGE_FRAME_HEADER         (0xA5)
-#define    JUDGE_MAX_TX_LENGTH   64
+#define    JUDGE_MAX_FRAME_LENGTH   128
 //机器人颜色
 typedef enum
 {
@@ -422,7 +422,7 @@ typedef __packed struct
 //裁判系统发送数据帧
 typedef struct
 {
-	uint8_t data[JUDGE_MAX_TX_LENGTH];
+	uint8_t data[JUDGE_MAX_FRAME_LENGTH];
 	uint16_t frameLength;
 }JudgeTxFrame;
 
@@ -488,7 +488,7 @@ typedef enum _GraphColor
 
 
 
-JudgeTxFrame JUDGE_SendGraphStruct(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *data);
-JudgeTxFrame JUDGE_SendTextStruct(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *textConf,uint8_t text[30]);
+JudgeTxFrame JUDGE_PackGraphData(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *data);
+JudgeTxFrame JUDGE_PackTextData(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *textConf,uint8_t text[30]);
 #endif
 

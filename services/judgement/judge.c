@@ -1,18 +1,16 @@
 #include "judge_drive.h"
-#include "vector.h"
 #include "config.h"
 #include "softbus.h"
 #include "cmsis_os.h"
-
+#include "Queue.h"
 
 typedef struct _Judge
 {
 	JudgeRecInfo judgeRecInfo; //从裁判系统接收到的数据
 	bool dataTF; //裁判数据是否可用,辅助函数调用
-  Vector stableUI;   //不变UI
-  Vector variableUI;  //可变UI
-	uint8_t uartX;	
-  uint16_t taskInterval;
+  QueueHandle_t txQueue; //发送队列
+	uint8_t uartX;	 
+  uint16_t taskInterval; //任务执行间隔
 }Judge;
 
 
@@ -35,22 +33,29 @@ void Judge_TaskCallback(void const * argument)
 	TickType_t tick = xTaskGetTickCount();
 	while (1)
 	{
-		static uint32_t i=0;
-    JudgeTxFrame txframe[JUDGE_MAX_TX_LENGTH];
-    Bus_BroadcastSend("/uart/trans/dma",{{"uart-x",&judge.uartX},{"data",txframe[i].data},{"transSize",&txframe[i].frameLength}});
-    i++;
+    JudgeTxFrame *txframe;
+    if(xQueueReceive(judge.txQueue,txframe,portMAX_DELAY))
+    {
+      //发送ui
+      Bus_BroadcastSend("/uart/trans/dma",{
+                                            {"uart-x",&judge.uartX},
+                                            {"data",(uint8_t *)txframe->data},
+                                            {"transSize",&txframe->frameLength} 
+                                          });
+    }
 		osDelayUntil(&tick,judge.taskInterval);
 	}		
 }
-
+//初始化
 void Judge_Init(Judge* judge,ConfItem* dict)
 {
-  Vector_Init(judge->stableUI,JudgeTxFrame);
-  Vector_Init(judge->variableUI,JudgeTxFrame);
-  judge->taskInterval = Conf_GetValue(dict, "taskInterval", uint16_t, 150);
+  uint16_t maxTxQueueLen = Conf_GetValue(dict, "maxTxQueueLength", uint16_t, 20); //最大发送队列
+  judge->txQueue=xQueueCreate(maxTxQueueLen,sizeof(JudgeTxFrame));
+  judge->taskInterval = Conf_GetValue(dict, "taskInterval", uint16_t, 150);  //任务执行间隔
 	char name[] = "/uart_/recv";
 	judge->uartX = Conf_GetValue(dict, "uart-x", uint8_t, 0);
 	name[5] = judge->uartX + '0';
+  
 	Bus_RegisterReceiver(judge, Judge_Recv_SoftBusCallback, name);
   Bus_MultiRegisterReceiver(judge,Judge_UI_SoftBusCallback,{"judge/send/ui/text",
                                                             "judge/send/ui/line",
@@ -60,10 +65,19 @@ void Judge_Init(Judge* judge,ConfItem* dict)
                                                             "judge/send/ui/arc",
                                                             "judge/send/ui/float",
                                                             "judge/send/ui/int"});
-	//开启软件定时器定时发布
+	//开启软件定时器 定时广播接收到的数据
 	osTimerDef(judge, Judge_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(judge), osTimerPeriodic, judge), 20);
 }
+
+//系统定时器回调
+void Judge_TimerCallback(void const *argument)
+{
+  Judge *judge =(Judge*)argument;
+  Judge_publishData(judge);  //广播接收到的数据
+
+}
+
 
 void Judge_Recv_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
@@ -74,14 +88,42 @@ void Judge_Recv_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bi
 }
 
 
-  
+/*
+ui的图形名（name）在操作中，作为客户端的唯一索引，有且只有3个字符
+各任务广播ui的频率应小于5hz，应仅在数据更新时广播
+立即数对应的图形操作
+typedef enum _GraphOperation      
+{
+	Operation_Null=0,
+	Operation_Add,
+	Operation_Change,
+	Operation_Delete
+}GraphOperation;
+***添加UI时必须先Operation_Add，才能Operation_Change、Operation_Delete
+
+立即数对应的图形颜色
+typedef enum _GraphColor
+{
+	Color_Self=0,//己方主色
+	Color_Yellow,
+	Color_Green,
+	Color_Orange,
+	Color_Purple,
+	Color_Pink,
+	Color_Cyan,
+	Color_Black,
+	Color_White
+}GraphColor;
+
+*/
 void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
   Judge *judge = (Judge*)bindData;
   
-  if(!strcmp(topic, "judge/send/ui/text"))
+  if(!strcmp(topic, "judge/send/ui/text"))   //文本
 	{
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start_x","start_y","size","len"}))
+//                              名字     颜色    宽度    图层         坐标        字体大小 长度 操作方式
+    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start_x","start_y","size","len","opera"}))
       return;
     graphic_data_struct_t text;
     uint8_t *value=(uint8_t *)Bus_GetMapValue(frame,"text");
@@ -91,17 +133,19 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     text.layer=*(uint8_t*)Bus_GetMapValue(frame,"layer");
     text.color=*(uint8_t*)Bus_GetMapValue(frame,"color");
     text.width=*(uint8_t*)Bus_GetMapValue(frame,"width");;
-    text.start_x=*(uint8_t*)Bus_GetMapValue(frame,"start_x");
-    text.start_y=*(uint8_t*)Bus_GetMapValue(frame,"start_y");
-    text.start_angle=*(uint8_t*)Bus_GetMapValue(frame,"size");
-    text.end_angle=*(uint8_t*)Bus_GetMapValue(frame,"len");    
-    JUDGE_SendTextStruct(judge->judgeRecInfo.GameRobotStat.robot_id,
-                          0x100+judge->judgeRecInfo.GameRobotStat.robot_id,
-                          &text,value);
+    text.start_x=*(int16_t*)Bus_GetMapValue(frame,"start_x");
+    text.start_y=*(int16_t*)Bus_GetMapValue(frame,"start_y");
+    text.start_angle=*(uint16_t*)Bus_GetMapValue(frame,"size");
+    text.end_angle=*(uint16_t*)Bus_GetMapValue(frame,"len");    
+    JudgeTxFrame txframe = JUDGE_PackTextData(judge->judgeRecInfo.GameRobotStat.robot_id,
+                                                0x100+judge->judgeRecInfo.GameRobotStat.robot_id,
+                                                &text,value);
+    xQueueOverwrite(judge->txQueue,&txframe);
   }
-  else if(!strcmp(topic, "judge/send/ui/line"))
+  else if(!strcmp(topic, "judge/send/ui/line")) //直线
   {
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start_x","start_y","end_x","end_y"}))
+//                              名字     颜色    宽度    图层         开始坐标        结束坐标     操作方式    
+    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start_x","start_y","end_x","end_y","opera"}))
       return;
     graphic_data_struct_t line;
     memcpy(line.graphic_name,(uint8_t*)Bus_GetMapValue(frame,"name"),3);
@@ -110,17 +154,19 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     line.color = *(uint8_t*)Bus_GetMapValue(frame,"color");
     line.width = *(uint8_t*)Bus_GetMapValue(frame,"width");
     line.layer = *(uint8_t*)Bus_GetMapValue(frame,"layer");
-    line.start_x = *(uint8_t*)Bus_GetMapValue(frame,"start_x");
-    line.start_y = *(uint8_t*)Bus_GetMapValue(frame,"start_y");
-    line.end_x = *(uint8_t*)Bus_GetMapValue(frame,"end_x");
-    line.end_y = *(uint8_t*)Bus_GetMapValue(frame,"end_y");  
-    JUDGE_SendGraphStruct(judge->judgeRecInfo.GameRobotStat.robot_id,
-                          0x100+judge->judgeRecInfo.GameRobotStat.robot_id,
-                          &line);
+    line.start_x = *(int16_t*)Bus_GetMapValue(frame,"start_x");
+    line.start_y = *(int16_t*)Bus_GetMapValue(frame,"start_y");
+    line.end_x = *(int16_t*)Bus_GetMapValue(frame,"end_x");
+    line.end_y = *(int16_t*)Bus_GetMapValue(frame,"end_y");  
+    JudgeTxFrame txframe = JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id, //发送者ID
+                                                0x100+judge->judgeRecInfo.GameRobotStat.robot_id, //接收者ID（客户端）
+                                                &line);
+    xQueueOverwrite(judge->txQueue,&txframe);
   }
-  else if(!strcmp(topic, "judge/send/ui/rect"))
+  else if(!strcmp(topic, "judge/send/ui/rect"))  //矩形
   {
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start_x","start_y","end_x","end_y"}))
+//                              名字     颜色    宽度    图层         开始坐标        对角坐标     操作方式    
+    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start_x","start_y","end_x","end_y","opera"}))
       return;
     graphic_data_struct_t rect;
     memcpy(rect.graphic_name,(uint8_t*)Bus_GetMapValue(frame,"name"),3);
@@ -129,18 +175,19 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     rect.color=*(uint8_t*)Bus_GetMapValue(frame,"color");	
     rect.width=*(uint8_t*)Bus_GetMapValue(frame,"width");
     rect.layer=*(uint8_t*)Bus_GetMapValue(frame,"layer");
-    rect.start_x=*(uint8_t*)Bus_GetMapValue(frame,"start_x");
-    rect.start_y=*(uint8_t*)Bus_GetMapValue(frame,"start_y");
-    rect.end_x=*(uint8_t*)Bus_GetMapValue(frame,"end_x");
-    rect.end_y=*(uint8_t*)Bus_GetMapValue(frame,"end_y");
-    JUDGE_SendGraphStruct(judge->judgeRecInfo.GameRobotStat.robot_id,
-                          0x100+judge->judgeRecInfo.GameRobotStat.robot_id,
-                          &rect);    
-      
+    rect.start_x=*(int16_t*)Bus_GetMapValue(frame,"start_x");
+    rect.start_y=*(int16_t*)Bus_GetMapValue(frame,"start_y");
+    rect.end_x=*(int16_t*)Bus_GetMapValue(frame,"end_x");
+    rect.end_y=*(int16_t*)Bus_GetMapValue(frame,"end_y");
+    JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
+                                                  0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
+                                                  &rect);    
+    xQueueOverwrite(judge->txQueue,&txframe);  
   }
-  else if(!strcmp(topic, "judge/send/ui/circle"))
+  else if(!strcmp(topic, "judge/send/ui/circle"))  //圆
   {
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent_x","cent_y","radius"}))
+//                              名字     颜色    宽度    图层         中心坐标     半径   操作方式 
+    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent_x","cent_y","radius","opera"}))
       return;
     graphic_data_struct_t circle;
     memcpy(circle.graphic_name,(uint8_t*)Bus_GetMapValue(frame,"name"),3);
@@ -149,13 +196,18 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     circle.layer=*(uint8_t*)Bus_GetMapValue(frame,"layer");
     circle.color=*(uint8_t*)Bus_GetMapValue(frame,"color");
     circle.width=*(uint8_t*)Bus_GetMapValue(frame,"width");;
-    circle.start_x=*(uint8_t*)Bus_GetMapValue(frame,"cent_x");
-    circle.start_y=*(uint8_t*)Bus_GetMapValue(frame,"cent_y");
-    circle.radius=*(uint8_t*)Bus_GetMapValue(frame,"radius");    
+    circle.start_x=*(int16_t*)Bus_GetMapValue(frame,"cent_x");
+    circle.start_y=*(int16_t*)Bus_GetMapValue(frame,"cent_y");
+    circle.radius=*(uint16_t*)Bus_GetMapValue(frame,"radius");   
+    JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
+                                                  0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
+                                                  &circle);    
+    xQueueOverwrite(judge->txQueue,&txframe);  
   }
-  else if(!strcmp(topic, "judge/send/ui/oval"))
+  else if(!strcmp(topic, "judge/send/ui/oval")) //椭圆
   {
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent_x","cent_y","semiaxis_x","semiaxis_y"}))
+//                              名字     颜色    宽度    图层         中心坐标           xy半轴长         操作方式 
+    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent_x","cent_y","semiaxis_x","semiaxis_y","opera"}))
       return;
     graphic_data_struct_t oval;
     memcpy(oval.graphic_name,(uint8_t*)Bus_GetMapValue(frame,"name"),3);
@@ -164,14 +216,19 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     oval.layer=*(uint8_t*)Bus_GetMapValue(frame,"layer");	
     oval.color=*(uint8_t*)Bus_GetMapValue(frame,"color");
     oval.width=*(uint8_t*)Bus_GetMapValue(frame,"width");;
-    oval.start_x=*(uint8_t*)Bus_GetMapValue(frame,"cent_x");
-    oval.start_y=*(uint8_t*)Bus_GetMapValue(frame,"cent_y");
-    oval.end_x=*(uint8_t*)Bus_GetMapValue(frame,"semiaxis_x");
-    oval.end_y=*(uint8_t*)Bus_GetMapValue(frame,"semiaxis_y");    
+    oval.start_x=*(int16_t*)Bus_GetMapValue(frame,"cent_x");
+    oval.start_y=*(int16_t*)Bus_GetMapValue(frame,"cent_y");
+    oval.end_x=*(int16_t*)Bus_GetMapValue(frame,"semiaxis_x");
+    oval.end_y=*(int16_t*)Bus_GetMapValue(frame,"semiaxis_y");  
+    JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
+                                                  0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
+                                                  &oval);    
+    xQueueOverwrite(judge->txQueue,&txframe); 
   }
-  else if(!strcmp(topic, "judge/send/ui/arc"))
+  else if(!strcmp(topic, "judge/send/ui/arc")) //圆弧
   {
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent_x","cent_y","semiaxis_x","semiaxis_y","start_angle","end_angle"}))
+//                              名字     颜色    宽度    图层         中心坐标           xy半轴长               起始、终止角度       操作方式
+    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent_x","cent_y","semiaxis_x","semiaxis_y","start_angle","end_angle","opera"}))
       return;
     graphic_data_struct_t arc;
     memcpy(arc.graphic_name,(uint8_t*)Bus_GetMapValue(frame,"name"),3);
@@ -180,16 +237,21 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     arc.layer=*(uint8_t*)Bus_GetMapValue(frame,"layer");
     arc.color=*(uint8_t*)Bus_GetMapValue(frame,"color");
     arc.width=*(uint8_t*)Bus_GetMapValue(frame,"width");;
-    arc.start_x=*(uint8_t*)Bus_GetMapValue(frame,"cent_x");
-    arc.start_y=*(uint8_t*)Bus_GetMapValue(frame,"cent_y");
-    arc.end_x=*(uint8_t*)Bus_GetMapValue(frame,"semiaxis_x");
-    arc.end_y=*(uint8_t*)Bus_GetMapValue(frame,"semiaxis_y");
-    arc.start_angle=*(uint8_t*)Bus_GetMapValue(frame,"start_angle");
-    arc.end_angle=*(uint8_t*)Bus_GetMapValue(frame,"end_angle");    
+    arc.start_x=*(int16_t*)Bus_GetMapValue(frame,"cent_x");
+    arc.start_y=*(int16_t*)Bus_GetMapValue(frame,"cent_y");
+    arc.end_x=*(int16_t*)Bus_GetMapValue(frame,"semiaxis_x");
+    arc.end_y=*(int16_t*)Bus_GetMapValue(frame,"semiaxis_y");
+    arc.start_angle=*(int16_t*)Bus_GetMapValue(frame,"start_angle");
+    arc.end_angle=*(int16_t*)Bus_GetMapValue(frame,"end_angle");    
+    JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
+                                                  0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
+                                                  &arc);    
+    xQueueOverwrite(judge->txQueue,&txframe); 
   }
   else if(!strcmp(topic, "judge/send/ui/float"))
   {
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","value","start_x","start_y","size","digit"}))
+//                              名字     颜色    宽度    图层    值          坐标            大小 有效位数 操作方式
+    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","value","start_x","start_y","size","digit","opera"}))
       return;
     graphic_data_struct_t float_num;
     float value = *(float*)Bus_GetMapValue(frame,"value");
@@ -199,17 +261,22 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     float_num.layer=*(uint8_t*)Bus_GetMapValue(frame,"layer");
     float_num.color=*(uint8_t*)Bus_GetMapValue(frame,"color");
     float_num.width=*(uint8_t*)Bus_GetMapValue(frame,"width");;
-    float_num.start_x=*(uint8_t*)Bus_GetMapValue(frame,"start_x");
-    float_num.start_y=*(uint8_t*)Bus_GetMapValue(frame,"start_y");
-    float_num.start_angle=*(uint8_t*)Bus_GetMapValue(frame,"size");
+    float_num.start_x=*(int16_t*)Bus_GetMapValue(frame,"start_x");
+    float_num.start_y=*(int16_t*)Bus_GetMapValue(frame,"start_y");
+    float_num.start_angle=*(uint16_t*)Bus_GetMapValue(frame,"size");
     float_num.end_angle=*(uint8_t*)Bus_GetMapValue(frame,"digit");
     float_num.radius=((int32_t)(value*1000))&0x3FF;
     float_num.end_x=((int32_t)(value*1000)>>10)&0x7FF;
     float_num.end_y=((int32_t)(value*1000)>>21)&0x7FF;    
+    JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
+                                                  0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
+                                                  &float_num);    
+    xQueueOverwrite(judge->txQueue,&txframe); 
   }
   else if(!strcmp(topic, "judge/send/ui/int"))
   {
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","value","start_x","start_y","size"}))
+//                              名字     颜色    宽度    图层    值          坐标           大小   操作方式
+    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","value","start_x","start_y","size","opera"}))
       return;
     graphic_data_struct_t int_num;
     int32_t value = *(int32_t*)Bus_GetMapValue(frame,"value");
@@ -219,14 +286,19 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     int_num.layer= *(uint8_t*)Bus_GetMapValue(frame,"layer");
     int_num.color= *(uint8_t*)Bus_GetMapValue(frame,"color");
     int_num.width= *(uint8_t*)Bus_GetMapValue(frame,"width");;
-    int_num.start_x=*(uint8_t*)Bus_GetMapValue(frame,"start_x");
-    int_num.start_y=*(uint8_t*)Bus_GetMapValue(frame,"start_y");
-    int_num.start_angle= *(uint8_t*)Bus_GetMapValue(frame,"size");
+    int_num.start_x=*(int16_t*)Bus_GetMapValue(frame,"start_x");
+    int_num.start_y=*(int16_t*)Bus_GetMapValue(frame,"start_y");
+    int_num.start_angle= *(uint16_t*)Bus_GetMapValue(frame,"size");
     int_num.radius= value&0x3FF;
     int_num.end_x=( value>>10)&0x7FF;
     int_num.end_y=( value>>21)&0x7FF;    
+    JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
+                                                  0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
+                                                  &int_num);    
+    xQueueOverwrite(judge->txQueue,&txframe); 
   }
 }
+//广播接收到的数据
 void Judge_publishData(Judge* judge)
 {
 	// if(!judge->dataTF)
@@ -281,14 +353,7 @@ void Judge_publishData(Judge* judge)
 	}	
 }
 
-//系统定时器回调
-/************发送UI***************/
-void Judge_TimerCallback(void const *argument)
-{
-  Judge *judge =(Judge*)argument;
-  Judge_publishData(judge);
 
-}
 
 
 
