@@ -2,13 +2,14 @@
 #include "config.h"
 #include "softbus.h"
 #include "cmsis_os.h"
-#include "Queue.h"
+#include "my_queue.h"
 
 typedef struct _Judge
 {
 	JudgeRecInfo judgeRecInfo; //从裁判系统接收到的数据
 	bool dataTF; //裁判数据是否可用,辅助函数调用
-  QueueHandle_t txQueue; //发送队列
+  Queue txQueue; //发送队列
+  JudgeTxFrame *queueBuf;
 	uint8_t uartX;	 
   uint16_t taskInterval; //任务执行间隔
 }Judge;
@@ -22,6 +23,7 @@ void Judge_publishData(Judge * judge);
 void Judge_TimerCallback(void const *argument);
 
 Judge judge={0}; //大内存 不适合作为任务的局部变量
+JudgeTxFrame debug;
 
 void Judge_TaskCallback(void const * argument)
 {
@@ -33,9 +35,11 @@ void Judge_TaskCallback(void const * argument)
 	TickType_t tick = xTaskGetTickCount();
 	while (1)
 	{
-    JudgeTxFrame *txframe;
-    if(xQueueReceive(judge.txQueue,txframe,portMAX_DELAY))
+  	if(!Queue_IsEmpty(&judge.txQueue))
     {
+      //取队头的消息发送
+      JudgeTxFrame *txframe=(JudgeTxFrame*)Queue_Dequeue(&judge.txQueue);
+      
       //发送ui
       Bus_BroadcastSend("/uart/trans/dma",{
                                             {"uart-x",&judge.uartX},
@@ -46,11 +50,15 @@ void Judge_TaskCallback(void const * argument)
 		osDelayUntil(&tick,judge.taskInterval);
 	}		
 }
+
 //初始化
 void Judge_Init(Judge* judge,ConfItem* dict)
 {
+  //初始化发送队列
   uint16_t maxTxQueueLen = Conf_GetValue(dict, "maxTxQueueLength", uint16_t, 20); //最大发送队列
-  judge->txQueue=xQueueCreate(maxTxQueueLen,sizeof(JudgeTxFrame));
+  judge->queueBuf=(JudgeTxFrame*)pvPortMalloc(maxTxQueueLen*sizeof(JudgeTxFrame));
+	Queue_Init(&judge->txQueue,maxTxQueueLen);
+	Queue_AttachBuffer(&judge->txQueue,judge->queueBuf,sizeof(JudgeTxFrame));
   judge->taskInterval = Conf_GetValue(dict, "taskInterval", uint16_t, 150);  //任务执行间隔
 	char name[] = "/uart_/recv";
 	judge->uartX = Conf_GetValue(dict, "uart-x", uint8_t, 0);
@@ -58,13 +66,13 @@ void Judge_Init(Judge* judge,ConfItem* dict)
   
 	Bus_RegisterReceiver(judge, Judge_Recv_SoftBusCallback, name);
   Bus_MultiRegisterReceiver(judge,Judge_UI_SoftBusCallback,{"judge/send/ui/text",
-                                                            "judge/send/ui/line",
-                                                            "judge/send/ui/rect",
-                                                            "judge/send/ui/circle",
-                                                            "judge/send/ui/oval",
-                                                            "judge/send/ui/arc",
-                                                            "judge/send/ui/float",
-                                                            "judge/send/ui/int"});
+                                                              "judge/send/ui/line",
+                                                              "judge/send/ui/rect",
+                                                              "judge/send/ui/circle",
+                                                              "judge/send/ui/oval",
+                                                              "judge/send/ui/arc",
+                                                              "judge/send/ui/float",
+                                                              "judge/send/ui/int"});
 	//开启软件定时器 定时广播接收到的数据
 	osTimerDef(judge, Judge_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(judge), osTimerPeriodic, judge), 20);
@@ -119,11 +127,10 @@ typedef enum _GraphColor
 void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
   Judge *judge = (Judge*)bindData;
-  
   if(!strcmp(topic, "judge/send/ui/text"))   //文本
 	{
-//                              名字     颜色    宽度    图层         坐标        字体大小 长度 操作方式
-    if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start_x","start_y","size","len","opera"}))
+//                              名字    文本   颜色    宽度    图层         坐标        字体大小 长度 操作方式
+    if(!Bus_CheckMapKeys(frame,{"name","text","color","width","layer","start_x","start_y","size","len","opera"}))
       return;
     graphic_data_struct_t text;
     uint8_t *value=(uint8_t *)Bus_GetMapValue(frame,"text");
@@ -140,7 +147,8 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     JudgeTxFrame txframe = JUDGE_PackTextData(judge->judgeRecInfo.GameRobotStat.robot_id,
                                                 0x100+judge->judgeRecInfo.GameRobotStat.robot_id,
                                                 &text,value);
-    xQueueOverwrite(judge->txQueue,&txframe);
+    debug = txframe;
+    Queue_Enqueue(&judge->txQueue,&txframe);
   }
   else if(!strcmp(topic, "judge/send/ui/line")) //直线
   {
@@ -161,7 +169,7 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     JudgeTxFrame txframe = JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id, //发送者ID
                                                 0x100+judge->judgeRecInfo.GameRobotStat.robot_id, //接收者ID（客户端）
                                                 &line);
-    xQueueOverwrite(judge->txQueue,&txframe);
+    Queue_Enqueue(&judge->txQueue,&txframe);
   }
   else if(!strcmp(topic, "judge/send/ui/rect"))  //矩形
   {
@@ -182,7 +190,7 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
                                                   0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
                                                   &rect);    
-    xQueueOverwrite(judge->txQueue,&txframe);  
+    Queue_Enqueue(&judge->txQueue,&txframe);
   }
   else if(!strcmp(topic, "judge/send/ui/circle"))  //圆
   {
@@ -202,7 +210,7 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
                                                   0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
                                                   &circle);    
-    xQueueOverwrite(judge->txQueue,&txframe);  
+    Queue_Enqueue(&judge->txQueue,&txframe); 
   }
   else if(!strcmp(topic, "judge/send/ui/oval")) //椭圆
   {
@@ -223,7 +231,7 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
                                                   0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
                                                   &oval);    
-    xQueueOverwrite(judge->txQueue,&txframe); 
+    Queue_Enqueue(&judge->txQueue,&txframe);
   }
   else if(!strcmp(topic, "judge/send/ui/arc")) //圆弧
   {
@@ -246,7 +254,7 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
                                                   0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
                                                   &arc);    
-    xQueueOverwrite(judge->txQueue,&txframe); 
+    Queue_Enqueue(&judge->txQueue,&txframe); 
   }
   else if(!strcmp(topic, "judge/send/ui/float"))
   {
@@ -271,7 +279,7 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
                                                   0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
                                                   &float_num);    
-    xQueueOverwrite(judge->txQueue,&txframe); 
+   Queue_Enqueue(&judge->txQueue,&txframe);
   }
   else if(!strcmp(topic, "judge/send/ui/int"))
   {
@@ -295,8 +303,9 @@ void Judge_UI_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bind
     JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//发送者ID
                                                   0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//接收者ID（客户端）
                                                   &int_num);    
-    xQueueOverwrite(judge->txQueue,&txframe); 
+    Queue_Enqueue(&judge->txQueue,&txframe);
   }
+
 }
 //广播接收到的数据
 void Judge_publishData(Judge* judge)
