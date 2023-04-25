@@ -21,6 +21,12 @@ typedef struct {
 	osSemaphoreId lock;
 	CSInfo* csList;
 	uint8_t csNum;
+	struct 
+	{
+		uint8_t *data;
+		uint16_t maxBufSize;
+		uint16_t dataLen;
+	}recvBuffer;
 	SoftBusReceiverHandle fastHandle;
 }SPIInfo;
 
@@ -47,7 +53,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 		SPIInfo* spiInfo = &spiService.spiList[num];
 		if(hspi == spiInfo->hspi)
 		{
-			Bus_FastBroadcastSend(spiInfo->fastHandle, {""});
+			Bus_FastBroadcastSend(spiInfo->fastHandle, {spiService.spiList->recvBuffer.data, &spiService.spiList->recvBuffer.dataLen});
 			for(uint8_t i = 0; i < spiService.spiList[num].csNum; i++)
 			{
 				HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_SET);
@@ -110,6 +116,10 @@ void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 	info->lock = osSemaphoreCreate(osSemaphore(lock), 1);
 	//初始化片选引脚
 	BSP_SPI_InitCS(info, Conf_GetPtr(dict, "cs", ConfItem));
+	//初始化缓冲区
+	info->recvBuffer.maxBufSize = Conf_GetValue(dict, "maxRecvSize", uint16_t, 1);
+	info->recvBuffer.data = pvPortMalloc(info->recvBuffer.maxBufSize);
+    memset(info->recvBuffer.data,0,info->recvBuffer.maxBufSize);
 }
 
 //初始化片选引脚
@@ -141,11 +151,11 @@ void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict)
 
 bool BSP_SPI_DMA_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame,{"spi-x", "txData", "rxData", "len", "csName", "isBlock"}))
+	if(!Bus_CheckMapKeys(frame,{"spi-x", "txData", "len", "csName", "isBlock"}))
 		return false;
 	uint8_t spiX = *(uint8_t *)Bus_GetMapValue(frame, "spi-x");
 	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "txData");
-	uint8_t* rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData");
+	uint8_t* rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData"); //不检查该项是因为若为null则指向spi缓冲区
 	uint16_t len = *(uint16_t*)Bus_GetMapValue(frame, "len");
 	char* csName = (char*)Bus_GetMapValue(frame, "csName");
 	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "isBlock"))? osWaitForever: 0;
@@ -153,6 +163,10 @@ bool BSP_SPI_DMA_RemoteCallback(const char* name, SoftBusFrame* frame, void* bin
 	{
 		if(spiX == spiService.spiList[num].number)
 		{
+			if(rxData == NULL)
+				rxData = spiService.spiList[num].recvBuffer.data;
+			if(len > spiService.spiList[num].recvBuffer.maxBufSize)
+				return false;
 			for (uint8_t i = 0; i < spiService.spiList[num].csNum; i++)
 			{
 				if(!strcmp(csName, spiService.spiList[num].csList[i].name))
@@ -173,11 +187,11 @@ bool BSP_SPI_DMA_RemoteCallback(const char* name, SoftBusFrame* frame, void* bin
 
 bool BSP_SPI_Block_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame,{"spi-x", "txData", "rxData", "len", "timeout", "csName", "isBlock"}))
+	if(!Bus_CheckMapKeys(frame,{"spi-x", "txData", "len", "timeout", "csName", "isBlock"}))
 		return false;
 	uint8_t spiX = *(uint8_t *)Bus_GetMapValue(frame, "spi-x");
 	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "txData");
-	uint8_t* rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData");
+	uint8_t* rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData"); //不检查该项是因为若为null则指向spi缓冲区
 	uint16_t len = *(uint16_t*)Bus_GetMapValue(frame, "len");
 	uint32_t timeout = *(uint32_t*)Bus_GetMapValue(frame, "timeout");
 	char* csName = (char*)Bus_GetMapValue(frame, "csName");
@@ -186,6 +200,11 @@ bool BSP_SPI_Block_RemoteCallback(const char* name, SoftBusFrame* frame, void* b
 	{
 		if(spiX == spiService.spiList[num].number)
 		{
+			if(rxData == NULL)
+				rxData = spiService.spiList[num].recvBuffer.data;
+			if(len > spiService.spiList[num].recvBuffer.maxBufSize)
+				return false;
+			spiService.spiList[num].recvBuffer.dataLen = len;
 			for (uint8_t i = 0; i < spiService.spiList[num].csNum; i++)
 			{
 				if(!strcmp(csName, spiService.spiList[num].csList[i].name))

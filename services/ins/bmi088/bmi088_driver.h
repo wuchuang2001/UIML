@@ -54,52 +54,10 @@
 #define BMI088_GYRO_250_SEN 0.00013315805450396191230191732547673f
 #define BMI088_GYRO_125_SEN 0.000066579027251980956150958662738366f
 
+bool BMI088_AccelInit(uint8_t);
+bool BMI088_GyroInit(uint8_t);
 
-typedef __packed struct BMI088_RAW_DATA
-{
-    uint8_t status;
-    int16_t accel[3];
-    int16_t temp;
-    int16_t gyro[3];
-} bmi088_raw_data_t;
-
-typedef struct BMI088_REAL_DATA
-{
-    uint8_t status;
-    fp32 accel[3];
-    fp32 temp;
-    fp32 gyro[3];
-    fp32 time;
-} bmi088_real_data_t;
-
-
-enum
-{
-    BMI088_NO_ERROR = 0x00,
-    BMI088_ACC_PWR_CTRL_ERROR = 0x01,
-    BMI088_ACC_PWR_CONF_ERROR = 0x02,
-    BMI088_ACC_CONF_ERROR = 0x03,
-    BMI088_ACC_SELF_TEST_ERROR = 0x04,
-    BMI088_ACC_RANGE_ERROR = 0x05,
-    BMI088_INT1_IO_CTRL_ERROR = 0x06,
-    BMI088_INT_MAP_DATA_ERROR = 0x07,
-    BMI088_GYRO_RANGE_ERROR = 0x08,
-    BMI088_GYRO_BANDWIDTH_ERROR = 0x09,
-    BMI088_GYRO_LPM1_ERROR = 0x0A,
-    BMI088_GYRO_CTRL_ERROR = 0x0B,
-    BMI088_GYRO_INT3_INT4_IO_CONF_ERROR = 0x0C,
-    BMI088_GYRO_INT3_INT4_IO_MAP_ERROR = 0x0D,
-
-    BMI088_SELF_TEST_ACCEL_ERROR = 0x80,
-    BMI088_SELF_TEST_GYRO_ERROR = 0x40,
-    BMI088_NO_SENSOR = 0xFF,
-};
-
-
-extern bool_t bmi088_accel_init(void);
-extern bool_t bmi088_gyro_init(void);
-
-extern void BMI088_read(fp32 gyro[3], fp32 accel[3], fp32 *temperate);
+void BMI088_ReadData(uint8_t spiX, float gyro[3], float accel[3], float *temperate);
 
 
 
