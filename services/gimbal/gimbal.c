@@ -49,7 +49,18 @@ void Gimbal_TaskCallback(void const * argument)
 	Gimbal_Init(&gimbal, (ConfItem*)argument);
 	portEXIT_CRITICAL();
 	osDelay(2000);
-	Gimbal_StartAngleInit(&gimbal);
+	Gimbal_StartAngleInit(&gimbal); //计算云台零点
+	//计算好云台零点后，更改电机模式
+	if(gimbal.mode == GIMBAL_ECD_MODE)
+	{
+		gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_ANGLE_MODE);
+		gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_ANGLE_MODE);
+	}
+	else if(gimbal.mode == GIMBAL_IMU_MODE)
+	{
+		gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_SPEED_MODE);
+		gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_SPEED_MODE);
+	}
 	TickType_t tick = xTaskGetTickCount();
 	while(1)
 	{
@@ -92,16 +103,7 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 
 	//初始化云台模式为 编码器模式
 	gimbal->mode = Conf_GetValue(dict, "mode", GimbalCtrlMode, GIMBAL_ECD_MODE);
-	if(gimbal->mode == GIMBAL_ECD_MODE)
-	{
-		gimbal->motors[0]->changeMode(gimbal->motors[0], MOTOR_ANGLE_MODE);
-		gimbal->motors[1]->changeMode(gimbal->motors[1], MOTOR_ANGLE_MODE);
-	}
-	else if(gimbal->mode == GIMBAL_IMU_MODE)
-	{
-		gimbal->motors[0]->changeMode(gimbal->motors[0], MOTOR_SPEED_MODE);
-		gimbal->motors[1]->changeMode(gimbal->motors[1], MOTOR_SPEED_MODE);
-	}
+	//不在这里设置模式，因为在未设置好零点前，pid会驱使电机达到编码器的零点或者imu的初始化零点
 
 	Bus_MultiRegisterReceiver(gimbal, Gimbal_SoftBusCallback, {"/imu/euler-angle", "/gimbal"});	
 	Bus_RegisterReceiver(gimbal, Gimbal_StopCallback, "/system/stop"); //急停
