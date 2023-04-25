@@ -18,7 +18,6 @@ typedef struct
 	bool fricEnable;
 	float fricSpeed; //摩擦轮速度
 	float triggerAngle,totalTrigAngle; //拨弹一次角度及累计角度
-	bool startFlag;  //连发开启标志位
 	uint16_t intervalTime; //连发间隔ms
 	uint8_t mode;
 	uint8_t taskInterval;
@@ -30,7 +29,7 @@ void Shooter_ChangeArgumentCallback(const char* name, SoftBusFrame* frame, void*
 void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
-  
+
 void Shooter_TaskCallback(void const * argument)
 {
 	portENTER_CRITICAL();
@@ -72,14 +71,9 @@ void Shooter_TaskCallback(void const * argument)
 					Bus_BroadcastSend("/shooter/fricCtrl",{"enable",IM_PTR(bool,true)});
 					osDelay(200);   //等待摩擦轮转速稳定
 				}
-				//连发
-				while(shooter.startFlag)
-				{
-					shooter.totalTrigAngle += shooter.triggerAngle; 
-					shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
-					osDelay(shooter.intervalTime);
-				}
-				shooter.mode = SHOOTER_MODE_IDLE;
+        shooter.totalTrigAngle += shooter.triggerAngle; 
+        shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
+        osDelay(shooter.intervalTime);  
 				break;
 			default:
 				break;
@@ -91,7 +85,7 @@ void Shooter_TaskCallback(void const * argument)
 void Shooter_Init(Shooter* shooter, ConfItem* dict)
 {
 	//任务间隔
-	shooter->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 5);
+	shooter->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 20);
 	//初始弹速
 	shooter->fricSpeed = Conf_GetValue(dict,"fricSpeed",float,5450);
 	//拨弹轮拨出一发弹丸转角
@@ -122,14 +116,19 @@ void Shooter_ShootCallback(const char* name, SoftBusFrame* frame, void* bindData
 	{
 		shooter->mode = SHOOTER_MODE_ONCE;
 	}
-	else if(!strcmp(name,"/shooter/continue")&&shooter->mode == SHOOTER_MODE_IDLE)
+	else if(!strcmp(name,"/shooter/continue"))
 	{
 		if(!Bus_CheckMapKeys(frame,{"start","intervalTime"}))
 			return;
-		shooter->startFlag = *(bool*)Bus_GetMapValue(frame,"start");
-		shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
-		shooter->mode = SHOOTER_MODE_CONTINUE;
-	}
+		bool startFlag = *(bool*)Bus_GetMapValue(frame,"start");
+    if(startFlag==1&&shooter->mode == SHOOTER_MODE_IDLE)
+    {
+      shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
+      shooter->mode = SHOOTER_MODE_CONTINUE;
+    }
+    else if(startFlag==0&&shooter->mode == SHOOTER_MODE_CONTINUE)
+      shooter->mode = SHOOTER_MODE_IDLE;
+  }
 }
 
 //修改摩擦轮转速或拨弹角度
@@ -171,7 +170,7 @@ void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindD
 	if(shooter->fricEnable == false)
 	{
 		shooter->fricMotors[0]->setTarget(shooter->fricMotors[0],0);
-		shooter->fricMotors[1]->setTarget(shooter->fricMotors[0],0);
+		shooter->fricMotors[1]->setTarget(shooter->fricMotors[1],0);
 	}
 	else
 	{
@@ -189,3 +188,4 @@ void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 	}
 	shooter->triggerMotor->stop(shooter->triggerMotor);
 }
+
