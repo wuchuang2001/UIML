@@ -163,7 +163,7 @@ void M6020_CtrlerCalc(M6020* m6020, float reference)
 	}
 	buffer[0] = (output>>8)&0xff;
 	buffer[1] = (output)&0xff;
-	Bus_BroadcastSend("/can/set-buf",{
+	Bus_RemoteCall("/can/set-buf",{
 		{"can-x", &m6020->canInfo.canX},
 		{"id", &m6020->canInfo.sendID},
 		{"pos", &m6020->canInfo.bufIndex},

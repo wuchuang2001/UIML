@@ -42,7 +42,7 @@ void Servo_SetTarget(Motor* motor,float targetValue)
 	Servo* servo=(Servo*) motor;
 	servo->targetAngle = targetValue; //无实际用途，可用于debug
 	float pwmDuty = servo->targetAngle / servo->maxAngle * (servo->maxDuty - servo->minDuty) + servo->minDuty;
-	Bus_BroadcastSend("/tim/pwm/set-duty", {{"timX", &servo->timInfo.timX}, {"channelX", &servo->timInfo.channelX}, {"duty", &pwmDuty}});
+	Bus_RemoteCall("/tim/pwm/set-duty", {{"timX", &servo->timInfo.timX}, {"channelX", &servo->timInfo.channelX}, {"duty", &pwmDuty}});
 }
 
 

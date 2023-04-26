@@ -29,8 +29,8 @@ typedef struct
 void BSP_TIM_Init(ConfItem* dict);
 void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict);
 void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict);
-void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData);
-bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool BSP_TIM_GetEncodeCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 TIMService timService={0};
 
@@ -69,9 +69,9 @@ void BSP_TIM_Init(ConfItem* dict)
 	}
 
 	//注册接受
-	Bus_RegisterReceiver(NULL,BSP_TIM_BroadcastCallback,"/tim/pwm/set-duty");
+	Bus_RegisterRemoteFunc(NULL,BSP_TIM_SetDutyCallback,"/tim/pwm/set-duty");
 	//注册远程服务
-	Bus_RegisterRemoteFunc(NULL,BSP_TIM_RemoteCallback,"/tim/encode");
+	Bus_RegisterRemoteFunc(NULL,BSP_TIM_GetEncodeCallback,"/tim/encode");
 	timService.initFinished=1;
 }
 
@@ -100,9 +100,8 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 
 
 //TIM软总线广播回调
-void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData)
+bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-
 	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","duty"}))
 		return;
 	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
@@ -113,7 +112,7 @@ void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bind
 	{
 		if(timX==timService.timList[num].number)
 		{
-			uint32_t pwmValue=duty*__HAL_TIM_GetAutoreload(timService.timList[num].htim);
+			uint32_t pwmValue = duty * __HAL_TIM_GetAutoreload(timService.timList[num].htim);
 			switch (channelX)
 			{
 			case 1:
@@ -131,14 +130,15 @@ void BSP_TIM_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bind
 			default:
 				break;
 			}
-			
+			return true;
 			break;
 		}
 	}
+	return false;
 }
 
 //TIM软总线远程服务回调
-bool BSP_TIM_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData)
+bool BSP_TIM_GetEncodeCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame,{"tim-x","count"}))
 		return false;

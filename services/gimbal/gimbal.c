@@ -38,8 +38,9 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict);
 void Gimbal_StartAngleInit(Gimbal* gimbal);
 void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll);
 
-void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
-void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool Gimbal_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void Gimbal_TaskCallback(void const * argument)
 {
@@ -61,7 +62,6 @@ void Gimbal_TaskCallback(void const * argument)
 		gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_SPEED_MODE);
 		gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_SPEED_MODE);
 	}
-	TickType_t tick = xTaskGetTickCount();
 	while(1)
 	{
 		if(gimbal.mode == GIMBAL_ECD_MODE)
@@ -81,7 +81,7 @@ void Gimbal_TaskCallback(void const * argument)
 		turns = turns < 0 ? turns - 1 : turns; //如果是负数多减一圈使偏离角变成正数
 		gimbal.relativeAngle -= turns*360; //0-360度
 		Bus_BroadcastSend("/gimbal/yaw/relative-angle", {{"angle", &gimbal.relativeAngle}});
-		osDelayUntil(&tick,gimbal.taskInterval);
+		osDelay(gimbal.taskInterval);
 	}
 }
 
@@ -105,15 +105,16 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	gimbal->mode = Conf_GetValue(dict, "mode", GimbalCtrlMode, GIMBAL_ECD_MODE);
 	//不在这里设置模式，因为在未设置好零点前，pid会驱使电机达到编码器的零点或者imu的初始化零点
 
-	Bus_MultiRegisterReceiver(gimbal, Gimbal_SoftBusCallback, {"/imu/euler-angle", "/gimbal"});	
-	Bus_RegisterReceiver(gimbal, Gimbal_StopCallback, "/system/stop"); //急停
+	Bus_RegisterReceiver(gimbal, Gimbal_BroadcastCallback, "/imu/euler-angle");
+	Bus_RegisterRemoteFunc(gimbal, Gimbal_SettingCallback, "/gimbal");
+	Bus_RegisterRemoteFunc(gimbal, Gimbal_StopCallback, "/system/stop"); //急停
 }
 
-void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData)
+void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Gimbal* gimbal = (Gimbal*)bindData;
 
-	if(!strcmp(topic, "/imu/euler-angle"))
+	if(!strcmp(name, "/imu/euler-angle"))
 	{
 		if(!Bus_CheckMapKeys(frame, {"yaw", "pitch", "roll"}))
 			return;
@@ -122,17 +123,30 @@ void Gimbal_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindDa
 		float roll = *(float*)Bus_GetMapValue(frame, "roll");
 		Gimbal_StatAngle(gimbal, yaw, pitch, roll);
 	}
-	else if (!strcmp(topic, "/gimbal"))
+}
+bool Gimbal_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	Gimbal* gimbal = (Gimbal*)bindData;
+
+	if(Bus_IsMapKeyExist(frame, "yaw"))
 	{
-		if(Bus_IsMapKeyExist(frame, "yaw"))
-		{
-			gimbal->angle[0] = *(float*)Bus_GetMapValue(frame, "yaw");
-		}
-		if(Bus_IsMapKeyExist(frame, "pitch"))
-		{
-			gimbal->angle[1] = *(float*)Bus_GetMapValue(frame, "pitch");
-		}
+		gimbal->angle[0] = *(float*)Bus_GetMapValue(frame, "yaw");
 	}
+	if(Bus_IsMapKeyExist(frame, "pitch"))
+	{
+		gimbal->angle[1] = *(float*)Bus_GetMapValue(frame, "pitch");
+	}
+	return true;
+}
+
+bool Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData) //急停
+{
+	Gimbal* gimbal = (Gimbal*)bindData;
+	for(uint8_t i = 0; i<2; i++)
+	{
+		gimbal->motors[i]->stop(gimbal->motors[i]);
+	}
+	return true;
 }
 
 void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
@@ -168,13 +182,4 @@ void Gimbal_StartAngleInit(Gimbal* gimbal)
 		gimbal->imu.totalEulerAngle[i] = angle;
 		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle);
 	}	
-}
-
-void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData) //急停
-{
-	Gimbal* gimbal = (Gimbal*)bindData;
-	for(uint8_t i = 0; i<2; i++)
-	{
-		gimbal->motors[i]->stop(gimbal->motors[i]);
-	}
 }

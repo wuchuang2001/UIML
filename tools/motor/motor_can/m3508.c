@@ -171,7 +171,7 @@ void M3508_CtrlerCalc(M3508* m3508, float reference)
 	}
 	buffer[0] = (output>>8)&0xff;
 	buffer[1] = (output)&0xff;
-	Bus_BroadcastSend("/can/set-buf",{
+	Bus_RemoteCall("/can/set-buf",{
 		{"can-x", &m3508->canInfo.canX},
 		{"id", &m3508->canInfo.sendID},
 		{"pos", &m3508->canInfo.bufIndex},

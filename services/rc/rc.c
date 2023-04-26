@@ -117,11 +117,10 @@ void RC_TaskCallback(void const * argument)
 	portEXIT_CRITICAL();
 	
 	osDelay(2000);
-	TickType_t tick = xTaskGetTickCount();
 	while(1)
 	{
 		RC_PublishData(&rc);
-		osDelayUntil(&tick,14);
+		osDelay(14);
 	}
 }
 

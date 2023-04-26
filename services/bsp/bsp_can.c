@@ -33,7 +33,8 @@ void BSP_CAN_Init(ConfItem* dict);
 void BSP_CAN_InitInfo(CANInfo* info, ConfItem* dict);
 void BSP_CAN_InitHardware(CANInfo* info);
 void BSP_CAN_InitRepeatBuffer(CANRepeatBuffer* buffer, ConfItem* dict);
-void BSP_CAN_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool BSP_CAN_SetBufCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool BSP_CAN_SendOnceCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void BSP_CAN_TimerCallback(void const *argument);
 uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t StdId,uint8_t* data);
 
@@ -117,8 +118,8 @@ void BSP_CAN_Init(ConfItem* dict)
 		BSP_CAN_InitRepeatBuffer(&canService.repeatBuffers[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
 	//订阅话题
-	Bus_RegisterReceiver(NULL, BSP_CAN_SoftBusCallback, "/can/set-buf");
-	Bus_RegisterReceiver(NULL, BSP_CAN_SoftBusCallback, "/can/send-once");
+	Bus_RegisterRemoteFunc(NULL, BSP_CAN_SetBufCallback, "/can/set-buf");
+	Bus_RegisterRemoteFunc(NULL, BSP_CAN_SetBufCallback, "/can/send-once");
 
 	canService.initFinished = 1;
 }
@@ -205,41 +206,46 @@ uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t stdId,uint8_t* data)
 }
 
 //软总线回调
-void BSP_CAN_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
+bool BSP_CAN_SetBufCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!strcmp(name, "/can/set-buf"))
+	if(!Bus_CheckMapKeys(frame, {"can-x", "id", "pos", "len", "data"}))
+		return;
+	
+	uint8_t canX = *(uint8_t*)Bus_GetMapValue(frame, "can-x");
+	uint16_t frameID = *(uint16_t*)Bus_GetMapValue(frame, "id");
+	uint8_t startIndex = *(uint8_t*)Bus_GetMapValue(frame, "pos");
+	uint8_t length = *(uint8_t*)Bus_GetMapValue(frame, "len");
+	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
+	
+	for(uint8_t i = 0; i < canService.bufferNum; i++)
 	{
-		if(!Bus_CheckMapKeys(frame, {"can-x", "id", "pos", "len", "data"}))
-			return;
-		
-		uint8_t canX = *(uint8_t*)Bus_GetMapValue(frame, "can-x");
-		uint16_t frameID = *(uint16_t*)Bus_GetMapValue(frame, "id");
-		uint8_t startIndex = *(uint8_t*)Bus_GetMapValue(frame, "pos");
-		uint8_t length = *(uint8_t*)Bus_GetMapValue(frame, "len");
-		uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
-		
-		for(uint8_t i = 0; i < canService.bufferNum; i++)
+		CANRepeatBuffer* buffer = &canService.repeatBuffers[i];
+		if(buffer->canInfo->number == canX && buffer->frameID == frameID)
 		{
-			CANRepeatBuffer* buffer = &canService.repeatBuffers[i];
-			if(buffer->canInfo->number == canX && buffer->frameID == frameID)
-				memcpy(buffer->data + startIndex, data, length);
+			memcpy(buffer->data + startIndex, data, length);
+			return true;
 		}
 	}
-	else if(!strcmp(name, "/can/send-once"))
+	return false;
+}
+
+bool BSP_CAN_SendOnceCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	if(!Bus_CheckMapKeys(frame, {"can-x", "id", "data"}))
+		return;
+
+	uint8_t canX = *(uint8_t*)Bus_GetMapValue(frame, "can-x");
+	uint16_t frameID = *(uint16_t*)Bus_GetMapValue(frame, "id");
+	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
+
+	for(uint8_t i = 0; i < canService.canNum; i++)
 	{
-		
-		if(!Bus_CheckMapKeys(frame, {"can-x", "id", "data"}))
-			return;
-
-		uint8_t canX = *(uint8_t*)Bus_GetMapValue(frame, "can-x");
-		uint16_t frameID = *(uint16_t*)Bus_GetMapValue(frame, "id");
-		uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
-
-		for(uint8_t i = 0; i < canService.canNum; i++)
+		CANInfo* info = &canService.canList[i];
+		if(info->number == canX)
 		{
-			CANInfo* info = &canService.canList[i];
-			if(info->number == canX)
-				BSP_CAN_SendFrame(info->hcan, frameID, data);
+			BSP_CAN_SendFrame(info->hcan, frameID, data);
+			return true;
 		}
 	}
+	return false;
 }

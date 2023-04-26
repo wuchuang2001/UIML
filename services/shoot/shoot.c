@@ -24,11 +24,10 @@ typedef struct
 }Shooter;
 
 void Shooter_Init(Shooter* shooter, ConfItem* dict);
-void Shooter_ShootCallback(const char* name, SoftBusFrame* frame, void* bindData);
-void Shooter_ChangeArgumentCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool Shooter_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData);
-void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindData);
-void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void Shooter_TaskCallback(void const * argument)
 {
@@ -96,51 +95,69 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 		shooter->fricMotors[i]->changeMode(shooter->fricMotors[i], MOTOR_SPEED_MODE);
 	}
 	shooter->triggerMotor->changeMode(shooter->triggerMotor,MOTOR_ANGLE_MODE);
-  
-	Bus_MultiRegisterReceiver(shooter, Shooter_ShootCallback, {"/shooter/once","/shooter/continue"});
-	Bus_MultiRegisterReceiver(shooter, Shooter_ChangeArgumentCallback, {"/shooter/fricSpeed","/shooter/triggerAngle"});
+	//注册回调函数
+	Bus_RegisterRemoteFunc(shooter,Shooter_SettingCallback,"/shooter/setting");
+	Bus_RegisterRemoteFunc(shooter,Shoot_ChangeModeCallback,"/shooter/mode");
+	Bus_RegisterRemoteFunc(shooter,Shoot_StopCallback,"/system/stop");
 	Bus_RegisterReceiver(shooter,Shooter_BlockCallback,"/motor/stall");
-	Bus_RegisterReceiver(shooter,Shooter_FricCtrlCallback,"/shooter/fricCtrl");
-	Bus_RegisterReceiver(shooter,Shoot_StopCallback,"/system/stop");
 }
 
 //射击模式
-void Shooter_ShootCallback(const char* name, SoftBusFrame* frame, void* bindData)
+bool Shooter_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData ;
-	if(!strcmp(name,"/shooter/once")&&shooter->mode == SHOOTER_MODE_IDLE)  //空闲时才允许修改模式
+	if(Bus_IsMapKeyExist(frame,"fric-speed"))
 	{
-		shooter->mode = SHOOTER_MODE_ONCE;
+		shooter->triggerAngle = *(float*)Bus_GetMapValue(frame,"fric-speed");
 	}
-	else if(!strcmp(name,"/shooter/continue"))
-	{
-		if(!Bus_CheckMapKeys(frame,{"start","intervalTime"}))
-			return;
-		bool startFlag = *(bool*)Bus_GetMapValue(frame,"start");
-		if(startFlag==1&&shooter->mode == SHOOTER_MODE_IDLE)
-		{
-			shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
-			shooter->mode = SHOOTER_MODE_CONTINUE;
-		}
-		else if(startFlag==0&&shooter->mode == SHOOTER_MODE_CONTINUE)
-			shooter->mode = SHOOTER_MODE_IDLE;
-  }
-}
 
-//修改摩擦轮转速或拨弹角度
-void Shooter_ChangeArgumentCallback(const char* name, SoftBusFrame* frame, void* bindData)
+	if(Bus_IsMapKeyExist(frame,"trigger-angle"))
+	{
+		shooter->triggerAngle = *(float*)Bus_GetMapValue(frame,"trigger-angle");
+	}
+
+	if(Bus_IsMapKeyExist(frame,"fric-enable"))
+	{
+		shooter->fricEnable = *(bool*)Bus_GetMapValue(frame,"fric-enable");
+		if(shooter->fricEnable == false)
+		{
+			shooter->fricMotors[0]->setTarget(shooter->fricMotors[0],0);
+			shooter->fricMotors[1]->setTarget(shooter->fricMotors[1],0);
+		}
+		else
+		{
+			shooter->fricMotors[0]->setTarget(shooter->fricMotors[0],-shooter->fricSpeed);
+			shooter->fricMotors[1]->setTarget(shooter->fricMotors[1], shooter->fricSpeed);
+		}
+	}
+	return true;
+}
+bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData;
-	if(!strcmp(name,"/shooter/fricSpeed"))
+	if(Bus_IsMapKeyExist(frame,"mode"))
 	{
-		if(Bus_IsMapKeyExist(frame,"speed"))
-			shooter->fricSpeed = *(float*)Bus_GetMapValue(frame,"speed");
+		uint8_t* mode = (uint8_t*)Bus_GetMapValue(frame,"mode");
+		if(!strcmp(mode,"once") && shooter->mode == SHOOTER_MODE_IDLE)  //空闲时才允许修改模式
+		{
+			shooter->mode = SHOOTER_MODE_ONCE;
+			return true;
+		}
+		else if(!strcmp(mode,"continue") && shooter->mode == SHOOTER_MODE_IDLE)
+		{
+			if(!Bus_IsMapKeyExist(frame,"intervalTime"))
+				return false;
+			shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
+			shooter->mode = SHOOTER_MODE_CONTINUE;
+			return true;
+		}
+		else if(!strcmp(mode,"idle"))
+		{
+			shooter->mode = SHOOTER_MODE_IDLE;
+			return true;
+		}
 	}
-	else if(!strcmp(name,"/shooter/triggerAngle"))
-	{
-		if(Bus_IsMapKeyExist(frame,"angle"))
-			shooter->triggerAngle = *(float*)Bus_GetMapValue(frame,"angle");
-	}
+	return false;
 }
 
 //堵转
@@ -156,26 +173,7 @@ void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData
 	}
 }
 
-//摩擦轮控制
-void Shooter_FricCtrlCallback(const char* name, SoftBusFrame* frame, void* bindData)
-{
-	Shooter *shooter = (Shooter*)bindData;
-	if(!Bus_IsMapKeyExist(frame,"enable"))
-		return;
-	shooter->fricEnable = *(bool*)Bus_GetMapValue(frame,"enable");
-	if(shooter->fricEnable == false)
-	{
-		shooter->fricMotors[0]->setTarget(shooter->fricMotors[0],0);
-		shooter->fricMotors[1]->setTarget(shooter->fricMotors[1],0);
-	}
-	else
-	{
-		shooter->fricMotors[0]->setTarget(shooter->fricMotors[0],-shooter->fricSpeed);
-		shooter->fricMotors[1]->setTarget(shooter->fricMotors[1], shooter->fricSpeed);
-	}
-}
-
-void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+bool Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData;
 	for(uint8_t i = 0; i<2; i++)
@@ -183,5 +181,6 @@ void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 		shooter->fricMotors[i]->stop(shooter->fricMotors[i]);
 	}
 	shooter->triggerMotor->stop(shooter->triggerMotor);
+	return true;
 }
 

@@ -43,8 +43,8 @@ SPIService spiService = {0};
 void BSP_SPI_Init(ConfItem* dict);
 void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict);
 void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict);
-bool BSP_SPI_DMA_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData);
-bool BSP_SPI_Block_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool BSP_SPI_DMACallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool BSP_SPI_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
@@ -99,8 +99,8 @@ void BSP_SPI_Init(ConfItem* dict)
 	}
 
 	//注册远程服务
-	Bus_RegisterRemoteFunc(NULL, BSP_SPI_Block_RemoteCallback, "/spi/block");
-	Bus_RegisterRemoteFunc(NULL,BSP_SPI_DMA_RemoteCallback, "/spi/trans/dma");
+	Bus_RegisterRemoteFunc(NULL, BSP_SPI_BlockCallback, "/spi/block");
+	Bus_RegisterRemoteFunc(NULL,BSP_SPI_DMACallback, "/spi/trans/dma");
 	spiService.initFinished = 1;
 }
 //初始化spi信息
@@ -149,7 +149,7 @@ void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict)
 	}
 }
 
-bool BSP_SPI_DMA_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData)
+bool BSP_SPI_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame,{"spi-x", "txData", "len", "csName", "isBlock"}))
 		return false;
@@ -185,7 +185,7 @@ bool BSP_SPI_DMA_RemoteCallback(const char* name, SoftBusFrame* frame, void* bin
 	return false;
 }
 
-bool BSP_SPI_Block_RemoteCallback(const char* name, SoftBusFrame* frame, void* bindData)
+bool BSP_SPI_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame,{"spi-x", "txData", "len", "timeout", "csName", "isBlock"}))
 		return false;

@@ -164,7 +164,7 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 	buffer[0] = (output>>8)&0xff;
 	buffer[1] = (output)&0xff;
 	//发布can信息
-	Bus_BroadcastSend("/can/set-buf",{
+	Bus_RemoteCall("/can/set-buf",{
 		{"can-x", &m2006->canInfo.canX},
 		{"id", &m2006->canInfo.sendID},
 		{"pos", &m2006->canInfo.bufIndex},
