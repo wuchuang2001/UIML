@@ -17,7 +17,7 @@ typedef struct
 	Motor *fricMotors[2],*triggerMotor;
 	bool fricEnable;
 	float fricSpeed; //摩擦轮速度
-	float triggerAngle,totalTrigAngle; //拨弹一次角度及累计角度
+	float triggerAngle,targetTrigAngle; //拨弹一次角度及累计角度
 	uint16_t intervalTime; //连发间隔ms
 	uint8_t mode;
 	uint8_t taskInterval;
@@ -35,7 +35,6 @@ void Shooter_TaskCallback(void const * argument)
 	portENTER_CRITICAL();
 	Shooter shooter={0};
 	Shooter_Init(&shooter, (ConfItem*)argument);
-	TickType_t tick = xTaskGetTickCount();
 	portEXIT_CRITICAL();
 
 	osDelay(2000);
@@ -44,41 +43,38 @@ void Shooter_TaskCallback(void const * argument)
 		switch(shooter.mode)
 		{
 			case SHOOTER_MODE_IDLE:
+				osDelay(shooter.taskInterval);
 				break;
 			case SHOOTER_MODE_BLOCK:
-				shooter.triggerMotor->setStartAngle(shooter.triggerMotor,shooter.totalTrigAngle); //重置电机角度为当前累计角度
-				shooter.totalTrigAngle -= shooter.triggerAngle*0.5f;  //反转
-				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
+				float totalAngle = shooter.triggerMotor->getData(shooter.triggerMotor, "totalAngle"); //重置电机角度为当前累计角度
+				shooter.targetTrigAngle = totalAngle - shooter.triggerAngle*0.5f;  //反转
+				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
 				osDelay(500);   //等待电机堵转恢复
 				shooter.mode = SHOOTER_MODE_IDLE;
 				break;
 			case SHOOTER_MODE_ONCE:   //单发
-			
 				if(shooter.fricEnable == false)   //若摩擦轮未开启则先开启
 				{
 					Bus_BroadcastSend("/shooter/fricCtrl",{"enable",IM_PTR(bool,true)});
 					osDelay(200);     //等待摩擦轮转速稳定
 				}
-
-				shooter.totalTrigAngle += shooter.triggerAngle; 
-				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
+				shooter.targetTrigAngle += shooter.triggerAngle; 
+				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
 				shooter.mode = SHOOTER_MODE_IDLE;
 				break;
 			case SHOOTER_MODE_CONTINUE:  //以一定的时间间隔连续发射n发 
-			
 				if(shooter.fricEnable == false)   //若摩擦轮未开启则先开启
 				{
 					Bus_BroadcastSend("/shooter/fricCtrl",{"enable",IM_PTR(bool,true)});
 					osDelay(200);   //等待摩擦轮转速稳定
 				}
-        shooter.totalTrigAngle += shooter.triggerAngle; 
-        shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.totalTrigAngle);
-        osDelay(shooter.intervalTime);  
+				shooter.targetTrigAngle += shooter.triggerAngle; 
+				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
+				osDelay(shooter.intervalTime);  
 				break;
 			default:
 				break;
 		}
-		osDelayUntil(&tick,shooter.taskInterval);
 	}	
 }
 
@@ -121,13 +117,13 @@ void Shooter_ShootCallback(const char* name, SoftBusFrame* frame, void* bindData
 		if(!Bus_CheckMapKeys(frame,{"start","intervalTime"}))
 			return;
 		bool startFlag = *(bool*)Bus_GetMapValue(frame,"start");
-    if(startFlag==1&&shooter->mode == SHOOTER_MODE_IDLE)
-    {
-      shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
-      shooter->mode = SHOOTER_MODE_CONTINUE;
-    }
-    else if(startFlag==0&&shooter->mode == SHOOTER_MODE_CONTINUE)
-      shooter->mode = SHOOTER_MODE_IDLE;
+		if(startFlag==1&&shooter->mode == SHOOTER_MODE_IDLE)
+		{
+			shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
+			shooter->mode = SHOOTER_MODE_CONTINUE;
+		}
+		else if(startFlag==0&&shooter->mode == SHOOTER_MODE_CONTINUE)
+			shooter->mode = SHOOTER_MODE_IDLE;
   }
 }
 
