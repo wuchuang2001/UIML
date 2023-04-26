@@ -1,9 +1,11 @@
-#include "BMI088driver.h"
+#include "bmi088_driver.h"
 #include "BMI088reg.h"
-#include "BMI088Middleware.h"
+#include "softbus.h"
+#include "config.h"
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
+#include "AHRS.h"
 // #define ACCEL_BUFFERSIZE 8
 // #define GYRO_BUFFERSIZE 9
 // #define TEMP_BUFFERSIZE 4
@@ -62,6 +64,7 @@ typedef struct
 {
 	struct 
 	{
+    float quat[4];
 		float accel[3];
 		float gyro[3];
 		float mag[3];
@@ -69,6 +72,7 @@ typedef struct
 	}imu;
 	uint8_t spiX;
 	float yaw,pitch,roll;
+  uint16_t taskInterval; //任务执行间隔
 }INS;
 
 
@@ -91,37 +95,35 @@ typedef struct
 // 	}
 // 	return number;
 // }
-
+  INS ins = {0};
 // IMU_Bmi088 IMU={0};
 // float BMI088_time;
+void INS_Init(INS* ins, ConfItem* dict);
 
 void INS_TaskCallback(void const * argument)
 {
   /* USER CODE BEGIN IMU */
-  INS ins = {0};
+	osDelay(100);
   INS_Init(&ins, (ConfItem*)argument);
-
+	AHRS_init(ins.imu.quat,ins.imu.accel,ins.imu.mag);
   /* Infinite loop */
   while(1)
   {
     BMI088_ReadData(ins.spiX, ins.imu.accel, ins.imu.gyro, &ins.imu.tmp);
-    //数据融合
-	？
-
-	//发布数据
-	？
-
-	osDelay(1);
+    //数据融合	
+		AHRS_update(ins.imu.quat,ins.taskInterval/1000.0f,ins.imu.gyro,ins.imu.accel,ins.imu.mag);
+		get_angle(ins.imu.quat,&ins.yaw,&ins.pitch,&ins.roll);
+    //发布数据
+    Bus_BroadcastSend("/imu/euler-angle",{{"yaw",&ins.yaw},{"pitch",&ins.pitch},{"roll",&ins.roll}});
+    osDelay(ins.taskInterval);
   }
   /* USER CODE END IMU */
 }
 
 void INS_Init(INS* ins, ConfItem* dict)
 {
-	//从sys_conf读参数
-	？
-
-
+  ins->spiX = Conf_GetValue(dict, "spi-x", uint8_t, 0);
+  ins->taskInterval = Conf_GetValue(dict,"taskInterval",uint16_t,10);
 	while(BMI088_AccelInit(ins->spiX) || BMI088_GyroInit(ins->spiX))
 	{
 		osDelay(10);
@@ -129,8 +131,8 @@ void INS_Init(INS* ins, ConfItem* dict)
 
 	BMI088_ReadData(ins->spiX, ins->imu.accel, ins->imu.gyro, &ins->imu.tmp);
 
-	//创建定时器进行温度pid控制
-	？
+//	//创建定时器进行温度pid控制
+//	？
 
 
 }

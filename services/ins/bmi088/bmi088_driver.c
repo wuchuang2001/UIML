@@ -1,4 +1,4 @@
-#include "BMI088driver.h"
+#include "bmi088_driver.h"
 #include "BMI088reg.h"
 #include "softbus.h"
 #include "cmsis_os.h"
@@ -36,6 +36,7 @@ uint8_t gyroIOMapCmd[]={spiWriteAddr(BMI088_GYRO_INT3_INT4_IO_MAP), BMI088_GYRO_
 uint8_t accGetDataCmd[8]={spiReadAddr(BMI088_ACCEL_XOUT_L)};
 uint8_t gyroGetDataCmd[7]={spiReadAddr(BMI088_GYRO_X_L)};
 uint8_t tmpGetDataCmd[4]={spiReadAddr(BMI088_TEMP_M)};
+
 
 bool BMI088_AccelInit(uint8_t spiX)
 {
@@ -122,7 +123,7 @@ bool BMI088_AccelInit(uint8_t spiX)
 
 bool BMI088_GyroInit(uint8_t spiX)
 {
-    uint8_t gyroId[3]= {0};
+	uint8_t gyroId[3]= {0};
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"txData", gyroIdCmd}, 
 	                              {"len", IM_PTR(uint16_t, 2)}, 
@@ -250,28 +251,7 @@ void BMI088_ReadData(uint8_t spiX, float gyro[3], float accel[3], float *tempera
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern float offset[3];
-fp32 BMI088_ACCEL_SEN = BMI088_ACCEL_3G_SEN;
-fp32 BMI088_GYRO_SEN = BMI088_GYRO_2000_SEN;
-
 
 
 #if defined(BMI088_USE_SPI)
@@ -327,6 +307,7 @@ static void BMI088_read_muli_reg(uint8_t reg, uint8_t *buf, uint8_t len);
 #endif
 
 
+/*
 void BMI088_read(fp32 gyro[3], fp32 accel[3], fp32 *temperate)
 {
     uint8_t buf[8] = {0, 0, 0, 0, 0, 0};
@@ -362,6 +343,7 @@ void BMI088_read(fp32 gyro[3], fp32 accel[3], fp32 *temperate)
 
     *temperate = bmi088_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
 }
+*/
 
 #if defined(BMI088_USE_SPI)
 

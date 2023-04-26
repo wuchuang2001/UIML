@@ -10,8 +10,8 @@
 #define BMI088DRIVER_H
 
 //#include "struct_typedef.h"
-#include "BMI088Middleware.h"//
 #include "main.h"
+#include "stdbool.h"
 
 #define BMI088_TEMP_FACTOR 0.125f
 #define BMI088_TEMP_OFFSET 23.0f
@@ -53,6 +53,8 @@
 #define BMI088_GYRO_500_SEN 0.00026631610900792382460383465095346f
 #define BMI088_GYRO_250_SEN 0.00013315805450396191230191732547673f
 #define BMI088_GYRO_125_SEN 0.000066579027251980956150958662738366f
+
+typedef float fq32;
 
 bool BMI088_AccelInit(uint8_t);
 bool BMI088_GyroInit(uint8_t);
