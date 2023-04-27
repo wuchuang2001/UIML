@@ -155,7 +155,9 @@ bool BSP_SPI_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 		return false;
 	uint8_t spiX = *(uint8_t *)Bus_GetMapValue(frame, "spi-x");
 	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "txData");
-	uint8_t* rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData"); //不检查该项是因为若为null则指向spi缓冲区
+	uint8_t* rxData = NULL;
+	if(Bus_IsMapKeyExist(frame, "rxData"))
+		rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData"); //不检查该项是因为若为null则指向spi缓冲区
 	uint16_t len = *(uint16_t*)Bus_GetMapValue(frame, "len");
 	char* csName = (char*)Bus_GetMapValue(frame, "csName");
 	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "isBlock"))? osWaitForever: 0;
@@ -191,7 +193,9 @@ bool BSP_SPI_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData
 		return false;
 	uint8_t spiX = *(uint8_t *)Bus_GetMapValue(frame, "spi-x");
 	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "txData");
-	uint8_t* rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData"); //不检查该项是因为若为null则指向spi缓冲区
+	uint8_t* rxData = NULL;
+	if(Bus_IsMapKeyExist(frame, "rxData"))
+		rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData"); //不检查该项是因为若为null则指向spi缓冲区
 	uint16_t len = *(uint16_t*)Bus_GetMapValue(frame, "len");
 	uint32_t timeout = *(uint32_t*)Bus_GetMapValue(frame, "timeout");
 	char* csName = (char*)Bus_GetMapValue(frame, "csName");
