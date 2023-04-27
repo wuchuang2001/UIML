@@ -1,10 +1,9 @@
 #include "bmi088_driver.h"
 #include "BMI088reg.h"
-#include "softbus.h"
-#include "config.h"
-#include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
+#include "softbus.h"
+#include "config.h"
 #include "AHRS.h"
 // #define ACCEL_BUFFERSIZE 8
 // #define GYRO_BUFFERSIZE 9
@@ -64,7 +63,7 @@ typedef struct
 {
 	struct 
 	{
-    float quat[4];
+		float quat[4];
 		float accel[3];
 		float gyro[3];
 		float mag[3];
@@ -73,7 +72,9 @@ typedef struct
 	}imu;
 	uint8_t spiX;
 	float yaw,pitch,roll;
-  uint16_t taskInterval; //任务执行间隔
+	uint16_t taskInterval; //任务执行间隔
+
+	char* eulerAngleName;
 }INS;
 
 
@@ -103,48 +104,51 @@ void INS_Init(INS* ins, ConfItem* dict);
 
 void INS_TaskCallback(void const * argument)
 {
-  /* USER CODE BEGIN IMU */
+	/* USER CODE BEGIN IMU */
 	osDelay(1000);
-  INS_Init(&ins, (ConfItem*)argument);
+	INS_Init(&ins, (ConfItem*)argument);
 	AHRS_init(ins.imu.quat,ins.imu.accel,ins.imu.mag);
 	osDelay(1000);
-//校准零偏
-// 		for(int i=0;i<10000;i++)
-// 		{
-// 			BMI088_ReadData(ins.spiX, ins.imu.gyro,ins.imu.accel, &ins.imu.tmp);
-// 			ins.imu.gyroOffset[0] +=ins.imu.gyro[0];
-// 			ins.imu.gyroOffset[1] +=ins.imu.gyro[1];
-// 			ins.imu.gyroOffset[2] +=ins.imu.gyro[2];
-// 			HAL_Delay(1);
-// 		}
-// 		ins.imu.gyroOffset[0] = ins.imu.gyroOffset[0]/10000.0f;
-// 		ins.imu.gyroOffset[1] = ins.imu.gyroOffset[1]/10000.0f;
-// 		ins.imu.gyroOffset[2] = ins.imu.gyroOffset[2]/10000.0f;
-	
- 		ins.imu.gyroOffset[0] = -0.000767869;   //10次校准取均值
- 		ins.imu.gyroOffset[1] = 0.000771033;  
- 		ins.imu.gyroOffset[2] = 0.001439746;
+	//校准零偏
+	// for(int i=0;i<10000;i++)
+	// {
+	// 	BMI088_ReadData(ins.spiX, ins.imu.gyro,ins.imu.accel, &ins.imu.tmp);
+	// 	ins.imu.gyroOffset[0] +=ins.imu.gyro[0];
+	// 	ins.imu.gyroOffset[1] +=ins.imu.gyro[1];
+	// 	ins.imu.gyroOffset[2] +=ins.imu.gyro[2];
+	// 	HAL_Delay(1);
+	// }
+	// ins.imu.gyroOffset[0] = ins.imu.gyroOffset[0]/10000.0f;
+	// ins.imu.gyroOffset[1] = ins.imu.gyroOffset[1]/10000.0f;
+	// ins.imu.gyroOffset[2] = ins.imu.gyroOffset[2]/10000.0f;
+
+	ins.imu.gyroOffset[0] = -0.000767869;   //10次校准取均值
+	ins.imu.gyroOffset[1] = 0.000771033;  
+	ins.imu.gyroOffset[2] = 0.001439746;
 	
   /* Infinite loop */
-  while(1)
-  {
-    BMI088_ReadData(ins.spiX, ins.imu.gyro,ins.imu.accel, &ins.imu.tmp);
+	while(1)
+	{
+		BMI088_ReadData(ins.spiX, ins.imu.gyro,ins.imu.accel, &ins.imu.tmp);
 		for(uint8_t i=0;i<3;i++)
 			ins.imu.gyro[i] -= ins.imu.gyroOffset[i];
-    //数据融合	
+		//数据融合	
 		AHRS_update(ins.imu.quat,ins.taskInterval/1000.0f,ins.imu.gyro,ins.imu.accel,ins.imu.mag);
 		get_angle(ins.imu.quat,&ins.yaw,&ins.pitch,&ins.roll);
-    //发布数据
-    Bus_BroadcastSend("/imu/euler-angle",{{"yaw",&ins.yaw},{"pitch",&ins.pitch},{"roll",&ins.roll}});
-    osDelay(ins.taskInterval);
-  }
+		//发布数据
+		Bus_BroadcastSend(ins.eulerAngleName, {{"yaw",&ins.yaw}, {"pitch",&ins.pitch}, {"roll",&ins.roll}});
+		osDelay(ins.taskInterval);
+	}
   /* USER CODE END IMU */
 }
 
 void INS_Init(INS* ins, ConfItem* dict)
 {
-  ins->spiX = Conf_GetValue(dict, "spi-x", uint8_t, 0);
-  ins->taskInterval = Conf_GetValue(dict,"taskInterval",uint16_t,10);
+	ins->spiX = Conf_GetValue(dict, "spi-x", uint8_t, 0);
+	ins->taskInterval = Conf_GetValue(dict,"taskInterval",uint16_t,10);
+	ins->eulerAngleName = Conf_GetPtr(dict,"/imu/euler-angle",char);
+	ins->eulerAngleName = ins->eulerAngleName?ins->eulerAngleName:"/imu/euler-angle";
+
 	while(BMI088_AccelInit(ins->spiX) || BMI088_GyroInit(ins->spiX))
 	{
 		osDelay(10);

@@ -43,7 +43,6 @@ bool BMI088_AccelInit(uint8_t spiX)
 	uint8_t accId[3]= {0};
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"txData", accIdCmd}, 
-																{"rxData",accId},
 	                              {"len", IM_PTR(uint16_t, 3)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"csName", "acc"}, 
@@ -81,7 +80,7 @@ bool BMI088_AccelInit(uint8_t spiX)
 		                              {"csName", "acc"}, 
 		                              {"isBlock", IM_PTR(bool, true)}}); //»Ì∏¥Œª
 		osDelay(50);
-        return true;
+		return true;
 	}
 
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
@@ -126,7 +125,7 @@ bool BMI088_AccelInit(uint8_t spiX)
 	                              {"csName", "acc"}, 
 	                              {"isBlock", IM_PTR(bool, true)}}); //
 	osDelay(1);
-    return false;
+	return false;
 }
 
 bool BMI088_GyroInit(uint8_t spiX)
@@ -134,7 +133,6 @@ bool BMI088_GyroInit(uint8_t spiX)
 	uint8_t gyroId[3]= {0};
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"txData", gyroIdCmd}, 
-																{"rxData",gyroId},
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"csName", "gyro"}, 
@@ -158,7 +156,7 @@ bool BMI088_GyroInit(uint8_t spiX)
 		                              {"csName", "gyro"}, 
 		                              {"isBlock", IM_PTR(bool, true)}}); //»Ì∏¥Œª
 		osDelay(50);
-        return true;
+		return true;
 	}
 
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
@@ -196,7 +194,7 @@ bool BMI088_GyroInit(uint8_t spiX)
 	                              {"csName", "gyro"}, 
 	                              {"isBlock", IM_PTR(bool, true)}}); //
 	osDelay(1);
-    return false;
+	return false;
 }
 
 void BMI088_ReadData(uint8_t spiX, float gyro[3], float accel[3], float *temperate)
@@ -251,141 +249,3 @@ void BMI088_ReadData(uint8_t spiX, float gyro[3], float accel[3], float *tempera
 
 	*temperate = temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
 }
-
-
-extern float offset[3];
-
-
-#if defined(BMI088_USE_SPI)
-
-#define BMI088_accel_write_single_reg(reg, data) \
-    {                                            \
-        BMI088_ACCEL_NS_L();                     \
-        BMI088_write_single_reg((reg), (data));  \
-        BMI088_ACCEL_NS_H();                     \
-    }
-#define BMI088_accel_read_single_reg(reg, data) \
-    {                                           \
-        BMI088_ACCEL_NS_L();                    \
-        BMI088_read_write_byte((reg) | 0x80);   \
-        BMI088_read_write_byte(0x55);           \
-        (data) = BMI088_read_write_byte(0x55);  \
-        BMI088_ACCEL_NS_H();                    \
-    }
-//#define BMI088_accel_write_muli_reg( reg,  data, len) { BMI088_ACCEL_NS_L(); BMI088_write_muli_reg(reg, data, len); BMI088_ACCEL_NS_H(); }
-#define BMI088_accel_read_muli_reg(reg, data, len) \
-    {                                              \
-        BMI088_ACCEL_NS_L();                       \
-        BMI088_read_write_byte((reg) | 0x80);      \
-        BMI088_read_muli_reg(reg, data, len);      \
-        BMI088_ACCEL_NS_H();                       \
-    }
-
-#define BMI088_gyro_write_single_reg(reg, data) \
-    {                                           \
-        BMI088_GYRO_NS_L();                     \
-        BMI088_write_single_reg((reg), (data)); \
-        BMI088_GYRO_NS_H();                     \
-    }
-#define BMI088_gyro_read_single_reg(reg, data)  \
-    {                                           \
-        BMI088_GYRO_NS_L();                     \
-        BMI088_read_single_reg((reg), &(data)); \
-        BMI088_GYRO_NS_H();                     \
-    }
-//#define BMI088_gyro_write_muli_reg( reg,  data, len) { BMI088_GYRO_NS_L(); BMI088_write_muli_reg( ( reg ), ( data ), ( len ) ); BMI088_GYRO_NS_H(); }
-#define BMI088_gyro_read_muli_reg(reg, data, len)   \
-    {                                               \
-        BMI088_GYRO_NS_L();                         \
-        BMI088_read_muli_reg((reg), (data), (len)); \
-        BMI088_GYRO_NS_H();                         \
-    }
-
-static void BMI088_write_single_reg(uint8_t reg, uint8_t data);
-static void BMI088_read_single_reg(uint8_t reg, uint8_t *return_data);
-//static void BMI088_write_muli_reg(uint8_t reg, uint8_t* buf, uint8_t len );
-static void BMI088_read_muli_reg(uint8_t reg, uint8_t *buf, uint8_t len);
-
-#endif
-
-
-/*
-void BMI088_read(fp32 gyro[3], fp32 accel[3], fp32 *temperate)
-{
-    uint8_t buf[8] = {0, 0, 0, 0, 0, 0};
-    int16_t bmi088_raw_temp;
-
-//    BMI088_accel_read_muli_reg(BMI088_ACCEL_XOUT_L, buf, 6);
-
-//    bmi088_raw_temp = (int16_t)((buf[1]) << 8) | buf[0];
-//    accel[0] = bmi088_raw_temp * BMI088_ACCEL_SEN;
-//    bmi088_raw_temp = (int16_t)((buf[3]) << 8) | buf[2];
-//    accel[1] = bmi088_raw_temp * BMI088_ACCEL_SEN;
-//    bmi088_raw_temp = (int16_t)((buf[5]) << 8) | buf[4];
-//    accel[2] = bmi088_raw_temp * BMI088_ACCEL_SEN;
-
-    BMI088_gyro_read_muli_reg(BMI088_GYRO_CHIP_ID, buf, 8);
-    if(buf[0] == BMI088_GYRO_CHIP_ID_VALUE)
-    {
-        bmi088_raw_temp = (int16_t)((buf[3]) << 8) | buf[2];
-        gyro[0] = bmi088_raw_temp * BMI088_GYRO_SEN;
-        bmi088_raw_temp = (int16_t)((buf[5]) << 8) | buf[4];
-        gyro[1] = bmi088_raw_temp * BMI088_GYRO_SEN;
-        bmi088_raw_temp = (int16_t)((buf[7]) << 8) | buf[6];
-        gyro[2] = bmi088_raw_temp * BMI088_GYRO_SEN;
-    }
-    BMI088_accel_read_muli_reg(BMI088_TEMP_M, buf, 2);
-
-    bmi088_raw_temp = (int16_t)((buf[0] << 3) | (buf[1] >> 5));
-
-    if (bmi088_raw_temp > 1023)
-    {
-        bmi088_raw_temp -= 2048;
-    }
-
-    *temperate = bmi088_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
-}
-*/
-
-#if defined(BMI088_USE_SPI)
-
-static void BMI088_write_single_reg(uint8_t reg, uint8_t data)
-{
-    BMI088_read_write_byte(reg);
-    BMI088_read_write_byte(data);
-}
-
-static void BMI088_read_single_reg(uint8_t reg, uint8_t *return_data)
-{
-    BMI088_read_write_byte(reg | 0x80);
-    *return_data = BMI088_read_write_byte(0x55);
-}
-
-//static void BMI088_write_muli_reg(uint8_t reg, uint8_t* buf, uint8_t len )
-//{
-//    BMI088_read_write_byte( reg );
-//    while( len != 0 )
-//    {
-
-//        BMI088_read_write_byte( *buf );
-//        buf ++;
-//        len --;
-//    }
-
-//}
-
-static void BMI088_read_muli_reg(uint8_t reg, uint8_t *buf, uint8_t len)
-{
-    BMI088_read_write_byte(reg | 0x80);
-
-    while (len != 0)
-    {
-
-        *buf = BMI088_read_write_byte(0x55);
-        buf++;
-        len--;
-    }
-}
-#elif defined(BMI088_USE_IIC)
-
-#endif
