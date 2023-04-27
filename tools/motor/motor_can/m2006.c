@@ -33,6 +33,7 @@ typedef struct _M2006
 	PID speedPID;//速度pid(单级)
 	CascadePID anglePID;//角度pid，串级
 	
+	char* stallName;
 }M2006;
 
 Motor* M2006_Init(ConfItem* dict);
@@ -58,7 +59,7 @@ void M2006_TimerCallback(void const *argument)
 	m2006->stallTime = (m2006->speed == 0 && m2006->torque > 7000) ? m2006->stallTime + 2 : 0;
 	if (m2006->stallTime > 500)
 	{
-		Bus_BroadcastSend("/motor/stall", {{"motor", m2006}});
+		Bus_BroadcastSend(m2006->stallName, {{}});
 		m2006->stallTime = 0;
 	}
 }
@@ -90,6 +91,12 @@ Motor* M2006_Init(ConfItem* dict)
 	char name[] = "/can_/recv";
 	name[4] = m2006->canInfo.canX + '0';
 	Bus_RegisterReceiver(m2006, M2006_SoftBusCallback, name);
+
+	char* motorName = Conf_GetPtr(dict, "name", char);
+	motorName = motorName ? motorName : "motor";
+	uint8_t len = strlen(motorName);
+	m2006->stallName = MOTOR_MALLOC_PORT(len + 7+ 1); //7为"/   /stall"的长度，1为'\0'的长度
+	sprintf(m2006->stallName, "/%s/stall", motorName);
 	//开启软件定时器
 	osTimerDef(M2006, M2006_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);

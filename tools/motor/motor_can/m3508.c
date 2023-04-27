@@ -33,6 +33,7 @@ typedef struct _M3508
 	PID speedPID;//速度pid(单级)
 	CascadePID anglePID;//角度pid，串级
 	
+	char* stallName;
 }M3508;
 
 Motor* M3508_Init(ConfItem* dict);
@@ -58,7 +59,7 @@ void M3508_TimerCallback(void const *argument)
 	m3508->stallTime = (m3508->speed == 0 && m3508->torque > 7000) ? m3508->stallTime + 2 : 0;
 	if (m3508->stallTime > 500)
 	{
-		Bus_BroadcastSend("/motor/stall", {{"motor", m3508}});
+		Bus_BroadcastSend(m3508->stallName, {{}});
 		m3508->stallTime = 0;
 	}
 }
@@ -90,6 +91,12 @@ Motor* M3508_Init(ConfItem* dict)
 	char name[] = "/can_/recv";
 	name[4] = m3508->canInfo.canX + '0';
 	Bus_RegisterReceiver(m3508, M3508_SoftBusCallback, name);
+
+	char* motorName = Conf_GetPtr(dict, "name", char);
+	motorName = motorName ? motorName : "motor";
+	uint8_t len = strlen(motorName);
+	m3508->stallName = MOTOR_MALLOC_PORT(len + 7+ 1); //7为"/   /stall"的长度，1为'\0'的长度
+	sprintf(m3508->stallName, "/%s/stall", motorName);
 	//开启软件定时器
 	osTimerDef(M3508, M3508_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M3508), osTimerPeriodic, m3508), 2);

@@ -34,6 +34,10 @@ typedef struct _Chassis
 	float relativeAngle; //与底盘的偏离角，单位度
 	
 	uint8_t taskInterval;
+
+	char* speedName;
+	char* accName;
+	char* relAngleName;
 	
 }Chassis;
 
@@ -120,9 +124,17 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 	{
 		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
 	}
-	Bus_RegisterRemoteFunc(chassis, Chassis_SetSpeedCallback, "/chassis/speed");
-	Bus_RegisterRemoteFunc(chassis, Chassis_SetAccCallback, "/chassis/acc");
-	Bus_RegisterRemoteFunc(chassis, Chassis_SetRelativeAngleCallback, "/chassis/relativeAngle");
+	//软总线广播、远程函数name重映射
+	chassis->speedName = Conf_GetPtr(dict, "/chassis/speed", char);
+	chassis->speedName = chassis->speedName?chassis->speedName:"/chassis/speed";
+	chassis->accName = Conf_GetPtr(dict, "/chassis/acc", char);
+	chassis->accName = chassis->accName?chassis->accName:"/chassis/acc";
+	chassis->relAngleName = Conf_GetPtr(dict, "/chassis/relativeAngle", char);
+	chassis->relAngleName = chassis->relAngleName?chassis->relAngleName:"/chassis/relativeAngle";
+
+	Bus_RegisterRemoteFunc(chassis, Chassis_SetSpeedCallback, chassis->speedName);
+	Bus_RegisterRemoteFunc(chassis, Chassis_SetAccCallback, chassis->accName);
+	Bus_RegisterRemoteFunc(chassis, Chassis_SetRelativeAngleCallback, chassis->relAngleName);
 	Bus_RegisterRemoteFunc(chassis, Chassis_StopCallback, "/system/stop");
 }
 

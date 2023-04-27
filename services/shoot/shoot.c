@@ -21,6 +21,10 @@ typedef struct
 	uint16_t intervalTime; //连发间隔ms
 	uint8_t mode;
 	uint8_t taskInterval;
+
+	char* settingName;
+	char* changeModeName;
+	char* triggerStallName;
 }Shooter;
 
 void Shooter_Init(Shooter* shooter, ConfItem* dict);
@@ -95,11 +99,19 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 		shooter->fricMotors[i]->changeMode(shooter->fricMotors[i], MOTOR_SPEED_MODE);
 	}
 	shooter->triggerMotor->changeMode(shooter->triggerMotor,MOTOR_ANGLE_MODE);
+
+	shooter->settingName = Conf_GetPtr(dict,"/shooter/setting",char);
+	shooter->settingName = shooter->settingName?shooter->settingName:"/shooter/setting";
+	shooter->changeModeName = Conf_GetPtr(dict,"/shooter/mode",char);
+	shooter->changeModeName = shooter->changeModeName?shooter->changeModeName:"/shooter/mode";
+	shooter->triggerStallName = Conf_GetPtr(dict,"/triggerMotor/stall",char);
+	shooter->triggerStallName = shooter->triggerStallName?shooter->triggerStallName:"/triggerMotor/stall";
+
 	//注册回调函数
-	Bus_RegisterRemoteFunc(shooter,Shooter_SettingCallback,"/shooter/setting");
-	Bus_RegisterRemoteFunc(shooter,Shoot_ChangeModeCallback,"/shooter/mode");
+	Bus_RegisterRemoteFunc(shooter,Shooter_SettingCallback, shooter->settingName);
+	Bus_RegisterRemoteFunc(shooter,Shoot_ChangeModeCallback, shooter->changeModeName);
 	Bus_RegisterRemoteFunc(shooter,Shoot_StopCallback,"/system/stop");
-	Bus_RegisterReceiver(shooter,Shooter_BlockCallback,"/motor/stall");
+	Bus_RegisterReceiver(shooter,Shooter_BlockCallback, shooter->triggerStallName);
 }
 
 //射击模式
@@ -164,13 +176,7 @@ bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindD
 void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData;
-	if(!Bus_IsMapKeyExist(frame,"motor"))
-		return;
-	Motor *motor = (Motor *)Bus_GetMapValue(frame,"motor");
-	if(motor == shooter->triggerMotor)
-	{
-		shooter->mode = SHOOTER_MODE_BLOCK;
-	}
+	shooter->mode = SHOOTER_MODE_BLOCK;
 }
 
 bool Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)

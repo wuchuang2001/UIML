@@ -31,7 +31,12 @@ typedef struct _Gimbal
 		PID pid[2];
 	}imu;
 	float angle[2];	//云台角度
-	uint8_t taskInterval;		
+	uint8_t taskInterval;	
+
+	char* yawRelAngleName;	
+	char* imuEulerAngleName;
+	char* settingName;
+	
 }Gimbal;
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict);
@@ -80,7 +85,7 @@ void Gimbal_TaskCallback(void const * argument)
 		int16_t turns = (int32_t)gimbal.relativeAngle / 360; //转数
 		turns = turns < 0 ? turns - 1 : turns; //如果是负数多减一圈使偏离角变成正数
 		gimbal.relativeAngle -= turns*360; //0-360度
-		Bus_BroadcastSend("/gimbal/yaw/relative-angle", {{"angle", &gimbal.relativeAngle}});
+		Bus_BroadcastSend(gimbal.yawRelAngleName, {{"angle", &gimbal.relativeAngle}});
 		osDelay(gimbal.taskInterval);
 	}
 }
@@ -101,12 +106,19 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	PID_Init(&gimbal->imu.pid[0], Conf_GetPtr(dict, "motor-yaw/imu", ConfItem));
 	PID_Init(&gimbal->imu.pid[1], Conf_GetPtr(dict, "motor-pitch/imu", ConfItem));
 
+	gimbal->imuEulerAngleName = Conf_GetPtr(dict, "/imu/euler-angle", char);
+	gimbal->imuEulerAngleName = gimbal->imuEulerAngleName?gimbal->imuEulerAngleName:"/imu/euler-angle";
+	gimbal->settingName = Conf_GetPtr(dict, "/gimbal", char);
+	gimbal->settingName = gimbal->settingName?gimbal->settingName:"/gimbal";
+	gimbal->yawRelAngleName = Conf_GetPtr(dict, "/gimbal/yaw/relative-angle", char);
+	gimbal->yawRelAngleName = gimbal->yawRelAngleName?gimbal->yawRelAngleName:"/gimbal/yaw/relative-angle";
+
 	//初始化云台模式为 编码器模式
 	gimbal->mode = Conf_GetValue(dict, "mode", GimbalCtrlMode, GIMBAL_ECD_MODE);
 	//不在这里设置模式，因为在未设置好零点前，pid会驱使电机达到编码器的零点或者imu的初始化零点
 
-	Bus_RegisterReceiver(gimbal, Gimbal_BroadcastCallback, "/imu/euler-angle");
-	Bus_RegisterRemoteFunc(gimbal, Gimbal_SettingCallback, "/gimbal");
+	Bus_RegisterReceiver(gimbal, Gimbal_BroadcastCallback, gimbal->imuEulerAngleName);
+	Bus_RegisterRemoteFunc(gimbal, Gimbal_SettingCallback, gimbal->settingName);
 	Bus_RegisterRemoteFunc(gimbal, Gimbal_StopCallback, "/system/stop"); //急停
 }
 

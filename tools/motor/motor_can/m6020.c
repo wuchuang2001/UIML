@@ -30,7 +30,6 @@ typedef struct _M6020
 	
 	PID speedPID;//速度pid(单级)
 	CascadePID anglePID;//角度pid，串级
-	
 }M6020;
 
 Motor* M6020_Init(ConfItem* dict);
