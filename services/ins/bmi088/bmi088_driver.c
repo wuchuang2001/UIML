@@ -20,7 +20,7 @@ uint8_t gyroIdCmd[] = {spiReadAddr(BMI088_GYRO_CHIP_ID), 0};
 uint8_t accPwrCtrlCmd[]={spiWriteAddr(BMI088_ACC_PWR_CTRL), BMI088_ACC_ENABLE_ACC_ON};
 uint8_t accPwrConfCmd[]={spiWriteAddr(BMI088_ACC_PWR_CONF), BMI088_ACC_PWR_ACTIVE_MODE};
 uint8_t accConfCmd[]={spiWriteAddr(BMI088_ACC_CONF),  BMI088_ACC_NORMAL| BMI088_ACC_800_HZ | BMI088_ACC_CONF_MUST_Set};
-uint8_t accRangeCmd[]={spiWriteAddr(BMI088_ACC_RANGE), BMI088_ACC_RANGE_3G};
+uint8_t accRangeCmd[]={spiWriteAddr(BMI088_ACC_RANGE), BMI088_ACC_RANGE_6G};
 uint8_t accIOConfCmd[]={spiWriteAddr(BMI088_INT1_IO_CTRL), BMI088_ACC_INT1_IO_ENABLE | BMI088_ACC_INT1_GPIO_PP | BMI088_ACC_INT1_GPIO_LOW};
 uint8_t accIOMapCmd[]={spiWriteAddr(BMI088_INT_MAP_DATA), BMI088_ACC_INT1_DRDY_INTERRUPT};
 
@@ -43,6 +43,7 @@ bool BMI088_AccelInit(uint8_t spiX)
 	uint8_t accId[3]= {0};
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"txData", accIdCmd}, 
+																{"rxData",accId},
 	                              {"len", IM_PTR(uint16_t, 3)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"csName", "acc"}, 
@@ -98,11 +99,18 @@ bool BMI088_AccelInit(uint8_t spiX)
 	                              {"isBlock", IM_PTR(bool, true)}}); //配置加速度计量程+-3g
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
-	                              {"txData", gyroPwrConfCmd}, 
+	                              {"txData", accPwrConfCmd}, 
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"csName", "acc"}, 
 	                              {"isBlock", IM_PTR(bool, true)}}); //配置进入正常模式
+	osDelay(1);
+	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
+	                              {"txData", accPwrCtrlCmd}, 
+	                              {"len", IM_PTR(uint16_t, 2)}, 
+	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
+	                              {"csName", "acc"}, 
+	                              {"isBlock", IM_PTR(bool, true)}}); 
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"txData", accIOConfCmd}, 
@@ -126,6 +134,7 @@ bool BMI088_GyroInit(uint8_t spiX)
 	uint8_t gyroId[3]= {0};
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"txData", gyroIdCmd}, 
+																{"rxData",gyroId},
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"csName", "gyro"}, 
@@ -167,18 +176,11 @@ bool BMI088_GyroInit(uint8_t spiX)
 	                              {"isBlock", IM_PTR(bool, true)}}); //配置陀螺仪输出范围+-2000°/s
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
-	                              {"txData", accPwrConfCmd}, 
+	                              {"txData", gyroPwrConfCmd},
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"csName", "gyro"}, 
 	                              {"isBlock", IM_PTR(bool, true)}}); //配置进入活动模式
-	osDelay(1);
-	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
-	                              {"txData", accPwrCtrlCmd}, 
-	                              {"len", IM_PTR(uint16_t, 2)}, 
-	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
-	                              {"csName", "gyro"}, 
-	                              {"isBlock", IM_PTR(bool, true)}}); //打开陀螺仪电源
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"txData", gyroIOConfCmd}, 

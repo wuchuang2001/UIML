@@ -68,6 +68,7 @@ typedef struct
 		float accel[3];
 		float gyro[3];
 		float mag[3];
+		float gyroOffset[3];
 		float tmp;
 	}imu;
 	uint8_t spiX;
@@ -103,13 +104,33 @@ void INS_Init(INS* ins, ConfItem* dict);
 void INS_TaskCallback(void const * argument)
 {
   /* USER CODE BEGIN IMU */
-	osDelay(100);
+	osDelay(1000);
   INS_Init(&ins, (ConfItem*)argument);
 	AHRS_init(ins.imu.quat,ins.imu.accel,ins.imu.mag);
+	osDelay(1000);
+//校准零偏
+// 		for(int i=0;i<10000;i++)
+// 		{
+// 			BMI088_ReadData(ins.spiX, ins.imu.gyro,ins.imu.accel, &ins.imu.tmp);
+// 			ins.imu.gyroOffset[0] +=ins.imu.gyro[0];
+// 			ins.imu.gyroOffset[1] +=ins.imu.gyro[1];
+// 			ins.imu.gyroOffset[2] +=ins.imu.gyro[2];
+// 			HAL_Delay(1);
+// 		}
+// 		ins.imu.gyroOffset[0] = ins.imu.gyroOffset[0]/10000.0f;
+// 		ins.imu.gyroOffset[1] = ins.imu.gyroOffset[1]/10000.0f;
+// 		ins.imu.gyroOffset[2] = ins.imu.gyroOffset[2]/10000.0f;
+	
+ 		ins.imu.gyroOffset[0] = -0.000767869;   //10次校准取均值
+ 		ins.imu.gyroOffset[1] = 0.000771033;  
+ 		ins.imu.gyroOffset[2] = 0.001439746;
+	
   /* Infinite loop */
   while(1)
   {
-    BMI088_ReadData(ins.spiX, ins.imu.accel, ins.imu.gyro, &ins.imu.tmp);
+    BMI088_ReadData(ins.spiX, ins.imu.gyro,ins.imu.accel, &ins.imu.tmp);
+		for(uint8_t i=0;i<3;i++)
+			ins.imu.gyro[i] -= ins.imu.gyroOffset[i];
     //数据融合	
 		AHRS_update(ins.imu.quat,ins.taskInterval/1000.0f,ins.imu.gyro,ins.imu.accel,ins.imu.mag);
 		get_angle(ins.imu.quat,&ins.yaw,&ins.pitch,&ins.roll);
@@ -129,7 +150,7 @@ void INS_Init(INS* ins, ConfItem* dict)
 		osDelay(10);
 	}
 
-	BMI088_ReadData(ins->spiX, ins->imu.accel, ins->imu.gyro, &ins->imu.tmp);
+	BMI088_ReadData(ins->spiX, ins->imu.gyro,ins->imu.accel, &ins->imu.tmp);
 
 //	//创建定时器进行温度pid控制
 //	？
