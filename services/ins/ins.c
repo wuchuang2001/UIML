@@ -4,6 +4,8 @@
 #include "softbus.h"
 #include "config.h"
 #include "AHRS.h"
+#include "pid.h"
+#include "filter.h"
 // #define ACCEL_BUFFERSIZE 8
 // #define GYRO_BUFFERSIZE 9
 // #define TEMP_BUFFERSIZE 4
@@ -71,6 +73,13 @@ typedef struct
 	}imu;
 	uint8_t spiX;
 	float yaw,pitch,roll;
+	float targetTmp;
+	uint8_t timX;
+	uint8_t channelX;
+
+	PID tmpPID;
+	Filter *filter;
+
 	uint16_t taskInterval; //任务执行间隔
 
 	char* eulerAngleName;
@@ -100,6 +109,7 @@ typedef struct
 // IMU_Bmi088 IMU={0};
 // float BMI088_time;
 void INS_Init(INS* ins, ConfItem* dict);
+void INS_TmpPIDTimerCallback(void const *argument);
 
 void INS_TaskCallback(void const * argument)
 {
@@ -131,6 +141,10 @@ void INS_TaskCallback(void const * argument)
 		BMI088_ReadData(ins.spiX, ins.imu.gyro,ins.imu.accel, &ins.imu.tmp);
 		for(uint8_t i=0;i<3;i++)
 			ins.imu.gyro[i] -= ins.imu.gyroOffset[i];
+
+		//滤波
+		// for(uint8_t i=0;i<3;i++)
+		// 	ins.imu.accel[i] = ins.filter->cala(ins.filter , ins.imu.accel[i]);
 		//数据融合	
 		AHRS_update(ins.imu.quat,ins.taskInterval/1000.0f,ins.imu.gyro,ins.imu.accel,ins.imu.mag);
 		get_angle(ins.imu.quat,&ins.yaw,&ins.pitch,&ins.roll);
@@ -144,7 +158,12 @@ void INS_TaskCallback(void const * argument)
 void INS_Init(INS* ins, ConfItem* dict)
 {
 	ins->spiX = Conf_GetValue(dict, "spi-x", uint8_t, 0);
+	ins->targetTmp = Conf_GetValue(dict, "target-temperature", uint8_t, 40);
 	ins->taskInterval = Conf_GetValue(dict,"taskInterval",uint16_t,10);
+
+	// ins->filter = Filter_Init(Conf_GetPtr(dict, "filter", ConfItem));
+	PID_Init(&ins->tmpPID, Conf_GetPtr(dict, "tmpPID", ConfItem));
+
 	ins->eulerAngleName = Conf_GetPtr(dict,"/imu/euler-angle",char);
 	ins->eulerAngleName = ins->eulerAngleName?ins->eulerAngleName:"/imu/euler-angle";
 
@@ -155,10 +174,18 @@ void INS_Init(INS* ins, ConfItem* dict)
 
 	BMI088_ReadData(ins->spiX, ins->imu.gyro,ins->imu.accel, &ins->imu.tmp);
 
-//	//创建定时器进行温度pid控制
-//	？
+	//创建定时器进行温度pid控制
+	osTimerDef(tmp, INS_TmpPIDTimerCallback);
+	osTimerStart(osTimerCreate(osTimer(tmp), osTimerPeriodic, &ins), 2);
+}
 
-
+//软件定时器回调函数
+void INS_TmpPIDTimerCallback(void const *argument)
+{
+	INS* ins = pvTimerGetTimerID((TimerHandle_t)argument);
+	PID_SingleCalc(&ins->tmpPID, ins->targetTmp, ins->imu.tmp);
+	ins->tmpPID.output = ins->tmpPID.output > 0? ins->tmpPID.output : 0;
+	Bus_RemoteCall("/tim/pwm/set-duty", {{"tim-x", &ins->timX}, {"channel-x", &ins->channelX}, {"duty", &ins->tmpPID.output}});
 }
 
 // uint8_t BMI088_init(IMU_Bmi088 *IMU)
