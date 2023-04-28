@@ -23,7 +23,7 @@
 
 下方的服务配置可能会用到一些其他文件中定义的变量(如`hcan1`等)，因此需要在此配置引用的文件
 
-此部分支持Keil的Configuration Wizard图形化配置，在Keil中勾选对应项即可
+此部分支持Keil的**Configuration Wizard**图形化配置，在Keil中勾选对应项即可
 
 ![图形化配置](README-IMG/图形化配置.png)
 

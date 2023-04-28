@@ -13,10 +13,10 @@
 //<i>Select to include "gpio.h"
 //<q3>TIM
 //<i>Select to include "tim.h"
-#define CONF_CAN_ENABLE		1
-#define CONF_USART_ENABLE	1
-#define CONF_EXIT_ENABLE 1
-#define CONF_TIM_ENABLE 1
+#define CONF_CAN_ENABLE     1
+#define CONF_USART_ENABLE   1
+#define CONF_EXIT_ENABLE    1
+#define CONF_TIM_ENABLE     1
 //</h>
 #if CONF_CAN_ENABLE
 #include "can.h"
@@ -322,30 +322,30 @@ ConfItem* systemConfig = CF_DICT{
 	   CF_DICT_END
 	}},
 	//串口服务配置
-	{"uart",CF_DICT{
-		{"uarts",CF_DICT{
-			{"0",CF_DICT{
-				{"huart",&huart1},
-				{"uart-x",IM_PTR(uint8_t,1)},
-				{"maxRecvSize",IM_PTR(uint16_t,100)},
-				CF_DICT_END
-				}},
-			{"1",CF_DICT{
-				{"huart",&huart3},
-				{"uart-x",IM_PTR(uint8_t,3)},
-				{"maxRecvSize",IM_PTR(uint16_t,18)},
-				CF_DICT_END
-				}},
-			{"2",CF_DICT{
-				{"huart",&huart6},
-				{"uart-x",IM_PTR(uint8_t,6)},
-				{"maxRecvSize",IM_PTR(uint16_t,300)},
-				CF_DICT_END
-				}},
-			CF_DICT_END
-			}},	
-		CF_DICT_END
-		}},
+//	{"uart",CF_DICT{
+//		{"uarts",CF_DICT{
+//			{"0",CF_DICT{
+//				{"huart",&huart1},
+//				{"uart-x",IM_PTR(uint8_t,1)},
+//				{"maxRecvSize",IM_PTR(uint16_t,100)},
+//				CF_DICT_END
+//				}},
+//			{"1",CF_DICT{
+//				{"huart",&huart3},
+//				{"uart-x",IM_PTR(uint8_t,3)},
+//				{"maxRecvSize",IM_PTR(uint16_t,18)},
+//				CF_DICT_END
+//				}},
+//			{"2",CF_DICT{
+//				{"huart",&huart6},
+//				{"uart-x",IM_PTR(uint8_t,6)},
+//				{"maxRecvSize",IM_PTR(uint16_t,300)},
+//				CF_DICT_END
+//				}},
+//			CF_DICT_END
+//			}},	
+//		CF_DICT_END
+//		}},
 	//外部中断服务配置
 	{"exti",CF_DICT{
 		{"extis",CF_DICT{
@@ -364,24 +364,24 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 		}},
 	//定时器服务配置
-	{"tim",CF_DICT{
-		{"tims",CF_DICT{
-			{"0",CF_DICT{
-				{"htim",&htim2},
-				{"number",IM_PTR(uint8_t,2)},
-				{"mode","encode"},
-				CF_DICT_END
-				}},
-			{"1",CF_DICT{
-				{"htim",&htim1},
-				{"number",IM_PTR(uint8_t,1)},
-				{"mode","pwm"},
-				CF_DICT_END
-				}}, 
-			CF_DICT_END
-			}},
-		CF_DICT_END
-		}},
+//	{"tim",CF_DICT{
+//		{"tims",CF_DICT{
+//			{"0",CF_DICT{
+//				{"htim",&htim2},
+//				{"number",IM_PTR(uint8_t,2)},
+//				{"mode","encode"},
+//				CF_DICT_END
+//				}},
+//			{"1",CF_DICT{
+//				{"htim",&htim1},
+//				{"number",IM_PTR(uint8_t,1)},
+//				{"mode","pwm"},
+//				CF_DICT_END
+//				}}, 
+//			CF_DICT_END
+//			}},
+//		CF_DICT_END
+//		}},
 	//裁判系统服务配置
 	{"judge",CF_DICT{
 		{"maxTxQueueLength",IM_PTR(uint16_t,20)},
