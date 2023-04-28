@@ -59,7 +59,7 @@ void M3508_TimerCallback(void const *argument)
 	m3508->stallTime = (m3508->speed == 0 && m3508->torque > 7000) ? m3508->stallTime + 2 : 0;
 	if (m3508->stallTime > 500)
 	{
-		Bus_BroadcastSend(m3508->stallName, {{}});
+		Bus_BroadcastSend(m3508->stallName, {{""}});
 		m3508->stallTime = 0;
 	}
 }

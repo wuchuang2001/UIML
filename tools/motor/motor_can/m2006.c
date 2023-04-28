@@ -59,7 +59,7 @@ void M2006_TimerCallback(void const *argument)
 	m2006->stallTime = (m2006->speed == 0 && m2006->torque > 7000) ? m2006->stallTime + 2 : 0;
 	if (m2006->stallTime > 500)
 	{
-		Bus_BroadcastSend(m2006->stallName, {{}});
+		Bus_BroadcastSend(m2006->stallName, {{""}});
 		m2006->stallTime = 0;
 	}
 }

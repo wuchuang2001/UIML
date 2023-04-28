@@ -36,6 +36,7 @@ bool Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_TaskCallback(void const * argument)
 {
 	portENTER_CRITICAL();
+	float totalAngle; //为解决warning，C语言中标签的下一条语句不能是定义变量的表达式，而case恰好就是标签
 	Shooter shooter={0};
 	Shooter_Init(&shooter, (ConfItem*)argument);
 	portEXIT_CRITICAL();
@@ -49,7 +50,7 @@ void Shooter_TaskCallback(void const * argument)
 				osDelay(shooter.taskInterval);
 				break;
 			case SHOOTER_MODE_BLOCK:
-				float totalAngle = shooter.triggerMotor->getData(shooter.triggerMotor, "totalAngle"); //重置电机角度为当前累计角度
+				totalAngle = shooter.triggerMotor->getData(shooter.triggerMotor, "totalAngle"); //重置电机角度为当前累计角度
 				shooter.targetTrigAngle = totalAngle - shooter.triggerAngle*0.5f;  //反转
 				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
 				osDelay(500);   //等待电机堵转恢复
@@ -149,7 +150,7 @@ bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindD
 	Shooter *shooter = (Shooter*)bindData;
 	if(Bus_IsMapKeyExist(frame,"mode"))
 	{
-		uint8_t* mode = (uint8_t*)Bus_GetMapValue(frame,"mode");
+		char* mode = (char*)Bus_GetMapValue(frame,"mode");
 		if(!strcmp(mode,"once") && shooter->mode == SHOOTER_MODE_IDLE)  //空闲时才允许修改模式
 		{
 			shooter->mode = SHOOTER_MODE_ONCE;

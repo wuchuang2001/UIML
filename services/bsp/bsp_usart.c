@@ -108,9 +108,9 @@ void BSP_UART_Init(ConfItem* dict)
 	}
 
 	//¶©ÔÄ»°Ìâ
-	Bus_RegisterRemoteFunc(NULL, BSP_UART_SoftBusCallback, "/uart/trans/block");
-	Bus_RegisterRemoteFunc(NULL, BSP_UART_SoftBusCallback, "/uart/trans/it");
-	Bus_RegisterRemoteFunc(NULL, BSP_UART_SoftBusCallback, "/uart/trans/dma");
+	Bus_RegisterRemoteFunc(NULL, BSP_UART_BlockCallback, "/uart/trans/block");
+	Bus_RegisterRemoteFunc(NULL, BSP_UART_ItCallback, "/uart/trans/it");
+	Bus_RegisterRemoteFunc(NULL, BSP_UART_DMACallback, "/uart/trans/dma");
 	uartService.initFinished = 1;
 }
 
@@ -148,7 +148,7 @@ void BSP_UART_InitRecvBuffer(UARTInfo* info)
 bool BSP_UART_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"uart-x", "data", "transSize", "timeout"}))
-		return;
+		return false;
 
 	uint8_t uartX = *(uint8_t*)Bus_GetMapValue(frame, "uart-x");
 	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
@@ -162,7 +162,7 @@ bool BSP_UART_BlockCallback(const char* name, SoftBusFrame* frame, void* bindDat
 bool BSP_UART_ItCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"uart-x","data","transSize"}))
-		return;
+		return false;
 
 	uint8_t uartX = *(uint8_t*)Bus_GetMapValue(frame, "uart-x");
 	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
@@ -175,7 +175,7 @@ bool BSP_UART_ItCallback(const char* name, SoftBusFrame* frame, void* bindData)
 bool BSP_UART_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"uart-x","data","transSize"}))
-		return;
+		return false;
 
 	uint8_t uartX = *(uint8_t*)Bus_GetMapValue(frame, "uart-x");
 	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");

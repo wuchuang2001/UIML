@@ -103,7 +103,7 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","duty"}))
-		return;
+		return false;
 	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
 	uint8_t	channelX=*(uint8_t*)Bus_GetMapValue(frame,"channel-x");
 	float duty=*(float*)Bus_GetMapValue(frame,"duty");
@@ -131,7 +131,6 @@ bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindDa
 				break;
 			}
 			return true;
-			break;
 		}
 	}
 	return false;

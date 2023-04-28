@@ -209,7 +209,7 @@ uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t stdId,uint8_t* data)
 bool BSP_CAN_SetBufCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"can-x", "id", "pos", "len", "data"}))
-		return;
+		return false;
 	
 	uint8_t canX = *(uint8_t*)Bus_GetMapValue(frame, "can-x");
 	uint16_t frameID = *(uint16_t*)Bus_GetMapValue(frame, "id");
@@ -232,7 +232,7 @@ bool BSP_CAN_SetBufCallback(const char* name, SoftBusFrame* frame, void* bindDat
 bool BSP_CAN_SendOnceCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"can-x", "id", "data"}))
-		return;
+		return false;
 
 	uint8_t canX = *(uint8_t*)Bus_GetMapValue(frame, "can-x");
 	uint16_t frameID = *(uint16_t*)Bus_GetMapValue(frame, "id");
