@@ -66,13 +66,13 @@ void Shooter_TaskCallback(void const * argument)
 				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
 				shooter.mode = SHOOTER_MODE_IDLE;
 				break;
-			case SHOOTER_MODE_CONTINUE:  //以一定的时间间隔连续发射n发 
+			case SHOOTER_MODE_CONTINUE:  //以一定的时间间隔连续发射 
 				if(shooter.fricEnable == false)   //若摩擦轮未开启则先开启
 				{
 					Bus_BroadcastSend("/shooter/fricCtrl",{"enable",IM_PTR(bool,true)});
 					osDelay(200);   //等待摩擦轮转速稳定
 				}
-				shooter.targetTrigAngle += shooter.triggerAngle; 
+				shooter.targetTrigAngle += shooter.triggerAngle;  //增加拨弹电机目标角度
 				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
 				osDelay(shooter.intervalTime);  
 				break;
@@ -164,7 +164,7 @@ bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindD
 			shooter->mode = SHOOTER_MODE_CONTINUE;
 			return true;
 		}
-		else if(!strcmp(mode,"idle"))
+		else if(!strcmp(mode,"idle") && shooter->mode != SHOOTER_MODE_BLOCK)
 		{
 			shooter->mode = SHOOTER_MODE_IDLE;
 			return true;
@@ -179,7 +179,7 @@ void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData
 	Shooter *shooter = (Shooter*)bindData;
 	shooter->mode = SHOOTER_MODE_BLOCK;
 }
-
+//急停
 bool Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData;

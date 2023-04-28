@@ -1,5 +1,4 @@
 #include "bmi088_driver.h"
-#include "BMI088reg.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
 #include "softbus.h"

@@ -43,7 +43,7 @@ void Bus_EmptyBroadcastReceiver(const char* name, SoftBusFrame* frame, void* bin
 bool Bus_EmptyRemoteFunction(const char* name, SoftBusFrame* frame, void* bindData);//空回调函数
 
 Vector hashList={0};
-
+//初始化hash树
 int8_t Bus_Init()
 {
     return Vector_Init(hashList,HashNode);
@@ -79,7 +79,7 @@ int8_t Bus_RegisterReceiver(void* bindData, SoftBusBroadcastReceiver callback, c
 			}
 			Vector callbackNodes = Vector_Create(CallbackNode);//未匹配到receiver产生hash冲突，在该hash节点处添加一个receiver节点解决hash冲突
 			Vector_PushBack(callbackNodes, ((CallbackNode){bindData, callback}));
-			char* nameCpy = SOFTBUS_MALLOC_PORT(SOFTBUS_STRLEN_PORT(name)+1);
+			char* nameCpy = SOFTBUS_MALLOC_PORT(SOFTBUS_STRLEN_PORT(name)+1);//防止name是局部变量，分配空间保存到hash树中
 			SOFTBUS_MEMCPY_PORT(nameCpy, name, SOFTBUS_STRLEN_PORT(name)+1);
 			return Vector_PushBack(hashNode->receiverNodes,((ReceiverNode){nameCpy, callbackNodes}));
 		}
@@ -166,7 +166,7 @@ void _Bus_BroadcastSendList(SoftBusReceiverHandle receiverHandle, uint16_t listN
 		return;
 	ReceiverNode* receiverNode = (ReceiverNode*)receiverHandle;
 	SoftBusFrame frame = {list, listNum};
-	Vector_ForEach(receiverNode->callbackNodes, callbackNode, CallbackNode)
+	Vector_ForEach(receiverNode->callbackNodes, callbackNode, CallbackNode)//抛出该快速句柄下所有回调函数
 	{
 		(*((SoftBusBroadcastReceiver)callbackNode->callback))(receiverNode->name, &frame, callbackNode->bindData);
 	}

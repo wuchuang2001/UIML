@@ -109,7 +109,7 @@ bool BMI088_AccelInit(uint8_t spiX)
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"csName", "acc"}, 
-	                              {"isBlock", IM_PTR(bool, true)}}); 
+	                              {"isBlock", IM_PTR(bool, true)}});  //打开加速度计电源
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"txData", accIOConfCmd}, 
@@ -239,7 +239,7 @@ void BMI088_ReadData(uint8_t spiX, float gyro[3], float accel[3], float *tempera
 	                              {"len", IM_PTR(uint16_t, 4)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"csName", "acc"}, 
-	                              {"isBlock", IM_PTR(bool, true)}}); //获取陀螺仪数据
+	                              {"isBlock", IM_PTR(bool, true)}}); //获取温度数据
 	temp = (int16_t)((buf[2] << 3) | (buf[3] >> 5));
 
 	if (temp > 1023)

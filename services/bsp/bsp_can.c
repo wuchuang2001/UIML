@@ -8,23 +8,23 @@
 typedef struct {
 	CAN_HandleTypeDef* hcan;
 	uint8_t number; //canX中的X
-	SoftBusReceiverHandle fastHandle;
+	SoftBusReceiverHandle fastHandle;  //快速广播句柄
 }CANInfo;
 
 //循环发送缓冲区
 typedef struct {
 	CANInfo* canInfo; //指向所绑定的CANInfo
-	uint16_t frameID;
-	uint8_t* data;
+	uint16_t frameID; //can帧ID
+	uint8_t* data;    //can帧8字节数据
 }CANRepeatBuffer;
 
 //本CAN服务数据
 typedef struct {
-	CANInfo* canList;
-	uint8_t canNum;
-	CANRepeatBuffer* repeatBuffers;
-	uint8_t bufferNum;
-	uint8_t initFinished;
+	CANInfo* canList; //can列表
+	uint8_t canNum;   //can数量
+	CANRepeatBuffer* repeatBuffers; //循环发送缓冲区
+	uint8_t bufferNum; //循环发送缓冲区数量
+	uint8_t initFinished;  //初始化完成标志
 }CANService;
 
 CANService canService = {0};
@@ -51,11 +51,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	
 	for(uint8_t i = 0; i < canService.canNum; i++)
 	{
-		CANInfo* canInfo = &canService.canList[i];
-		if(hcan == canInfo->hcan)
+		CANInfo* canInfo = &canService.canList[i]; 
+		if(hcan == canInfo->hcan) //找到中断回调函数中对应can列表的can
 		{
 			uint16_t frameID = header.StdId;
-			Bus_FastBroadcastSend(canInfo->fastHandle, {&frameID, rx_data});
+			Bus_FastBroadcastSend(canInfo->fastHandle, {&frameID, rx_data}); //快速广播发布数据
 			break;
 		}
 	}
@@ -117,7 +117,7 @@ void BSP_CAN_Init(ConfItem* dict)
 		confName[15] = num + '0';
 		BSP_CAN_InitRepeatBuffer(&canService.repeatBuffers[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
-	//订阅话题
+	//订阅广播
 	Bus_RegisterRemoteFunc(NULL, BSP_CAN_SetBufCallback, "/can/set-buf");
 	Bus_RegisterRemoteFunc(NULL, BSP_CAN_SetBufCallback, "/can/send-once");
 
@@ -174,7 +174,7 @@ void BSP_CAN_InitRepeatBuffer(CANRepeatBuffer* buffer, ConfItem* dict)
 	buffer->frameID = Conf_GetValue(dict, "id", uint16_t, 0x00);
 	buffer->data = pvPortMalloc(8);
 	memset(buffer->data, 0, 8);
-		//开启软件定时器定时发送重复帧
+	//开启软件定时器定时发送重复帧
 	uint16_t sendInterval = Conf_GetValue(dict, "interval", uint16_t, 100);
 	osTimerDef(CAN, BSP_CAN_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(CAN), osTimerPeriodic, buffer), sendInterval);
@@ -205,7 +205,7 @@ uint8_t BSP_CAN_SendFrame(CAN_HandleTypeDef* hcan,uint16_t stdId,uint8_t* data)
 	return retVal;
 }
 
-//软总线回调
+//设置循环缓存区某部分字节数据远程函数回调
 bool BSP_CAN_SetBufCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"can-x", "id", "pos", "len", "data"}))
@@ -228,7 +228,7 @@ bool BSP_CAN_SetBufCallback(const char* name, SoftBusFrame* frame, void* bindDat
 	}
 	return false;
 }
-
+//发送一帧can数据远程函数回调
 bool BSP_CAN_SendOnceCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"can-x", "id", "data"}))

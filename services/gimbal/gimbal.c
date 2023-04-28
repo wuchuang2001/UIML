@@ -32,11 +32,10 @@ typedef struct _Gimbal
 	}imu;
 	float angle[2];	//云台角度
 	uint8_t taskInterval;	
-
+	//软总线广播、远程函数name
 	char* yawRelAngleName;	
 	char* imuEulerAngleName;
 	char* settingName;
-	
 }Gimbal;
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict);
@@ -85,7 +84,7 @@ void Gimbal_TaskCallback(void const * argument)
 		int16_t turns = (int32_t)gimbal.relativeAngle / 360; //转数
 		turns = turns < 0 ? turns - 1 : turns; //如果是负数多减一圈使偏离角变成正数
 		gimbal.relativeAngle -= turns*360; //0-360度
-		Bus_BroadcastSend(gimbal.yawRelAngleName, {{"angle", &gimbal.relativeAngle}});
+		Bus_BroadcastSend(gimbal.yawRelAngleName, {{"angle", &gimbal.relativeAngle}}); //广播云台偏离角
 		osDelay(gimbal.taskInterval);
 	}
 }
@@ -105,7 +104,7 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 
 	PID_Init(&gimbal->imu.pid[0], Conf_GetPtr(dict, "motor-yaw/imu", ConfItem));
 	PID_Init(&gimbal->imu.pid[1], Conf_GetPtr(dict, "motor-pitch/imu", ConfItem));
-
+	//广播、远程函数name重映射
 	gimbal->imuEulerAngleName = Conf_GetPtr(dict, "/imu/euler-angle", char);
 	gimbal->imuEulerAngleName = gimbal->imuEulerAngleName?gimbal->imuEulerAngleName:"/imu/euler-angle";
 	gimbal->settingName = Conf_GetPtr(dict, "/gimbal", char);
@@ -117,6 +116,7 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	gimbal->mode = Conf_GetValue(dict, "mode", GimbalCtrlMode, GIMBAL_ECD_MODE);
 	//不在这里设置模式，因为在未设置好零点前，pid会驱使电机达到编码器的零点或者imu的初始化零点
 
+	//注册广播、远程函数回调函数
 	Bus_RegisterReceiver(gimbal, Gimbal_BroadcastCallback, gimbal->imuEulerAngleName);
 	Bus_RegisterRemoteFunc(gimbal, Gimbal_SettingCallback, gimbal->settingName);
 	Bus_RegisterRemoteFunc(gimbal, Gimbal_StopCallback, "/system/stop"); //急停
@@ -133,7 +133,7 @@ void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindD
 		float yaw = *(float*)Bus_GetMapValue(frame, "yaw");
 		float pitch = *(float*)Bus_GetMapValue(frame, "pitch");
 		float roll = *(float*)Bus_GetMapValue(frame, "roll");
-		Gimbal_StatAngle(gimbal, yaw, pitch, roll);
+		Gimbal_StatAngle(gimbal, yaw, pitch, roll); //统计云台角度
 	}
 }
 bool Gimbal_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData)
@@ -192,6 +192,6 @@ void Gimbal_StartAngleInit(Gimbal* gimbal)
 		else if(angle > 180)
 			angle -= 360;
 		gimbal->imu.totalEulerAngle[i] = angle;
-		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle);
+		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle); //设置电机的起始角度
 	}	
 }

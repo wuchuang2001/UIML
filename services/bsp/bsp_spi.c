@@ -38,8 +38,8 @@ typedef struct {
 }SPIService;
 
 SPIService spiService = {0};
-//函数声明
 
+//函数声明
 void BSP_SPI_Init(ConfItem* dict);
 void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict);
 void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict);
@@ -51,9 +51,10 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
 		SPIInfo* spiInfo = &spiService.spiList[num];
-		if(hspi == spiInfo->hspi)
+		if(hspi == spiInfo->hspi) //找到中断回调函数中对应spi列表的spi
 		{
-			Bus_FastBroadcastSend(spiInfo->fastHandle, {spiService.spiList->recvBuffer.data, &spiService.spiList->recvBuffer.dataLen});
+			Bus_FastBroadcastSend(spiInfo->fastHandle, {spiService.spiList->recvBuffer.data, &spiService.spiList->recvBuffer.dataLen}); //发送数据
+			//将片选全部拉高
 			for(uint8_t i = 0; i < spiService.spiList[num].csNum; i++)
 			{
 				HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_SET);
@@ -163,21 +164,21 @@ bool BSP_SPI_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "isBlock"))? osWaitForever: 0;
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
-		if(spiX == spiService.spiList[num].number)
+		if(spiX == spiService.spiList[num].number) //找到对应的spi
 		{
-			if(rxData == NULL)
+			if(rxData == NULL) //若未指定接收缓冲区则指向spi缓冲区
 				rxData = spiService.spiList[num].recvBuffer.data;
-			if(len > spiService.spiList[num].recvBuffer.maxBufSize)
+			if(len > spiService.spiList[num].recvBuffer.maxBufSize) //若接收长度大于缓冲区长度，则返回错误
 				return false;
 			for (uint8_t i = 0; i < spiService.spiList[num].csNum; i++)
 			{
-				if(!strcmp(csName, spiService.spiList[num].csList[i].name))
+				if(!strcmp(csName, spiService.spiList[num].csList[i].name)) //找到对应的片选引脚
 				{
 					//上锁
 					if(osSemaphoreWait(spiService.spiList[num].lock, waitTime) != osOK)
 						return false;
-					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_RESET);
-					HAL_SPI_TransmitReceive_DMA(spiService.spiList[num].hspi, txData, rxData, len);
+					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_RESET); //拉低片选,开始通信
+					HAL_SPI_TransmitReceive_DMA(spiService.spiList[num].hspi, txData, rxData, len); //开始传输
 					return true;
 				}
 			}
@@ -202,23 +203,23 @@ bool BSP_SPI_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData
 	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "isBlock"))? osWaitForever: 0;
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
-		if(spiX == spiService.spiList[num].number)
+		if(spiX == spiService.spiList[num].number)	//找到对应的spi
 		{
-			if(rxData == NULL)
+			if(rxData == NULL) //若未指定接收缓冲区则指向spi缓冲区
 				rxData = spiService.spiList[num].recvBuffer.data;
-			if(len > spiService.spiList[num].recvBuffer.maxBufSize)
+			if(len > spiService.spiList[num].recvBuffer.maxBufSize) //若接收长度大于缓冲区长度，则返回错误
 				return false;
 			spiService.spiList[num].recvBuffer.dataLen = len;
-			for (uint8_t i = 0; i < spiService.spiList[num].csNum; i++)
+			for (uint8_t i = 0; i < spiService.spiList[num].csNum; i++) //找到对应的片选引脚
 			{
 				if(!strcmp(csName, spiService.spiList[num].csList[i].name))
 				{
 					//上锁
 					if(osSemaphoreWait(spiService.spiList[num].lock, waitTime) != osOK)
 						return false;
-					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_RESET);
-					HAL_SPI_TransmitReceive(spiService.spiList[num].hspi, txData, rxData, len, timeout);
-					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_SET);
+					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_RESET); //拉低片选,开始通信
+					HAL_SPI_TransmitReceive(spiService.spiList[num].hspi, txData, rxData, len, timeout); //开始传输
+					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_SET); //拉高片选,结束通信
 					//解锁
 					osSemaphoreRelease(spiService.spiList[num].lock);
 					return true;

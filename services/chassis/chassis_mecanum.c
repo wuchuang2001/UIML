@@ -131,7 +131,7 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 	chassis->accName = chassis->accName?chassis->accName:"/chassis/acc";
 	chassis->relAngleName = Conf_GetPtr(dict, "/chassis/relativeAngle", char);
 	chassis->relAngleName = chassis->relAngleName?chassis->relAngleName:"/chassis/relativeAngle";
-
+	//注册远程函数
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetSpeedCallback, chassis->speedName);
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetAccCallback, chassis->accName);
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetRelativeAngleCallback, chassis->relAngleName);
@@ -145,7 +145,7 @@ void Chassis_UpdateSlope(Chassis* chassis)
 	Slope_NextVal(&chassis->move.xSlope);
 	Slope_NextVal(&chassis->move.ySlope);
 }
-
+//设置底盘速度回调
 bool Chassis_SetSpeedCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;
@@ -157,7 +157,7 @@ bool Chassis_SetSpeedCallback(const char* name, SoftBusFrame* frame, void* bindD
 		chassis->move.vw = *(float*)Bus_GetMapValue(frame, "vw");
 	return true;
 }
-
+//设置底盘加速度回调
 bool Chassis_SetAccCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;
@@ -167,7 +167,7 @@ bool Chassis_SetAccCallback(const char* name, SoftBusFrame* frame, void* bindDat
 		Slope_SetStep(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)Bus_GetMapValue(frame, "ay")));
 	return true;
 }
-
+//设置底盘坐标系分离角度回调
 bool Chassis_SetRelativeAngleCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;
@@ -175,7 +175,7 @@ bool Chassis_SetRelativeAngleCallback(const char* name, SoftBusFrame* frame, voi
 		chassis->relativeAngle = *(float*)Bus_GetMapValue(frame, "angle");
 	return true;
 }
-
+//底盘急停回调
 bool Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;

@@ -59,7 +59,7 @@ void BSP_EXTI_Init(ConfItem* dict)
 		else
 			break;
 	}
-
+	//初始化各exti信息
 	for(uint8_t num = 0; num < extiService.extiNum; num++)
 	{
 		char confName[9] = {0};

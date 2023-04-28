@@ -59,6 +59,7 @@ void BSP_TIM_Init(ConfItem* dict)
 		else
 			break;
 	}
+
 	timService.timList=pvPortMalloc(timService.timNum * sizeof(TIMInfo));
 	for(uint8_t num = 0; num < timService.timNum; num++)
 	{
@@ -67,7 +68,6 @@ void BSP_TIM_Init(ConfItem* dict)
 		BSP_TIM_InitInfo(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
 		BSP_TIM_StartHardware(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
-
 	//注册接受
 	Bus_RegisterRemoteFunc(NULL,BSP_TIM_SetDutyCallback,"/tim/pwm/set-duty");
 	//注册远程服务
@@ -99,7 +99,7 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 }
 
 
-//TIM软总线广播回调
+//TIM设置占空比远程函数回调
 bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","duty"}))
@@ -110,7 +110,7 @@ bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindDa
 	LIMIT(duty,0,1);
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
-		if(timX==timService.timList[num].number)
+		if(timX==timService.timList[num].number) //找到对应的TIM
 		{
 			uint32_t pwmValue = duty * __HAL_TIM_GetAutoreload(timService.timList[num].htim);
 			switch (channelX)
@@ -136,7 +136,7 @@ bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindDa
 	return false;
 }
 
-//TIM软总线远程服务回调
+//TIM获取编码器值远程服务回调
 bool BSP_TIM_GetEncodeCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame,{"tim-x","count"}))
@@ -148,11 +148,11 @@ bool BSP_TIM_GetEncodeCallback(const char* name, SoftBusFrame* frame, void* bind
 		autoReload = (uint32_t *)Bus_GetMapValue(frame,"auto-reload");
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
-		if(timX==timService.timList[num].number)
+		if(timX==timService.timList[num].number) //找到对应的TIM
 		{
-			*count=__HAL_TIM_GetCounter(timService.timList[num].htim);
+			*count=__HAL_TIM_GetCounter(timService.timList[num].htim); //返回计数器值
 			if(autoReload)
-				*autoReload=__HAL_TIM_GetAutoreload(timService.timList[num].htim);
+				*autoReload=__HAL_TIM_GetAutoreload(timService.timList[num].htim); //如果提供了该变量则，返回自动重装载值
 			return true;
 		}
 	}

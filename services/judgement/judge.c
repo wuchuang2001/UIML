@@ -383,12 +383,3 @@ void Judge_publishData(Judge* judge)
 		Bus_BroadcastSend("/judge/recv/bullet",{{"17mm-bullet-remain",&bullet_remaining_num_17mm}});
 	}	
 }
-
-
-
-
-
-
-
-
-

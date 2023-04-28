@@ -69,8 +69,8 @@ void BSP_UART_IRQCallback(uint8_t huartX)
 	{
 		/* clear idle it flag avoid idle interrupt all the time */
 		__HAL_UART_CLEAR_IDLEFLAG(uartInfo->huart);
-		uint16_t recSize=uartInfo->recvBuffer.pos;
-		Bus_FastBroadcastSend(uartInfo->fastHandle, {uartInfo->recvBuffer.data, &recSize});
+		uint16_t recSize=uartInfo->recvBuffer.pos; //此时pos值为一帧数据的长度
+		Bus_FastBroadcastSend(uartInfo->fastHandle, {uartInfo->recvBuffer.data, &recSize}); //空闲中断为一帧，发送一帧数据
 		uartInfo->recvBuffer.pos = 0;
 	}
 }
@@ -107,7 +107,7 @@ void BSP_UART_Init(ConfItem* dict)
 		BSP_UART_InitInfo(uartService.uartList, Conf_GetPtr(dict, confName, ConfItem));
 	}
 
-	//订阅话题
+	//注册远程函数
 	Bus_RegisterRemoteFunc(NULL, BSP_UART_BlockCallback, "/uart/trans/block");
 	Bus_RegisterRemoteFunc(NULL, BSP_UART_ItCallback, "/uart/trans/it");
 	Bus_RegisterRemoteFunc(NULL, BSP_UART_DMACallback, "/uart/trans/dma");

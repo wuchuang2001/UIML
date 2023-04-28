@@ -70,7 +70,7 @@ uint16_t Get_CRC16_Check_Sum(uint8_t *pchMessage,uint32_t dwLength,uint16_t wCRC
 
 
 
-/* CRCÐ£Ñé */
+/* CRC???¨¦ */
 
 uint8_t Get_CRC8_Check_Sum( uint8_t *pchMessage, uint16_t dwLength, uint8_t ucCRC8 )
 {

@@ -67,7 +67,8 @@ void Sys_InitReceiver()
 	Bus_MultiRegisterReceiver(NULL, Sys_Mode_ChangeCallback, {"/rc/key/on-click","rc/switch"});
 	//发射  
 	Bus_MultiRegisterReceiver(NULL, Sys_Shoot_Callback, {"/rc/key/on-click",
-														"/rc/key/on-pressing",
+														"/rc/key/on-long-press",
+														"/rc/key/on-up",
 														"/rc/wheel"});
 }
 
@@ -104,11 +105,11 @@ void SYS_CTRL_TaskCallback(void const * argument)
 //发送广播
 void Sys_Broadcast()
 {
-	Bus_BroadcastSend("/chassis/move", {{"vx", &sysCtrl.chassisData.vx},
+	Bus_RemoteCall("/chassis/speed", {{"vx", &sysCtrl.chassisData.vx},
 										{"vy", &sysCtrl.chassisData.vy},
 										{"vw", &sysCtrl.chassisData.vw}});
-	Bus_BroadcastSend("/chassis/relativeAngle", {{"angle", &sysCtrl.gimbalData.relativeAngle}});
-	Bus_BroadcastSend("/gimbal", {{"yaw", &sysCtrl.gimbalData.yaw},{"pitch", &sysCtrl.gimbalData.pitch}});
+	Bus_RemoteCall("/chassis/relativeAngle", {{"angle", &sysCtrl.gimbalData.relativeAngle}});
+	Bus_RemoteCall("/gimbal", {{"yaw", &sysCtrl.gimbalData.yaw},{"pitch", &sysCtrl.gimbalData.pitch}});
 }
 
 //底盘运动及停止回调函数
@@ -257,13 +258,19 @@ void Sys_Shoot_Callback(const char* name, SoftBusFrame* frame, void* bindData)
 	{
 		if(!Bus_IsMapKeyExist(frame,"left"))
 			return;
-		Bus_BroadcastSend("/shooter",{{"once", IM_PTR(uint8_t,1)}});  //点射
+		Bus_RemoteCall("/shooter/mode",{{"mode", "once"}});  //点射
 	}
-	else if(!strcmp(name,"/rc/key/on-pressing") && !sysCtrl.rockerCtrl)
+	else if(!strcmp(name,"/rc/key/on-long-press") && !sysCtrl.rockerCtrl)
 	{
 		if(!Bus_IsMapKeyExist(frame,"left"))
 			return;
-		Bus_BroadcastSend("/shooter",{{"continue",IM_PTR(uint8_t,1)},{"num",IM_PTR(uint8_t,1)}}); //连发
+		Bus_RemoteCall("/shooter/mode",{{"mode", "continue"}, {"intervalTime", IM_PTR(uint16_t, 100)}}); //连发
+	}
+	else if(!strcmp(name,"/rc/key/on-up") && !sysCtrl.rockerCtrl)
+	{
+		if(!Bus_IsMapKeyExist(frame,"left"))
+			return;
+		Bus_RemoteCall("/shooter/mode",{{"mode", "idle"}}); //连发
 	}
 	else if(!strcmp(name,"/rc/wheel") && sysCtrl.rockerCtrl)//遥控器控制
 	{
@@ -272,16 +279,14 @@ void Sys_Shoot_Callback(const char* name, SoftBusFrame* frame, void* bindData)
 		int16_t wheel = *(int16_t*)Bus_GetMapValue(frame,"value");
 
 		if(wheel > 600)
-			Bus_BroadcastSend("/shooter", {{"once", IM_PTR(uint8_t,1)}}); //点射
-		else if(wheel < -600)
-			Bus_BroadcastSend("/shooter", {{"continue", IM_PTR(uint8_t,1)}, {"num", IM_PTR(uint8_t,1)}}); //连发
+			Bus_RemoteCall("/shooter", {{"once", IM_PTR(uint8_t,1)}}); //点射
 	}
 }
 
 //急停
 void Sys_ErrorHandle(void)
 {
-	Bus_BroadcastSend("/motor/stop",{"",0});
+	Bus_BroadcastSend("/system/stop",{"",0});
 	while(1)
 	{
 		if(!sysCtrl.errFlag)
