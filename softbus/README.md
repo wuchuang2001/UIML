@@ -193,3 +193,4 @@ Bus_RegisterRemoteFunc(NULL, Callback, "fun1")
 1. 回调函数是在广播发送者或者远程函数调用者所在线程中执行的，因此回调函数的执行速度应尽可能快，切不可发生阻塞
 	> 注：用`Bus_BroadcastSend`或`Bus_FastBroadcastSend`函数发布时，只有当订阅了该name的所有回调函数执行结束后，该发布函数才会退出
 2. 软总线仅会传输数据的地址(data指针)，且数据指针仅保证在回调函数范围内有效，若需在回调函数外使用这些数据，请在回调中拷贝整个数据，而不只是保存数据指针
+3. 软总线底层是通过hash表匹配字符串跟回调函数的，可以通过修改`SoftBus_Str2Hash`这个宏来更换hash函数，进过我们测试在字符串长度小于20个字节时，`SoftBus_Str2Hash_8`该hash函数效率较高，而在字符串长度大于20个字节时，`SoftBus_Str2Hash_32`该hash函数效率较高

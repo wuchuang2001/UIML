@@ -111,7 +111,7 @@ void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 	info->number = Conf_GetValue(dict,"number",uint8_t,0);
 
 	char name[17] = {0};
-	sprintf(name, "/spi%d/recvFinish", info->number);
+	sprintf(name, "/spi%d/recv", info->number);
 	info->fastHandle=Bus_CreateReceiverHandle(name);
 	osSemaphoreDef(lock);
 	info->lock = osSemaphoreCreate(osSemaphore(lock), 1);
