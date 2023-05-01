@@ -164,8 +164,8 @@ void INS_Init(INS* ins, ConfItem* dict)
 	// ins->filter = Filter_Init(Conf_GetPtr(dict, "filter", ConfItem));
 	PID_Init(&ins->tmpPID, Conf_GetPtr(dict, "tmpPID", ConfItem));
 
-	ins->eulerAngleName = Conf_GetPtr(dict,"/imu/euler-angle",char);
-	ins->eulerAngleName = ins->eulerAngleName?ins->eulerAngleName:"/imu/euler-angle";
+	ins->eulerAngleName = Conf_GetPtr(dict,"/ins/euler-angle",char);
+	ins->eulerAngleName = ins->eulerAngleName?ins->eulerAngleName:"/ins/euler-angle";
 
 	while(BMI088_AccelInit(ins->spiX) || BMI088_GyroInit(ins->spiX))
 	{

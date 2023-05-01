@@ -11,7 +11,7 @@
 typedef enum
 {
 	GIMBAL_ECD_MODE, 	//编码器模式
-	GIMBAL_IMU_MODE		//IMU模式
+	GIMBAL_INS_MODE		//INS模式
 }GimbalCtrlMode; //云台模式
 
 typedef struct _Gimbal
@@ -61,7 +61,7 @@ void Gimbal_TaskCallback(void const * argument)
 		gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_ANGLE_MODE);
 		gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_ANGLE_MODE);
 	}
-	else if(gimbal.mode == GIMBAL_IMU_MODE)
+	else if(gimbal.mode == GIMBAL_INS_MODE)
 	{
 		gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_SPEED_MODE);
 		gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_SPEED_MODE);
@@ -73,7 +73,7 @@ void Gimbal_TaskCallback(void const * argument)
 			gimbal.motors[0]->setTarget(gimbal.motors[0], gimbal.angle[0]);
 			gimbal.motors[1]->setTarget(gimbal.motors[1], gimbal.angle[1]);
 		}
-		else if(gimbal.mode == GIMBAL_IMU_MODE)
+		else if(gimbal.mode == GIMBAL_INS_MODE)
 		{
 			PID_SingleCalc(&gimbal.imu.pid[0], gimbal.angle[0], gimbal.imu.totalEulerAngle[0]);
 			PID_SingleCalc(&gimbal.imu.pid[1], gimbal.angle[1], gimbal.imu.totalEulerAngle[1]);
@@ -105,10 +105,10 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	PID_Init(&gimbal->imu.pid[0], Conf_GetPtr(dict, "motor-yaw/imu", ConfItem));
 	PID_Init(&gimbal->imu.pid[1], Conf_GetPtr(dict, "motor-pitch/imu", ConfItem));
 	//广播、远程函数name重映射
-	gimbal->imuEulerAngleName = Conf_GetPtr(dict, "/imu/euler-angle", char);
-	gimbal->imuEulerAngleName = gimbal->imuEulerAngleName?gimbal->imuEulerAngleName:"/imu/euler-angle";
-	gimbal->settingName = Conf_GetPtr(dict, "/gimbal", char);
-	gimbal->settingName = gimbal->settingName?gimbal->settingName:"/gimbal";
+	gimbal->imuEulerAngleName = Conf_GetPtr(dict, "/ins/euler-angle", char);
+	gimbal->imuEulerAngleName = gimbal->imuEulerAngleName?gimbal->imuEulerAngleName:"/ins/euler-angle";
+	gimbal->settingName = Conf_GetPtr(dict, "/gimbal/setting", char);
+	gimbal->settingName = gimbal->settingName?gimbal->settingName:"/gimbal/setting";
 	gimbal->yawRelAngleName = Conf_GetPtr(dict, "/gimbal/yaw/relative-angle", char);
 	gimbal->yawRelAngleName = gimbal->yawRelAngleName?gimbal->yawRelAngleName:"/gimbal/yaw/relative-angle";
 

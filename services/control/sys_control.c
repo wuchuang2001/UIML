@@ -109,7 +109,7 @@ void Sys_Broadcast()
 										{"vy", &sysCtrl.chassisData.vy},
 										{"vw", &sysCtrl.chassisData.vw}});
 	Bus_RemoteCall("/chassis/relativeAngle", {{"angle", &sysCtrl.gimbalData.relativeAngle}});
-	Bus_RemoteCall("/gimbal", {{"yaw", &sysCtrl.gimbalData.yaw},{"pitch", &sysCtrl.gimbalData.pitch}});
+	Bus_RemoteCall("/gimbal/setting", {{"yaw", &sysCtrl.gimbalData.yaw},{"pitch", &sysCtrl.gimbalData.pitch}});
 }
 
 //底盘运动及停止回调函数
