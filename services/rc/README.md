@@ -2,112 +2,193 @@
 
 ---
 
-## 项目简介
+## 简介
 
-本项目实现了对机甲大师官方遥控器数据的解析和二次抽象封装，使用软总线机制，采用消息发布方式。目前本项目支持键盘鼠标的单击、长按、抬起、按住四种事件，并支持`Ctrl`或`Shift`组合键触发，可以大幅简化对键盘数据的处理流程
-
----
-
-## 包含文件
-`RC.c`：源文件，需要被包含在Keil工程中，包含全局变量定义和函数的实现
+本项目实现了对机甲大师官方遥控器数据的解析和二次抽象封装，使用软总线机制，采用消息发布方式。目前本项目支持键盘鼠标的单击、长按、按下、抬起、按住五种事件，并支持`Ctrl`或`Shift`组合键触发，可以大幅简化对键盘数据的处理流程
 
 ---
 
-## 项目依赖
+## 模块依赖项
 
-1.  系统配置文件`config.h`
-2.	软总线文件 `softbus.h`
-3.	freertos支持文件 `cmsis_os.h`
+- 本项目文件
+	- `softbus.c/h`、`config.c/h`、`sys_conf.h`、`pid.c/h`、`motor.c/h`(及其使用到的电机子类)
+- hal库文件 
+    - `cmsis_os.h`
+- 系统广播
+    - `/system/stop`：在监听到该广播后会设置该模块下所有电机进入急停模式
+- 其他模块
+    - `ins`模块：在惯导模式下需要提供`/ins/euler-angle`惯导计算出来的欧拉角
+
 ---
 
-## 概念阐述
+> 注：下面远程函数所写的数据类型为指针的项仅强调该项传递的应该是数组，实际传递的参数只需数组名即可，不需要传递数组名的地址。广播也是如此，所写的数据类型若为指针的仅强调该项传递的应该是数组，获取该项的值是仅需要强制类型转换成相应的指针即可，无需额外解引用
+
+---
+
+## 说明
 
 **按键及鼠标左右键**
 一个按键事件包含**主键**、**事件类型**和**组合键**三个部分，当操作手的操作符合以上三项时，对应消息就会被发布
-* 主键：官方遥控器所支持的键盘按键以及鼠标左右键
-* 事件类型：有单击、长按、按下、抬起、按住五种
-  * 单击：按键按下后在`长按判定时间`之前抬起，抬起时触发
-  * 长按：按键按下超过`长按判定时间`，在超时时触发（而非抬起时）
-  * 按下：在按键按下时触发
-  * 抬起：在按键抬起时触发
-  * 按住：在按键被按下时会连续定时触发，触发频率与`RC_UpdateKeys()`调用频率一致
-* 组合键：无组合键、`Ctrl`、`Shift`三种，注意主键选择`Ctrl`或`Shift`时组合键不可选择相同键
-
-**消息发布**
-发布的topic为
-1. 单击	`"rc/key/on-click"` 
-2. 长按 `"rc/key/on-long-press"` 
-3. 按下 `"rc/key/on-down"` 
-4. 抬起 `"rc/key/on-up"` 
-5. 按住 `"rc/key/on-pressing"` 
-   
-均有iterm
-1. `"key"` 为按下的主按键（包括鼠标左右键）
-2. `"combine-key"`为组合按键 `"none"`、 `"ctrl"`、 `"shift"`
-
-**遥控器及鼠标移动**
-将遥控器分为`左摇杆`、`右摇杆`、`拨杆`、`滚轮`、`鼠标移动`五个部分,其中左、右摇杆均包括`通道x`、`通道y`；拨杆包括`左拨杆`、`右拨杆`；鼠标包括`通道x`、`通道y`。只有当上述四个部分中的数据有更新时则向外发布对应部分的消息。
-
-**消息发布**
-发布的topic为
-1. 右摇杆`"rc/right-stick"` 有iterm `"x"`、`"y"`
-2. 左摇杆`"rc/left-stick"` 有iterm	`"x"`、`"y"`
-3. 拨杆`"rc/switch"` 有iterm `"right"`、`"left"`
-4. 滚轮`"rc/wheel"` 有iterm `"value"`
-5. 鼠标移动`"rc/mouse-move"`有iterm `"x"`、`"y"`
----
-
-## 模块配置项
-
-* 需要在`sys_conf.h`为rc添加服务`SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)`
-* 需要在`sys_conf.h`添加rc配置
+- 主键：官方遥控器所支持的键盘按键以及鼠标左右键
+- 事件类型：有单击、长按、按下、抬起、按住五种
+  - 单击：按键按下后在**长按判定时间**之前抬起，抬起时触发
+  - 长按：按键按下超过**长按判定时间**，在超时时触发（而非抬起时）
+  - 按下：在按键按下时触发
+  - 抬起：在按键抬起时触发
+  - 按住：在按键被按下时会连续定时触发，触发频率与`RC_UpdateKeys()`调用频率一致
+- 组合键：无组合键、`Ctrl`、`Shift`三种，注意主键选择`Ctrl`或`Shift`时组合键不可选择相同键。同时由于组合件仅在事件触发时判断`Ctrl`、`Shift`是否按下，因此需要先按下`Ctrl`或`Shift`再按下其他按键，否则很大可能会被识别为无组合件
 
 ---
 
+## 模块接口
 
-## 使用示例(HAL)
+> 注：name重映射只需要在配置表中配置名写入原本name字符串，在配置值处写入重映射后的name字符串，就完成了name的重映射。例如：`{"old-name", "new-name"},`
 
-```c
-void test_TaskCallback(void const * argument)
-{
-	SoftBus_MultiSubscribe(&recrc,callback,{"rc/right-stick","rc/left-stick","rc/switch","rc/wheel"});
-	SoftBus_MultiSubscribe(NULL,Chassis_MoveCallback,{"rc/key/on-pressing"});
-	SoftBus_MultiSubscribe(NULL,Chassis_StopCallback,{"rc/key/on-up"});
-	SoftBus_MultiSubscribe(NULL,Chassis_RotateCallback,{"rc/mouse-move"});	
-	SoftBus_MultiSubscribe(NULL,Shooter_ShooterCallback,{"rc/key/on-click"});	
-	while(1)
-	{
-		osDelay(10);
-	}
+- 广播：
+  
+    - 快速方式：无
+  
+    - 普通方式
 
-}
+	> `key`类型有：`"W","S","A","D","S","C","Q","E","R","F","G","Z","X","C","V","B","left","right"`，其中"left","right"为鼠标左键与右键
+	> `combine-key`类型有：`"none","shift","ctrl"`
+  
+  	1. `rc/key/on-click`
 
-void Chassis_MoveCallback(const char* topic, SoftBusFrame* frame, void* bindData)
-{
-	float speedRatio=0,vx=0,vy=0;;
-	if(!strcmp(SoftBus_GetMapValue(frame,"combine-key"),"none"))
-		speedRatio=1;
-	else if(!strcmp(SoftBus_GetMapValue(frame,"combine-key"),"shift"))
-		speedRatio=5;
-	else if(!strcmp(SoftBus_GetMapValue(frame,"combine-key"),"ctrl"))
-		speedRatio=0.2;
+		说明：遥控器单击事件发生
 
-	if(!strcmp(SoftBus_GetMapValue(frame,"key"),"A"))
-		vx = 200*speedRatio;
-	if(!strcmp(SoftBus_GetMapValue(frame,"key"),"D"))
-		vx = -200*speedRatio;
-	if(!strcmp(SoftBus_GetMapValue(frame,"key"),"W"))
-		vy = 200*speedRatio;
-	if(!strcmp(SoftBus_GetMapValue(frame,"key"),"S"))
-		vy = -200*speedRatio;
-	SoftBus_Publish("chassis",{{"vx",&vx},{"vy",&vy}});
-}
-```
+        **是否允许name重映射：不允许**
 
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `key`         | `char*` | 哪个按键触发的该事件(实际解析时可以仅判断第一个字符) |
+		| `combine-key` | `char*` | 触发该事件时的组合键类型 |
+
+	2. `rc/key/on-long-press`
+
+		说明：遥控器长按事件发生
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `key`         | `char*` | 哪个按键触发的该事件(实际解析时可以仅判断第一个字符) |
+		| `combine-key` | `char*` | 触发该事件时的组合键类型 |
+
+	3. `rc/key/on-down`
+
+		说明：遥控器按下事件发生
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `key`         | `char*` | 哪个按键触发的该事件(实际解析时可以仅判断第一个字符) |
+		| `combine-key` | `char*` | 触发该事件时的组合键类型 |
+
+	4. `rc/key/on-up`
+
+		说明：遥控器抬起事件发生
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `key`         | `char*` | 哪个按键触发的该事件(实际解析时可以仅判断第一个字符) |
+		| `combine-key` | `char*` | 触发该事件时的组合键类型 |
+
+	5. `rc/key/on-pressing`
+
+		说明：遥控器按住事件发生
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `key`         | `char*` | 哪个按键触发的该事件(实际解析时可以仅判断第一个字符) |
+		| `combine-key` | `char*` | 触发该事件时的组合键类型 |
+
+	> 以下的广播仅在数据有更新时向外发布对应部分的消息。
+		
+	6. `rc/right-stick`
+
+		说明：右摇杆数据
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `x` | `int16_t` | x方向通道值(范围-660~660) |
+		| `y` | `int16_t` | y方向通道值(范围-660~660) |
+
+	7. `rc/left-stick`
+
+		说明：左摇杆数据
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `x` | `int16_t` | x方向通道值(范围-660~660) |
+		| `y` | `int16_t` | y方向通道值(范围-660~660) |
+
+	8. `rc/switch`
+
+		说明：拨杆数据，两个数据字段不会同时出现
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `left`  | `uint8_t` | 左拨杆位置(上1/中3/下2) |
+		| `right` | `uint8_t` | 左拨杆位置(上1/中3/下2) |
+
+	9. `rc/wheel`
+
+		说明：拨轮数据
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `value` | `int16_t` | 拨轮数据值(范围-660~660) |
+
+	10. `rc/mouse-move`
+
+		说明：鼠标移动数据
+
+        **是否允许name重映射：不允许**
+
+        广播数据：
+
+        | 数据字段名 | 数据类型 | 说明 |
+        | :---: | :---: | :---: |
+        | `x` | `int16_t` | 鼠标x方向移动速度 |
+		| `y` | `int16_t` | 鼠标y方向移动速度 |
+
+- 远程函数：无
+    
 ---
 
 ## 注意事项
 
 * `RC_InitKeyJudgeTime(rc,0x3ffff,50,500)`默认全部按键50~500ms之间为短按，大于500ms为长按，可自行修改
-* 如果效率不够可将不同的话题订阅的不同的回调函数，而不是一个回调函数集中处理。此时无需考虑话题名是否正确。
 * 若要移植到非HAL库平台，需要将`RC_UpdateKeys()`中的`HAL_GetTick()`修改为目标平台中用于获取时间戳（既系统运行时间，单位ms）的API函数

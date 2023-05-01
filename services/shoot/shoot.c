@@ -2,7 +2,6 @@
 #include "softbus.h"
 #include "motor.h"
 #include "cmsis_os.h"
-#include "main.h"
 
 typedef enum
 {
@@ -59,7 +58,7 @@ void Shooter_TaskCallback(void const * argument)
 			case SHOOTER_MODE_ONCE:   //单发
 				if(shooter.fricEnable == false)   //若摩擦轮未开启则先开启
 				{
-					Bus_BroadcastSend("/shooter/fricCtrl",{"enable",IM_PTR(bool,true)});
+					Bus_RemoteCall("/shooter/setting",{"fric-enable",IM_PTR(bool,true)});
 					osDelay(200);     //等待摩擦轮转速稳定
 				}
 				shooter.targetTrigAngle += shooter.triggerAngle; 
@@ -69,7 +68,7 @@ void Shooter_TaskCallback(void const * argument)
 			case SHOOTER_MODE_CONTINUE:  //以一定的时间间隔连续发射 
 				if(shooter.fricEnable == false)   //若摩擦轮未开启则先开启
 				{
-					Bus_BroadcastSend("/shooter/fricCtrl",{"enable",IM_PTR(bool,true)});
+					Bus_RemoteCall("/shooter/setting",{"fric-enable",IM_PTR(bool,true)});
 					osDelay(200);   //等待摩擦轮转速稳定
 				}
 				shooter.targetTrigAngle += shooter.triggerAngle;  //增加拨弹电机目标角度
@@ -121,7 +120,7 @@ bool Shooter_SettingCallback(const char* name, SoftBusFrame* frame, void* bindDa
 	Shooter *shooter = (Shooter*)bindData ;
 	if(Bus_IsMapKeyExist(frame,"fric-speed"))
 	{
-		shooter->triggerAngle = *(float*)Bus_GetMapValue(frame,"fric-speed");
+		shooter->fricSpeed = *(float*)Bus_GetMapValue(frame,"fric-speed");
 	}
 
 	if(Bus_IsMapKeyExist(frame,"trigger-angle"))

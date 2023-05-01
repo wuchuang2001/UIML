@@ -3,8 +3,6 @@
 #include "cmsis_os.h"
 #include "main.h"
 
-//少发布鼠标移动、拨杆移动、拨杆档位、滚轮信息
-
 #define KEY_NUM 18
 //X-MACRO
 #define KEY_TPYE \

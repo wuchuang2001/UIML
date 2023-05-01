@@ -208,11 +208,11 @@ ConfItem* systemConfig = CF_DICT{
 	}},
 		//发射服务配置
 	{"shooter", CF_DICT{
-			//任务循环周期
-			{"taskInterval", IM_PTR(uint8_t, 10)},
-			//拨一发弹丸的角度
-			{"triggerAngle",IM_PTR(float,45)},
-			//发射机构电机配置
+		//任务循环周期
+		{"taskInterval", IM_PTR(uint8_t, 10)},
+		//拨一发弹丸的角度
+		{"triggerAngle",IM_PTR(float,45)},
+		//发射机构电机配置
 		{"fricMotorLeft", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 2)},
@@ -246,6 +246,7 @@ ConfItem* systemConfig = CF_DICT{
 		{"triggerMotor", CF_DICT{
 			{"type", "M2006"},
 			{"id", IM_PTR(uint16_t, 6)},
+			{"name", "triggerMotor"},
 			{"canX", IM_PTR(uint8_t, 1)},
 			{"anglePID", CF_DICT{                  //串级pid
 				{"inner", CF_DICT{								//内环pid参数设置
