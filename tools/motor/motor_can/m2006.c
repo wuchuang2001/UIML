@@ -56,7 +56,7 @@ void M2006_TimerCallback(void const *argument)
 	M2006* m2006 = pvTimerGetTimerID((TimerHandle_t)argument);
 	M2006_StatAngle(m2006);
 	M2006_CtrlerCalc(m2006, m2006->targetValue);
-	m2006->stallTime = (m2006->speed == 0 && m2006->torque > 7000) ? m2006->stallTime + 2 : 0;
+	m2006->stallTime = (m2006->speed == 0 && abs(m2006->torque) > 500) ? m2006->stallTime + 2 : 0;
 	if (m2006->stallTime > 500)
 	{
 		Bus_BroadcastSend(m2006->stallName, {{""}});

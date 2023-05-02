@@ -56,7 +56,7 @@ void M3508_TimerCallback(void const *argument)
 	M3508* m3508 = pvTimerGetTimerID((TimerHandle_t)argument); 
 	M3508_StatAngle(m3508);
 	M3508_CtrlerCalc(m3508, m3508->targetValue);
-	m3508->stallTime = (m3508->speed == 0 && m3508->torque > 7000) ? m3508->stallTime + 2 : 0;
+	m3508->stallTime = (m3508->speed == 0 && abs(m3508->torque) > 7000) ? m3508->stallTime + 2 : 0;
 	if (m3508->stallTime > 500)
 	{
 		Bus_BroadcastSend(m3508->stallName, {{""}});

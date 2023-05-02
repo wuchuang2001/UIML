@@ -279,7 +279,7 @@ void Sys_Shoot_Callback(const char* name, SoftBusFrame* frame, void* bindData)
 		int16_t wheel = *(int16_t*)Bus_GetMapValue(frame,"value");
 
 		if(wheel > 600)
-			Bus_RemoteCall("/shooter", {{"once", IM_PTR(uint8_t,1)}}); //µ„…‰
+			Bus_RemoteCall("/shooter/mode", {{"mode","once"}}); //µ„…‰
 	}
 }
 

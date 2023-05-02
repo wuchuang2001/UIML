@@ -116,7 +116,7 @@ void INS_TaskCallback(void const * argument)
 
 	/* USER CODE BEGIN IMU */ 
 	INS ins = {0};
-	osDelay(500);
+	osDelay(100);
 	INS_Init(&ins, (ConfItem*)argument);
 	AHRS_init(ins.imu.quat,ins.imu.accel,ins.imu.mag);
 	//Ð£×¼ÁãÆ«
