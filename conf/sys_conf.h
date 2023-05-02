@@ -173,7 +173,6 @@ ConfItem* systemConfig = CF_DICT{
 		  //yaw pitch 机械零点
 		{"zero-yaw",IM_PTR(uint16_t,4010)},
 		{"zero-pitch",IM_PTR(uint16_t,5300)},
-		{"mode",IM_PTR(uint8_t,1)},
 			//任务循环周期
 			{"taskInterval", IM_PTR(uint8_t, 10)},
 			//云台电机配置

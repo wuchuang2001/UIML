@@ -64,7 +64,7 @@ void Sys_InitReceiver()
 																"/rc/right-stick",
 																"/gimbal/yaw/relative-angle"});	
 	//模式切换
-	Bus_MultiRegisterReceiver(NULL, Sys_Mode_ChangeCallback, {"/rc/key/on-click","rc/switch"});
+	Bus_MultiRegisterReceiver(NULL, Sys_Mode_ChangeCallback, {"/rc/key/on-click","/rc/switch"});
 	//发射  
 	Bus_MultiRegisterReceiver(NULL, Sys_Shoot_Callback, {"/rc/key/on-click",
 														"/rc/key/on-long-press",
@@ -175,15 +175,15 @@ void Sys_Gimbal_RotateCallback(const char* name, SoftBusFrame* frame, void* bind
 	{
 		if(!Bus_CheckMapKeys(frame,{"x","y"}))
 			return;
-		sysCtrl.gimbalData.yaw =*(int16_t*)Bus_GetMapValue(frame,"x");
-		sysCtrl.gimbalData.pitch =*(int16_t*)Bus_GetMapValue(frame,"y"); 
+		sysCtrl.gimbalData.yaw +=*(int16_t*)Bus_GetMapValue(frame,"x");
+		sysCtrl.gimbalData.pitch +=*(int16_t*)Bus_GetMapValue(frame,"y"); 
 	}
 	else if(!strcmp(name,"/rc/right-stick") && sysCtrl.rockerCtrl)  //遥控器控制
 	{
 		if(!Bus_CheckMapKeys(frame,{"x","y"}))
 			return;
-		sysCtrl.gimbalData.yaw =*(int16_t*)Bus_GetMapValue(frame,"x");
-		sysCtrl.gimbalData.pitch =*(int16_t*)Bus_GetMapValue(frame,"y"); 
+		sysCtrl.gimbalData.yaw +=*(int16_t*)Bus_GetMapValue(frame,"x")*0.01;
+		sysCtrl.gimbalData.pitch +=*(int16_t*)Bus_GetMapValue(frame,"y")*0.01; 
 	}
 	else if(!strcmp(name,"/gimbal/yaw/relative-angle"))
 	{
@@ -222,10 +222,10 @@ void Sys_Mode_ChangeCallback(const char* name, SoftBusFrame* frame, void* bindDa
 			case 1:
 				sysCtrl.mode = SYS_SPIN_MODE; //小陀螺模式
 				break;                        
-			case 2:                         
+			case 3:                         
 				sysCtrl.mode = SYS_FOLLOW_MODE;  //跟随模式
 				break;                        
-			case 3:                         
+			case 2:                         
 				sysCtrl.mode = SYS_SEPARATE_MODE; //分离模式
 				break;
 		}
@@ -240,11 +240,11 @@ void Sys_Mode_ChangeCallback(const char* name, SoftBusFrame* frame, void* bindDa
 				sysCtrl.rockerCtrl = true; //切换至遥控器控制
 				sysCtrl.errFlag = 0;
 				break;
-			case 2:
+			case 3:
 				sysCtrl.rockerCtrl = false; //切换至键鼠控制
 				sysCtrl.errFlag = 0;
 				break;
-			case 3:   
+			case 2:   
 				sysCtrl.errFlag = 1;
 				break;
 		}
