@@ -167,5 +167,6 @@ void Gimbal_StartAngleInit(Gimbal* gimbal)
 		else if(angle > 180)
 			angle -= 360;
 		gimbal->imu.totalEulerAngle[i] = angle;
+		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle); //设置电机的起始角度
 	}	
 }
