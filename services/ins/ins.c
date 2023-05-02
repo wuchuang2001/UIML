@@ -105,19 +105,20 @@ typedef struct
 // 	}
 // 	return number;
 // }
-  INS ins = {0};
+
 // IMU_Bmi088 IMU={0};
 // float BMI088_time;
 void INS_Init(INS* ins, ConfItem* dict);
 void INS_TmpPIDTimerCallback(void const *argument);
 
 void INS_TaskCallback(void const * argument)
-{
-	/* USER CODE BEGIN IMU */
-	osDelay(1000);
+{ 
+
+	/* USER CODE BEGIN IMU */ 
+	INS ins = {0};
+	osDelay(500);
 	INS_Init(&ins, (ConfItem*)argument);
 	AHRS_init(ins.imu.quat,ins.imu.accel,ins.imu.mag);
-	osDelay(1000);
 	//校准零偏
 	// for(int i=0;i<10000;i++)
 	// {
@@ -148,8 +149,11 @@ void INS_TaskCallback(void const * argument)
 		//数据融合	
 		AHRS_update(ins.imu.quat,ins.taskInterval/1000.0f,ins.imu.gyro,ins.imu.accel,ins.imu.mag);
 		get_angle(ins.imu.quat,&ins.yaw,&ins.pitch,&ins.roll);
+		ins.yaw = ins.yaw/PI*180;
+		ins.pitch = ins.pitch/PI*180;
+		ins.roll = ins.roll/PI*180;
 		//发布数据
-		Bus_BroadcastSend(ins.eulerAngleName, {{"yaw",&ins.yaw}, {"pitch",&ins.pitch}, {"roll",&ins.roll}});
+		Bus_BroadcastSend("/ins/euler-angle", {{"yaw",&ins.yaw}, {"pitch",&ins.pitch}, {"roll",&ins.roll}});
 		osDelay(ins.taskInterval);
 	}
   /* USER CODE END IMU */
@@ -176,7 +180,7 @@ void INS_Init(INS* ins, ConfItem* dict)
 
 	//创建定时器进行温度pid控制
 	osTimerDef(tmp, INS_TmpPIDTimerCallback);
-	osTimerStart(osTimerCreate(osTimer(tmp), osTimerPeriodic, &ins), 2);
+	osTimerStart(osTimerCreate(osTimer(tmp), osTimerPeriodic, ins), 2);
 }
 
 //软件定时器回调函数

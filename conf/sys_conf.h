@@ -42,14 +42,15 @@
 #define SERVICE_LIST \
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,128) \
-	SERVICE(spi, BSP_SPI_TaskCallback, osPriorityNormal,128) \
 	SERVICE(ins, INS_TaskCallback, osPriorityNormal,128)\
-	SERVICE(rc, RC_TaskCallback, osPriorityNormal,128)         \
+	SERVICE(spi, BSP_SPI_TaskCallback, osPriorityNormal,512) \
 	SERVICE(gimbal, Gimbal_TaskCallback, osPriorityNormal,256)\
 	SERVICE(shooter, Shooter_TaskCallback, osPriorityNormal,256)\
 	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,256) \
+	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)\
+	SERVICE(judge, Judge_TaskCallback, osPriorityNormal,128) \
 	SERVICE(sys, SYS_CTRL_TaskCallback, osPriorityNormal,256)\
-	//SERVICE(test, test_TaskCallback, osPriorityNormal,128)\
+//	//SERVICE(test, test_TaskCallback, osPriorityNormal,128)\
 	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) \
 	SERVICE(tim, BSP_TIM_TaskCallback, osPriorityNormal,256)	\
 	
@@ -83,7 +84,7 @@ ConfItem* systemConfig = CF_DICT{
 		{"move", CF_DICT{
 			{"maxVx", IM_PTR(float, 2000)},
 			{"maxVy", IM_PTR(float, 2000)},
-			{"maxVw", IM_PTR(float, 2)},
+			{"maxVw", IM_PTR(float, 180)},
 			{"xAcc", IM_PTR(float, 1000)},
 			{"yAcc", IM_PTR(float, 1000)},
 			CF_DICT_END
@@ -172,6 +173,7 @@ ConfItem* systemConfig = CF_DICT{
 		  //yaw pitch 机械零点
 		{"zero-yaw",IM_PTR(uint16_t,4010)},
 		{"zero-pitch",IM_PTR(uint16_t,5300)},
+		{"mode",IM_PTR(uint8_t,1)},
 			//任务循环周期
 			{"taskInterval", IM_PTR(uint8_t, 10)},
 			//云台电机配置
@@ -199,13 +201,21 @@ ConfItem* systemConfig = CF_DICT{
 					CF_DICT_END
 				}},
 				{"imu",CF_DICT{								//陀螺仪pid参数设置
-						{"p", IM_PTR(float, 15)},
+						{"p", IM_PTR(float, -100)},
 						{"i", IM_PTR(float, 0)},
 						{"d", IM_PTR(float, 0)},
-						{"maxI", IM_PTR(float, 10000)},
-						{"maxOut", IM_PTR(float, 20000)},
+						{"maxI", IM_PTR(float, 500)},
+						{"maxOut", IM_PTR(float, 1000)},
 						CF_DICT_END
-					}},
+				}},
+				{"speedPID", CF_DICT{
+					{"p", IM_PTR(float, 15)},
+					{"i", IM_PTR(float, 0)},
+					{"d", IM_PTR(float, 0)},
+					{"maxI", IM_PTR(float, 500)},
+					{"maxOut", IM_PTR(float, 20000)},
+				CF_DICT_END
+				}},
 				CF_DICT_END
 			}},			
 			{"motor-pitch", CF_DICT{
@@ -232,13 +242,21 @@ ConfItem* systemConfig = CF_DICT{
 					CF_DICT_END
 				}},
 				{"imu",CF_DICT{								//陀螺仪pid参数设置
-							{"p", IM_PTR(float, 15)},
-							{"i", IM_PTR(float, 0)},
-							{"d", IM_PTR(float, 0)},
-							{"maxI", IM_PTR(float, 10000)},
-							{"maxOut", IM_PTR(float, 20000)},
-							CF_DICT_END
-						}},
+					{"p", IM_PTR(float, 70)},
+					{"i", IM_PTR(float, 0)},
+					{"d", IM_PTR(float, 0)},
+					{"maxI", IM_PTR(float, 10000)},
+					{"maxOut", IM_PTR(float, 20000)},
+					CF_DICT_END
+					}},
+				{"speedPID", CF_DICT{
+					{"p", IM_PTR(float, 15)},
+					{"i", IM_PTR(float, 0)},
+					{"d", IM_PTR(float, 0)},
+					{"maxI", IM_PTR(float, 500)},
+					{"maxOut", IM_PTR(float, 20000)},
+				CF_DICT_END
+				}},
 				CF_DICT_END
 			}},	
 			CF_DICT_END		
@@ -370,18 +388,12 @@ ConfItem* systemConfig = CF_DICT{
 	{"uart",CF_DICT{
 		{"uarts",CF_DICT{
 			{"0",CF_DICT{
-				{"huart",&huart1},
-				{"uart-x",IM_PTR(uint8_t,1)},
-				{"maxRecvSize",IM_PTR(uint16_t,100)},
-				CF_DICT_END
-				}},
-			{"1",CF_DICT{
 				{"huart",&huart3},
 				{"uart-x",IM_PTR(uint8_t,3)},
 				{"maxRecvSize",IM_PTR(uint16_t,18)},
 				CF_DICT_END
 				}},
-      {"2",CF_DICT{
+      {"1",CF_DICT{
 				{"huart",&huart6},
 				{"uart-x",IM_PTR(uint8_t,6)},
 				{"maxRecvSize",IM_PTR(uint16_t,300)},
