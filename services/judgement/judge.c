@@ -69,14 +69,14 @@ void Judge_Init(Judge* judge,ConfItem* dict)
 	name[5] = judge->uartX + '0';
 
 	Bus_RegisterReceiver(judge, Judge_Recv_SoftBusCallback, name);
-	Bus_RegisterRemoteFunc(judge, Judge_UiDrawTextCallback, "judge/send/ui/text");
-	Bus_RegisterRemoteFunc(judge, Judge_UiDrawLineCallback, "judge/send/ui/line");
-	Bus_RegisterRemoteFunc(judge, Judge_UiDrawRectCallback, "judge/send/ui/rect");
-	Bus_RegisterRemoteFunc(judge, Judge_UiDrawCircleCallback, "judge/send/ui/circle");
-	Bus_RegisterRemoteFunc(judge, Judge_UiDrawOvalCallback, "judge/send/ui/oval");
-	Bus_RegisterRemoteFunc(judge, Judge_UiDrawArcCallback, "judge/send/ui/arc");
-	Bus_RegisterRemoteFunc(judge, Judge_UiDrawFloatCallback, "judge/send/ui/float");
-	Bus_RegisterRemoteFunc(judge, Judge_UiDrawIntCallback, "judge/send/ui/int");
+	Bus_RegisterRemoteFunc(judge, Judge_UiDrawTextCallback, "/judge/send/ui/text");
+	Bus_RegisterRemoteFunc(judge, Judge_UiDrawLineCallback, "/judge/send/ui/line");
+	Bus_RegisterRemoteFunc(judge, Judge_UiDrawRectCallback, "/judge/send/ui/rect");
+	Bus_RegisterRemoteFunc(judge, Judge_UiDrawCircleCallback, "/judge/send/ui/circle");
+	Bus_RegisterRemoteFunc(judge, Judge_UiDrawOvalCallback, "/judge/send/ui/oval");
+	Bus_RegisterRemoteFunc(judge, Judge_UiDrawArcCallback, "/judge/send/ui/arc");
+	Bus_RegisterRemoteFunc(judge, Judge_UiDrawFloatCallback, "/judge/send/ui/float");
+	Bus_RegisterRemoteFunc(judge, Judge_UiDrawIntCallback, "/judge/send/ui/int");
 	//开启软件定时器 定时广播接收到的数据
 	osTimerDef(judge, Judge_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(judge), osTimerPeriodic, judge), 20);
@@ -356,7 +356,7 @@ void Judge_publishData(Judge* judge)
 		                                             {"is-chassis-power-output",&isChassisPowerOutput}
 		                                            });
 		Bus_BroadcastSend("/judge/recv/power-Heat",{{"chassis-power",&chassis_power},
-		                                            {"chassis-power_buffer",&chassis_power_buffer},
+		                                            {"chassis-power-buffer",&chassis_power_buffer},
 		                                            {"42mm-cooling-heat",&shooter_id1_42mm_cooling_heat}
 		                                            }); 
 		Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
@@ -376,7 +376,7 @@ void Judge_publishData(Judge* judge)
 		                                            {"is-gimabal-power-output",&isGimbalPowerOutput}
 		                                            });
 		Bus_BroadcastSend("/judge/recv/power-Heat",{{"chassis-power",&chassis_power},
-		                                            {"chassis-power_buffer",&chassis_power_buffer},
+		                                            {"chassis-power-buffer",&chassis_power_buffer},
 		                                            {"17mm-cooling-heat",&shooter_id1_17mm_cooling_heat}
 		                                            }); 
 		Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
