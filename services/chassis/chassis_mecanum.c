@@ -5,6 +5,9 @@
 #include "cmsis_os.h"
 #include "arm_math.h"
 
+#ifndef LIMIT
+#define LIMIT(x,min,max) (x)=(((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
+#endif
 #define CHASSIS_ACC2SLOPE(taskInterval,acc) ((taskInterval)*(acc)/1000) //mm/s2
 
 typedef struct _Chassis
@@ -108,7 +111,7 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 	//移动参数初始化
 	chassis->move.maxVx = Conf_GetValue(dict, "move/maxVx", float, 2000);
 	chassis->move.maxVy = Conf_GetValue(dict, "move/maxVy", float, 2000);
-	chassis->move.maxVw = Conf_GetValue(dict, "move/maxVw", float, 2);
+	chassis->move.maxVw = Conf_GetValue(dict, "move/maxVw", float, 180);
 	//底盘加速度初始化
 	float xAcc = Conf_GetValue(dict, "move/xAcc", float, 1000);
 	float yAcc = Conf_GetValue(dict, "move/yAcc", float, 1000);
@@ -150,11 +153,22 @@ bool Chassis_SetSpeedCallback(const char* name, SoftBusFrame* frame, void* bindD
 {
 	Chassis* chassis = (Chassis*)bindData;
 	if(Bus_IsMapKeyExist(frame, "vx"))
-		Slope_SetTarget(&chassis->move.xSlope, *(float*)Bus_GetMapValue(frame, "vx"));
+	{
+		float vx = *(float*)Bus_GetMapValue(frame, "vx");
+		LIMIT(vx, -chassis->move.maxVx, chassis->move.maxVx);
+		Slope_SetTarget(&chassis->move.xSlope, vx);
+	}
 	if(Bus_IsMapKeyExist(frame, "vy"))
-		Slope_SetTarget(&chassis->move.ySlope, *(float*)Bus_GetMapValue(frame, "vy"));
+	{
+		float vy = *(float*)Bus_GetMapValue(frame, "vy");
+		LIMIT(vy, -chassis->move.maxVy, chassis->move.maxVy);
+		Slope_SetTarget(&chassis->move.ySlope, vy);
+	}
 	if(Bus_IsMapKeyExist(frame, "vw"))
+	{
 		chassis->move.vw = *(float*)Bus_GetMapValue(frame, "vw");
+		LIMIT(chassis->move.vw, -chassis->move.maxVw, chassis->move.maxVw);
+	}
 	return true;
 }
 //设置底盘加速度回调
