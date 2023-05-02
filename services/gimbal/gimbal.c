@@ -126,7 +126,7 @@ void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindD
 {
 	Gimbal* gimbal = (Gimbal*)bindData;
 
-	if(!strcmp(name, "/imu/euler-angle"))
+	if(!strcmp(name, "/ins/euler-angle"))
 	{
 		if(!Bus_CheckMapKeys(frame, {"yaw", "pitch", "roll"}))
 			return;
@@ -163,18 +163,18 @@ bool Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData) 
 
 void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
 {
-	float dAngle=0;
+	float dAngle[3]={0};
 	float eulerAngle[3] = {yaw, pitch, roll};
 	for (uint8_t i = 0; i < 3; i++)
 	{
 		if(eulerAngle[i] - gimbal->imu.lastEulerAngle[i] < -180)
-			dAngle = eulerAngle[i] + (360 - gimbal->imu.lastEulerAngle[i]);
+			dAngle[i] = eulerAngle[i] + (360 - gimbal->imu.lastEulerAngle[i]);
 		else if(eulerAngle[i] - gimbal->imu.lastEulerAngle[i] > 180)
-			dAngle = -gimbal->imu.lastEulerAngle[i] - (360 - eulerAngle[i]);
+			dAngle[i] = -gimbal->imu.lastEulerAngle[i] - (360 - eulerAngle[i]);
 		else
-			dAngle = eulerAngle[i] - gimbal->imu.lastEulerAngle[i];
+			dAngle[i] = eulerAngle[i] - gimbal->imu.lastEulerAngle[i];
 		//将角度增量加入计数器
-		gimbal->imu.totalEulerAngle[i] += dAngle;
+		gimbal->imu.totalEulerAngle[i] += dAngle[i];
 		//记录角度
 		gimbal->imu.lastEulerAngle[i] = eulerAngle[i];
 	}
