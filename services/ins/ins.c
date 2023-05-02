@@ -153,7 +153,7 @@ void INS_TaskCallback(void const * argument)
 		ins.pitch = ins.pitch/PI*180;
 		ins.roll = ins.roll/PI*180;
 		//发布数据
-		Bus_BroadcastSend("/ins/euler-angle", {{"yaw",&ins.yaw}, {"pitch",&ins.pitch}, {"roll",&ins.roll}});
+		Bus_BroadcastSend(ins.eulerAngleName, {{"yaw",&ins.yaw}, {"pitch",&ins.pitch}, {"roll",&ins.roll}});
 		osDelay(ins.taskInterval);
 	}
   /* USER CODE END IMU */

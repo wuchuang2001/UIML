@@ -8,18 +8,10 @@
 #define PI 3.1415926535f
 #endif
 
-typedef enum
-{
-	GIMBAL_ECD_MODE, 	//编码器模式
-	GIMBAL_INS_MODE		//INS模式
-}GimbalCtrlMode; //云台模式
-
 typedef struct _Gimbal
 {
 	//yaw、pitch电机
 	Motor* motors[2];
-
-	GimbalCtrlMode mode;
 
 	uint16_t zeroAngle[2];	//零点
 	float relativeAngle;	//云台偏离角度
@@ -55,31 +47,17 @@ void Gimbal_TaskCallback(void const * argument)
 	portEXIT_CRITICAL();
 	osDelay(2000);
 	Gimbal_StartAngleInit(&gimbal); //计算云台零点
-	//计算好云台零点后，更改电机模式
-	if(gimbal.mode == GIMBAL_ECD_MODE)
-	{
-		gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_ANGLE_MODE);
-		gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_ANGLE_MODE);
-	}
-	else if(gimbal.mode == GIMBAL_INS_MODE)
-	{
-		gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_SPEED_MODE);
-		gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_SPEED_MODE);
-	}
+	//计算好云台零点后，更改电机模式，imu反馈做角度外环电机速度反馈做内环
+	gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_SPEED_MODE);
+	gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_SPEED_MODE);
 	while(1)
 	{
-		if(gimbal.mode == GIMBAL_ECD_MODE)
-		{
-			gimbal.motors[0]->setTarget(gimbal.motors[0], gimbal.angle[0]);
-			gimbal.motors[1]->setTarget(gimbal.motors[1], gimbal.angle[1]);
-		}
-		else if(gimbal.mode == GIMBAL_INS_MODE)
-		{
-			PID_SingleCalc(&gimbal.imu.pid[0], gimbal.angle[0], gimbal.imu.totalEulerAngle[0]);
-			PID_SingleCalc(&gimbal.imu.pid[1], gimbal.angle[1], gimbal.imu.totalEulerAngle[1]);
-			gimbal.motors[0]->setTarget(gimbal.motors[0], gimbal.imu.pid[0].output);
-			gimbal.motors[1]->setTarget(gimbal.motors[1], gimbal.imu.pid[1].output);
-		}
+		//计算角度串级pid
+		PID_SingleCalc(&gimbal.imu.pid[0], gimbal.angle[0], gimbal.imu.totalEulerAngle[0]);
+		PID_SingleCalc(&gimbal.imu.pid[1], gimbal.angle[1], gimbal.imu.totalEulerAngle[1]);
+		gimbal.motors[0]->setTarget(gimbal.motors[0], gimbal.imu.pid[0].output);
+		gimbal.motors[1]->setTarget(gimbal.motors[1], gimbal.imu.pid[1].output);
+		//解算云台距离零点的角度
 		gimbal.relativeAngle = gimbal.motors[0]->getData(gimbal.motors[0], "totalAngle");
 		int16_t turns = (int32_t)gimbal.relativeAngle / 360; //转数
 		turns = turns < 0 ? turns - 1 : turns; //如果是负数多减一圈使偏离角变成正数
@@ -112,9 +90,7 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	gimbal->yawRelAngleName = Conf_GetPtr(dict, "/gimbal/yaw/relative-angle", char);
 	gimbal->yawRelAngleName = gimbal->yawRelAngleName?gimbal->yawRelAngleName:"/gimbal/yaw/relative-angle";
 
-	//初始化云台模式为 编码器模式
-	gimbal->mode = Conf_GetValue(dict, "mode", GimbalCtrlMode, GIMBAL_ECD_MODE);
-	//不在这里设置模式，因为在未设置好零点前，pid会驱使电机达到编码器的零点或者imu的初始化零点
+	//不在这里设置电机模式，因为在未设置好零点前，pid会驱使电机达到编码器的零点或者imu的初始化零点
 
 	//注册广播、远程函数回调函数
 	Bus_RegisterReceiver(gimbal, Gimbal_BroadcastCallback, gimbal->imuEulerAngleName);
@@ -163,18 +139,18 @@ bool Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData) 
 
 void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
 {
-	float dAngle[3]={0};
 	float eulerAngle[3] = {yaw, pitch, roll};
 	for (uint8_t i = 0; i < 3; i++)
 	{
+		float dAngle;
 		if(eulerAngle[i] - gimbal->imu.lastEulerAngle[i] < -180)
-			dAngle[i] = eulerAngle[i] + (360 - gimbal->imu.lastEulerAngle[i]);
+			dAngle = eulerAngle[i] + (360 - gimbal->imu.lastEulerAngle[i]);
 		else if(eulerAngle[i] - gimbal->imu.lastEulerAngle[i] > 180)
-			dAngle[i] = -gimbal->imu.lastEulerAngle[i] - (360 - eulerAngle[i]);
+			dAngle = -gimbal->imu.lastEulerAngle[i] - (360 - eulerAngle[i]);
 		else
-			dAngle[i] = eulerAngle[i] - gimbal->imu.lastEulerAngle[i];
+			dAngle = eulerAngle[i] - gimbal->imu.lastEulerAngle[i];
 		//将角度增量加入计数器
-		gimbal->imu.totalEulerAngle[i] += dAngle[i];
+		gimbal->imu.totalEulerAngle[i] += dAngle;
 		//记录角度
 		gimbal->imu.lastEulerAngle[i] = eulerAngle[i];
 	}
@@ -192,6 +168,5 @@ void Gimbal_StartAngleInit(Gimbal* gimbal)
 		else if(angle > 180)
 			angle -= 360;
 		gimbal->imu.totalEulerAngle[i] = angle;
-		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle); //设置电机的起始角度
 	}	
 }
