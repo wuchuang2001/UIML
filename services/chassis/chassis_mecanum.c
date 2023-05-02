@@ -49,7 +49,7 @@ void Chassis_UpdateSlope(Chassis* chassis);
 bool Chassis_SetSpeedCallback(const char* name, SoftBusFrame* frame, void* bindData);
 bool Chassis_SetAccCallback(const char* name, SoftBusFrame* frame, void* bindData);
 bool Chassis_SetRelativeAngleCallback(const char* name, SoftBusFrame* frame, void* bindData);
-bool Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 //底盘任务回调函数
 void Chassis_TaskCallback(void const * argument)
@@ -190,12 +190,11 @@ bool Chassis_SetRelativeAngleCallback(const char* name, SoftBusFrame* frame, voi
 	return true;
 }
 //底盘急停回调
-bool Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+void Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;
 	for(uint8_t i = 0; i<4; i++)
 	{
 		chassis->motors[i]->stop(chassis->motors[i]);
 	}
-	return true;
 }
