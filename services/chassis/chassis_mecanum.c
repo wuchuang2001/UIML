@@ -138,7 +138,7 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetSpeedCallback, chassis->speedName);
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetAccCallback, chassis->accName);
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetRelativeAngleCallback, chassis->relAngleName);
-	Bus_RegisterRemoteFunc(chassis, Chassis_StopCallback, "/system/stop");
+	Bus_RegisterReceiver(chassis, Chassis_StopCallback, "/system/stop");
 }
 
 

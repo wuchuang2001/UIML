@@ -110,7 +110,7 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 	//×¢²á»Øµ÷º¯Êý
 	Bus_RegisterRemoteFunc(shooter,Shooter_SettingCallback, shooter->settingName);
 	Bus_RegisterRemoteFunc(shooter,Shoot_ChangeModeCallback, shooter->changeModeName);
-	Bus_RegisterRemoteFunc(shooter,Shoot_StopCallback,"/system/stop");
+	Bus_RegisterReceiver(shooter,Shoot_StopCallback,"/system/stop");
 	Bus_RegisterReceiver(shooter,Shooter_BlockCallback, shooter->triggerStallName);
 }
 

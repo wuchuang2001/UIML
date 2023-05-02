@@ -95,7 +95,7 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	//×¢²á¹ã²¥¡¢Ô¶³Ìº¯Êý»Øµ÷º¯Êý
 	Bus_RegisterReceiver(gimbal, Gimbal_BroadcastCallback, gimbal->imuEulerAngleName);
 	Bus_RegisterRemoteFunc(gimbal, Gimbal_SettingCallback, gimbal->settingName);
-	Bus_RegisterRemoteFunc(gimbal, Gimbal_StopCallback, "/system/stop"); //¼±Í£
+	Bus_RegisterReceiver(gimbal, Gimbal_StopCallback, "/system/stop"); //¼±Í£
 }
 
 void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData)
