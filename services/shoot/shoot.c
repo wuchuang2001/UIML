@@ -30,7 +30,7 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict);
 bool Shooter_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData);
 bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData);
-bool Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void Shooter_TaskCallback(void const * argument)
 {
@@ -179,7 +179,7 @@ void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData
 	shooter->mode = SHOOTER_MODE_BLOCK;
 }
 //¼±Í£
-bool Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
+void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData;
 	for(uint8_t i = 0; i<2; i++)
@@ -187,6 +187,5 @@ bool Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 		shooter->fricMotors[i]->stop(shooter->fricMotors[i]);
 	}
 	shooter->triggerMotor->stop(shooter->triggerMotor);
-	return true;
 }
 

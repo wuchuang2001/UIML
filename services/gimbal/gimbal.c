@@ -36,7 +36,7 @@ void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll);
 
 void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData);
 bool Gimbal_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData);
-bool Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
+void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 void Gimbal_TaskCallback(void const * argument)
 {
@@ -127,14 +127,13 @@ bool Gimbal_SettingCallback(const char* name, SoftBusFrame* frame, void* bindDat
 	return true;
 }
 
-bool Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData) //¼±Í£
+void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData) //¼±Í£
 {
 	Gimbal* gimbal = (Gimbal*)bindData;
 	for(uint8_t i = 0; i<2; i++)
 	{
 		gimbal->motors[i]->stop(gimbal->motors[i]);
 	}
-	return true;
 }
 
 void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
