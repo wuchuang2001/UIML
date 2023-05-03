@@ -48,9 +48,9 @@ void Sys_ErrorHandle(void);
 //初始化控制信息
 void Sys_InitInfo(ConfItem *dict)
 {
-	sysCtrl.mode = Conf_GetValue(dict, "InitMode", uint8_t, SYS_FOLLOW_MODE); //默认跟随模式
-	sysCtrl.rockerCtrl = Conf_GetValue(dict, "rockerCtrl", bool, false);  //默认键鼠控制
-	PID_Init(&sysCtrl.rotatePID, Conf_GetPtr(dict, "rotatePID", ConfItem)); 
+	sysCtrl.mode = Conf_GetValue(dict, "init-mode", uint8_t, SYS_FOLLOW_MODE); //默认跟随模式
+	sysCtrl.rockerCtrl = Conf_GetValue(dict, "rocker-ctrl", bool, false);  //默认键鼠控制
+	PID_Init(&sysCtrl.rotatePID, Conf_GetPtr(dict, "rotate-pid", ConfItem)); 
 }
 
 //初始化接收
@@ -108,7 +108,7 @@ void Sys_Broadcast()
 	Bus_RemoteCall("/chassis/speed", {{"vx", &sysCtrl.chassisData.vx},
 										{"vy", &sysCtrl.chassisData.vy},
 										{"vw", &sysCtrl.chassisData.vw}});
-	Bus_RemoteCall("/chassis/relativeAngle", {{"angle", &sysCtrl.gimbalData.relativeAngle}});
+	Bus_RemoteCall("/chassis/relative-angle", {{"angle", &sysCtrl.gimbalData.relativeAngle}});
 	Bus_RemoteCall("/gimbal/setting", {{"yaw", &sysCtrl.gimbalData.yaw},{"pitch", &sysCtrl.gimbalData.pitch}});
 }
 
@@ -263,7 +263,7 @@ void Sys_Shoot_Callback(const char* name, SoftBusFrame* frame, void* bindData)
 	{
 		if(!Bus_IsMapKeyExist(frame,"left"))
 			return;
-		Bus_RemoteCall("/shooter/mode",{{"mode", "continue"}, {"intervalTime", IM_PTR(uint16_t, 100)}}); //连发
+		Bus_RemoteCall("/shooter/mode",{{"mode", "continue"}, {"interval-time", IM_PTR(uint16_t, 100)}}); //连发
 	}
 	else if(!strcmp(name,"/rc/key/on-up") && !sysCtrl.rockerCtrl)
 	{

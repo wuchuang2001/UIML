@@ -61,74 +61,74 @@
 		{"info", CF_DICT{
 			{"wheelbase", IM_PTR(float, 100)},
 			{"wheeltrack", IM_PTR(float, 100)},
-			{"wheelRadius", IM_PTR(float, 76)},
-			{"offsetX", IM_PTR(float, 0)},
-			{"offsetY", IM_PTR(float, 0)},
+			{"wheel-radius", IM_PTR(float, 76)},
+			{"offset-x", IM_PTR(float, 0)},
+			{"offset-y", IM_PTR(float, 0)},
 			CF_DICT_END
 		}},
 		//底盘移动速度/加速度配置
 		{"move", CF_DICT{
-			{"maxVx", IM_PTR(float, 2000)},
-			{"maxVy", IM_PTR(float, 2000)},
-			{"maxVw", IM_PTR(float, 2)},
-			{"xAcc", IM_PTR(float, 1000)},
-			{"yAcc", IM_PTR(float, 1000)},
+			{"max-vx", IM_PTR(float, 2000)},
+			{"max-vy", IM_PTR(float, 2000)},
+			{"max-vw", IM_PTR(float, 2)},
+			{"x-acc", IM_PTR(float, 1000)},
+			{"y-acc", IM_PTR(float, 1000)},
 			CF_DICT_END
 		}},
 		//四个电机配置
-		{"motorFL", CF_DICT{
+		{"motor-fl", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 1)},
-			{"canX", IM_PTR(uint8_t, 1)},
-//			{"reductionRatio", IM_PTR(float, 1)},   //若使用改装减速箱或者拆掉减速箱的电机则修改此参数，若使用原装电机则无需配置此参数
-			{"speedPID", CF_DICT{
+			{"can-x", IM_PTR(uint8_t, 1)},
+//			{"reduction-ratio", IM_PTR(float, 1)},   //若使用改装减速箱或者拆掉减速箱的电机则修改此参数，若使用原装电机则无需配置此参数
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
 		}},
-		{"motorFR", CF_DICT{
+		{"motor-fr", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 2)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
 		}},
-		{"motorBL", CF_DICT{
+		{"motor-bl", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 3)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
 		}},
-		{"motorBR", CF_DICT{
+		{"motor-br", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 4)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
@@ -172,7 +172,7 @@
         | `ax` | `float` | × | 可选 | 底盘在用户坐标系下x轴方向的加速度(单位mm/s²) |
         | `ay` | `float` | × | 可选 | 底盘在用户坐标系下y轴方向的加速度(单位mm/s²) |
     
-    3. `/chassis/relativeAngle`
+    3. `/chassis/relative-angle`
 
         说明：设置用户坐标系和底盘坐标系的分离角
 

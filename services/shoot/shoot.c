@@ -84,15 +84,15 @@ void Shooter_TaskCallback(void const * argument)
 void Shooter_Init(Shooter* shooter, ConfItem* dict)
 {
 	//任务间隔
-	shooter->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 20);
+	shooter->taskInterval = Conf_GetValue(dict, "task-interval", uint8_t, 20);
 	//初始弹速
-	shooter->fricSpeed = Conf_GetValue(dict,"fricSpeed",float,5450);
+	shooter->fricSpeed = Conf_GetValue(dict,"fric-speed",float,5450);
 	//拨弹轮拨出一发弹丸转角
-	shooter->triggerAngle = Conf_GetValue(dict,"triggerAngle",float,1/7.0*360);
+	shooter->triggerAngle = Conf_GetValue(dict,"trigger-angle",float,1/7.0*360);
 	//发射机构电机初始化
-	shooter->fricMotors[0] = Motor_Init(Conf_GetPtr(dict, "fricMotorLeft", ConfItem));
-	shooter->fricMotors[1] = Motor_Init(Conf_GetPtr(dict, "fricMotorRight", ConfItem));
-	shooter->triggerMotor = Motor_Init(Conf_GetPtr(dict, "triggerMotor", ConfItem));
+	shooter->fricMotors[0] = Motor_Init(Conf_GetPtr(dict, "fric-motor-left", ConfItem));
+	shooter->fricMotors[1] = Motor_Init(Conf_GetPtr(dict, "fric-motor-right", ConfItem));
+	shooter->triggerMotor = Motor_Init(Conf_GetPtr(dict, "trigger-motor", ConfItem));
 	//设置发射机构电机模式
 	for(uint8_t i = 0; i<2; i++)
 	{
@@ -157,9 +157,9 @@ bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindD
 		}
 		else if(!strcmp(mode,"continue") && shooter->mode == SHOOTER_MODE_IDLE)
 		{
-			if(!Bus_IsMapKeyExist(frame,"intervalTime"))
+			if(!Bus_IsMapKeyExist(frame,"interval-time"))
 				return false;
-			shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"intervalTime");
+			shooter->intervalTime = *(uint16_t*)Bus_GetMapValue(frame,"interval-time");
 			shooter->mode = SHOOTER_MODE_CONTINUE;
 			return true;
 		}

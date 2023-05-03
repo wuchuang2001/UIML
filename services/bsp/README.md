@@ -199,7 +199,33 @@
 ### 在`sys_conf.h`中的配置
 
 ```c
-
+{"spi",CF_DICT{
+	{"spis",CF_DICT{
+		{"0",CF_DICT{
+			{"hspi", &hspi1},
+			{"number",IM_PTR(uint8_t,1)},
+			{"max-recv-size",IM_PTR(uint8_t,10)},
+			{"cs",CF_DICT{
+				{"0",CF_DICT{
+					{"pin", IM_PTR(uint8_t,0)},
+					{"name", "gyro"},
+					{"gpio-x", GPIOB},
+					CF_DICT_END
+				}},
+				{"1",CF_DICT{
+					{"pin", IM_PTR(uint8_t,4)},
+					{"name", "acc"},
+					{"gpio-x", GPIOA},
+					CF_DICT_END
+				}},          
+				CF_DICT_END
+				}},
+			CF_DICT_END
+			}},
+		CF_DICT_END
+		}},
+	CF_DICT_END
+}},
 ```
 
 ### 模块接口
@@ -235,13 +261,13 @@
   
         | 数据字段名 | 数据类型 | 是否为返回值 | 是否必须传输 | 说明 |
         | :---: | :---: | :---: | :---: | :---: |
-        | `spi-x`  | `uint8_t`  | × | 必须 | spiX的X     |
-        | `txData` | `uint8_t*` | × | 必须 | spi发送数据 |
-        | `rxData` | `uint8_t*` | √ | 可选 | spi接收数据，若传入则默认指向spi缓冲区  |
-        | `len`    | `uint16_t` | × | 必须 | spi传输数据长度(字节) |
-        | `timeout`| `uint32_t` | × | 必须 | spi阻塞式发送等待的超时时间 |
-		| `csName` | `char*`    | × | 必须 | 片选名，与在配置表里配置的有关 |
-        | `isBlock`| `bool*`    | × | 必须 | 如果spi正在通信是否阻塞等待上一个设备通信结束后再通信 |
+        | `spi-x`   | `uint8_t`  | × | 必须 | spiX的X     |
+        | `tx-data` | `uint8_t*` | × | 必须 | spi发送数据 |
+        | `rx-data` | `uint8_t*` | √ | 可选 | spi接收数据，若传入则默认指向spi缓冲区  |
+        | `len`     | `uint16_t` | × | 必须 | spi传输数据长度(字节) |
+        | `timeout` | `uint32_t` | × | 必须 | spi阻塞式发送等待的超时时间 |
+		| `cs-name` | `char*`    | × | 必须 | 片选名，与在配置表里配置的有关 |
+        | `is-block`| `bool*`    | × | 必须 | 如果spi正在通信是否阻塞等待上一个设备通信结束后再通信 |
     
     2. `/spi/trans/dma`
 
@@ -253,12 +279,12 @@
   
         | 数据字段名 | 数据类型 | 是否为返回值 | 是否必须传输 | 说明 |
         | :---: | :---: | :---: | :---: | :---: |
-        | `spi-x`  | `uint8_t`  | × | 必须 | spiX的X     |
-        | `txData` | `uint8_t*` | × | 必须 | spi发送数据 |
-        | `rxData` | `uint8_t*` | √ | 可选 | spi接收数据，若传入则默认指向spi缓冲区  |
-        | `len`    | `uint16_t` | × | 必须 | spi传输数据长度(字节) |
-		| `csName` | `char*`    | × | 必须 | 片选名，与在配置表里配置的有关 |
-        | `isBlock`| `bool*`    | × | 必须 | 如果spi正在通信是否阻塞等待上一个设备通信结束后再通信 |
+        | `spi-x`   | `uint8_t`  | × | 必须 | spiX的X     |
+        | `tx-data` | `uint8_t*` | × | 必须 | spi发送数据 |
+        | `rx-data` | `uint8_t*` | √ | 可选 | spi接收数据，若传入则默认指向spi缓冲区  |
+        | `len`     | `uint16_t` | × | 必须 | spi传输数据长度(字节) |
+		| `cs-name` | `char*`    | × | 必须 | 片选名，与在配置表里配置的有关 |
+        | `is-block`| `bool*`    | × | 必须 | 如果spi正在通信是否阻塞等待上一个设备通信结束后再通信 |
 
 ---
 
@@ -350,19 +376,19 @@
 		{"0",CF_DICT{ //相当于数组下标，在一个配置名下如果有多个配置项的话，需要按顺序依次顺序输入
 			{"huart",&huart1},
 			{"uart-x",IM_PTR(uint8_t,1)},
-			{"maxRecvSize",IM_PTR(uint16_t,100)},
+			{"max-recv-size",IM_PTR(uint16_t,100)},
 			CF_DICT_END
 		}},
 		{"1",CF_DICT{
 			{"huart",&huart3},
 			{"uart-x",IM_PTR(uint8_t,3)},
-			{"maxRecvSize",IM_PTR(uint16_t,18)},
+			{"max-recv-size",IM_PTR(uint16_t,18)},
 			CF_DICT_END
 		}},
 		{"2",CF_DICT{
 			{"huart",&huart6},
 			{"uart-x",IM_PTR(uint8_t,6)},
-			{"maxRecvSize",IM_PTR(uint16_t,300)},
+			{"max-recv-size",IM_PTR(uint16_t,300)},
 			CF_DICT_END
 		}},
 		CF_DICT_END
@@ -404,7 +430,7 @@
         | :---: | :---: | :---: | :---: | :---: |
         | `uart-x`    | `uint8_t`  | × | 必须 | uartX的X     |
         | `data`      | `uint8_t*` | × | 必须 | 串口发送数据 |
-        | `transSize` | `uint16_t` | × | 必须 | 串口发送数据长度  |
+        | `trans-size` | `uint16_t` | × | 必须 | 串口发送数据长度  |
         | `timeout`   | `uint32_t` | × | 必须 | 串口阻塞式发送等待的超时时间 |
     
     2. `/uart/trans/it`
@@ -419,7 +445,7 @@
         | :---: | :---: | :---: | :---: | :---: |
         | `uart-x`    | `uint8_t`  | × | 必须 | uartX的X     |
         | `data`      | `uint8_t*` | × | 必须 | 串口发送数据 |
-        | `transSize` | `uint16_t` | × | 必须 | 串口发送数据长度  |
+        | `trans-size` | `uint16_t` | × | 必须 | 串口发送数据长度  |
 
 	3. `/uart/trans/dma`
 
@@ -433,4 +459,4 @@
         | :---: | :---: | :---: | :---: | :---: |
         | `uart-x`    | `uint8_t`  | × | 必须 | uartX的X     |
         | `data`      | `uint8_t*` | × | 必须 | 串口发送数据 |
-        | `transSize` | `uint16_t` | × | 必须 | 串口发送数据长度  |
+        | `trans-size` | `uint16_t` | × | 必须 | 串口发送数据长度  |

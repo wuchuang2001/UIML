@@ -120,7 +120,7 @@ void BSP_UART_InitInfo(UARTInfo* info, ConfItem* dict)
 	uint8_t number = Conf_GetValue(dict, "uart-x", uint8_t, 0);
 	info[number-1].huart = Conf_GetPtr(dict, "huart", UART_HandleTypeDef);
 	info[number-1].number = number;
-	info[number-1].recvBuffer.maxBufSize = Conf_GetValue(dict, "maxRecvSize", uint16_t, 1);
+	info[number-1].recvBuffer.maxBufSize = Conf_GetValue(dict, "max-recv-size", uint16_t, 1);
 	char name[] = "/uart_/recv";
 	name[5] = info[number-1].number + '0';
 	info[number-1].fastHandle = Bus_CreateReceiverHandle(name);
@@ -147,12 +147,12 @@ void BSP_UART_InitRecvBuffer(UARTInfo* info)
 //阻塞回调
 bool BSP_UART_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame, {"uart-x", "data", "transSize", "timeout"}))
+	if(!Bus_CheckMapKeys(frame, {"uart-x", "data", "trans-size", "timeout"}))
 		return false;
 
 	uint8_t uartX = *(uint8_t*)Bus_GetMapValue(frame, "uart-x");
 	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
-	uint16_t transSize = *(uint16_t*)Bus_GetMapValue(frame, "transSize");
+	uint16_t transSize = *(uint16_t*)Bus_GetMapValue(frame, "trans-size");
 	uint32_t timeout = *(uint32_t*)Bus_GetMapValue(frame, "timeout");
 	HAL_UART_Transmit(uartService.uartList[uartX - 1].huart,data,transSize,timeout);
 	return true;
@@ -161,12 +161,12 @@ bool BSP_UART_BlockCallback(const char* name, SoftBusFrame* frame, void* bindDat
 //中断发送回调
 bool BSP_UART_ItCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame, {"uart-x","data","transSize"}))
+	if(!Bus_CheckMapKeys(frame, {"uart-x","data","trans-size"}))
 		return false;
 
 	uint8_t uartX = *(uint8_t*)Bus_GetMapValue(frame, "uart-x");
 	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
-	uint16_t transSize = *(uint16_t*)Bus_GetMapValue(frame, "transSize");
+	uint16_t transSize = *(uint16_t*)Bus_GetMapValue(frame, "trans-size");
 	HAL_UART_Transmit_IT(uartService.uartList[uartX - 1].huart,data,transSize);
 	return true;
 }
@@ -174,12 +174,12 @@ bool BSP_UART_ItCallback(const char* name, SoftBusFrame* frame, void* bindData)
 //DMA发送回调
 bool BSP_UART_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame, {"uart-x","data","transSize"}))
+	if(!Bus_CheckMapKeys(frame, {"uart-x","data","trans-size"}))
 		return false;
 
 	uint8_t uartX = *(uint8_t*)Bus_GetMapValue(frame, "uart-x");
 	uint8_t* data = (uint8_t*)Bus_GetMapValue(frame, "data");
-	uint16_t transSize = *(uint16_t*)Bus_GetMapValue(frame, "transSize");
+	uint16_t transSize = *(uint16_t*)Bus_GetMapValue(frame, "trans-size");
 	HAL_UART_Transmit_DMA(uartService.uartList[uartX - 1].huart,data,transSize);
 	return true;
 }

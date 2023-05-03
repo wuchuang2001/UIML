@@ -58,12 +58,12 @@
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
 	{"sys",CF_DICT{
-		{"rotatePID",CF_DICT{
+		{"rotate-pid",CF_DICT{
 			{"p", IM_PTR(float, 1.5)},
 			{"i", IM_PTR(float, 0)},
 			{"d", IM_PTR(float, 0)},
-			{"maxI", IM_PTR(float, 100)},
-			{"maxOut", IM_PTR(float, 200)},
+			{"max-i", IM_PTR(float, 100)},
+			{"max-out", IM_PTR(float, 200)},
 			CF_DICT_END
 		}},
 		CF_DICT_END
@@ -71,78 +71,78 @@ ConfItem* systemConfig = CF_DICT{
 	//底盘服务配置
 	{"chassis", CF_DICT{
 		//任务循环周期
-		{"taskInterval", IM_PTR(uint8_t, 2)},
+		{"task-interval", IM_PTR(uint8_t, 2)},
 		//底盘尺寸信息
 		{"info", CF_DICT{
 			{"wheelbase", IM_PTR(float, 100)},
 			{"wheeltrack", IM_PTR(float, 100)},
-			{"wheelRadius", IM_PTR(float, 76)},
-			{"offsetX", IM_PTR(float, 0)},
-			{"offsetY", IM_PTR(float, 0)},
+			{"wheel-radius", IM_PTR(float, 76)},
+			{"offset-x", IM_PTR(float, 0)},
+			{"offset-y", IM_PTR(float, 0)},
 			CF_DICT_END
 		}},
 		//底盘移动速度/加速度配置
 		{"move", CF_DICT{
-			{"maxVx", IM_PTR(float, 2000)},
-			{"maxVy", IM_PTR(float, 2000)},
-			{"maxVw", IM_PTR(float, 180)},
-			{"xAcc", IM_PTR(float, 1000)},
-			{"yAcc", IM_PTR(float, 1000)},
+			{"max-vx", IM_PTR(float, 2000)},
+			{"max-vy", IM_PTR(float, 2000)},
+			{"max-vw", IM_PTR(float, 180)},
+			{"x-acc", IM_PTR(float, 1000)},
+			{"y-acc", IM_PTR(float, 1000)},
 			CF_DICT_END
 		}},
 		//四个电机配置
-		{"motorFL", CF_DICT{
+		{"motor-fl", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 1)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
 		}},
-		{"motorFR", CF_DICT{
+		{"motor-fr", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 2)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
 		}},
-		{"motorBL", CF_DICT{
+		{"motor-bl", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 3)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
 		}},
-		{"motorBR", CF_DICT{
+		{"motor-br", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 4)},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"speedPID", CF_DICT{
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 1)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
@@ -151,115 +151,115 @@ ConfItem* systemConfig = CF_DICT{
 	}},
 	//云台服务配置
 	{"gimbal", CF_DICT{
-		  //yaw pitch 机械零点
+		//yaw pitch 机械零点
 		{"zero-yaw",IM_PTR(uint16_t,4010)},
 		{"zero-pitch",IM_PTR(uint16_t,5300)},
-			//任务循环周期
-			{"taskInterval", IM_PTR(uint8_t, 10)},
-			//云台电机配置
-			{"motor-yaw", CF_DICT{
-				{"type", "M6020"},
-				{"id", IM_PTR(uint16_t, 1)},
-				{"canX", IM_PTR(uint8_t, 1)},
-				{"imu",CF_DICT{								//陀螺仪pid参数设置
-					{"p", IM_PTR(float, -90)},
-					{"i", IM_PTR(float, 0)},
-					{"d", IM_PTR(float, 0)},
-					{"maxI", IM_PTR(float, 500)},
-					{"maxOut", IM_PTR(float, 1000)},
-					CF_DICT_END
-				}},
-				{"speedPID", CF_DICT{						//陀螺仪做角度外环电机执行速度内环
-					{"p", IM_PTR(float, 15)},
-					{"i", IM_PTR(float, 0)},
-					{"d", IM_PTR(float, 0)},
-					{"maxI", IM_PTR(float, 500)},
-					{"maxOut", IM_PTR(float, 20000)},
-					CF_DICT_END
-				}},
-				CF_DICT_END
-			}},			
-			{"motor-pitch", CF_DICT{
-				{"type", "M6020"},
-				{"id", IM_PTR(uint16_t, 4)},
-				{"canX", IM_PTR(uint8_t, 2)},
-				{"imu",CF_DICT{								//陀螺仪pid参数设置
-					{"p", IM_PTR(float, 63)},
-					{"i", IM_PTR(float, 0)},
-					{"d", IM_PTR(float, 0)},
-					{"maxI", IM_PTR(float, 10000)},
-					{"maxOut", IM_PTR(float, 20000)},
-					CF_DICT_END
-					}},
-				{"speedPID", CF_DICT{						//陀螺仪做角度外环电机执行速度内环
-					{"p", IM_PTR(float, 15)},
-					{"i", IM_PTR(float, 0)},
-					{"d", IM_PTR(float, 0)},
-					{"maxI", IM_PTR(float, 500)},
-					{"maxOut", IM_PTR(float, 20000)},
-				CF_DICT_END
-				}},
-				CF_DICT_END
-			}},	
-			CF_DICT_END		
-		}},
-		//发射服务配置
-	{"shooter", CF_DICT{
 		//任务循环周期
-		{"taskInterval", IM_PTR(uint8_t, 10)},
-		//拨一发弹丸的角度
-		{"triggerAngle",IM_PTR(float,45)},
-		//发射机构电机配置
-		{"fricMotorLeft", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 2)},
-			{"canX", IM_PTR(uint8_t, 2)},
-			{"reductionRatio", IM_PTR(float, 1)},
-			{"speedPID", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
+		{"task-interval", IM_PTR(uint8_t, 10)},
+		//云台电机配置
+		{"motor-yaw", CF_DICT{
+			{"type", "M6020"},
+			{"id", IM_PTR(uint16_t, 1)},
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"imu",CF_DICT{								//陀螺仪pid参数设置
+				{"p", IM_PTR(float, -90)},
+				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 500)},
+				{"max-out", IM_PTR(float, 1000)},
+				CF_DICT_END
+			}},
+			{"speed-pid", CF_DICT{						//陀螺仪做角度外环电机执行速度内环
+				{"p", IM_PTR(float, 15)},
+				{"i", IM_PTR(float, 0)},
+				{"d", IM_PTR(float, 0)},
+				{"max-i", IM_PTR(float, 500)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
-		}},		
-		{"fricMotorRight", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 1)},
-			{"canX", IM_PTR(uint8_t, 2)},
-			{"reductionRatio", IM_PTR(float, 1)},
-			{"speedPID", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
+		}},			
+		{"motor-pitch", CF_DICT{
+			{"type", "M6020"},
+			{"id", IM_PTR(uint16_t, 4)},
+			{"can-x", IM_PTR(uint8_t, 2)},
+			{"imu",CF_DICT{								//陀螺仪pid参数设置
+				{"p", IM_PTR(float, 63)},
+				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
+				CF_DICT_END
+				}},
+			{"speed-pid", CF_DICT{						//陀螺仪做角度外环电机执行速度内环
+				{"p", IM_PTR(float, 15)},
+				{"i", IM_PTR(float, 0)},
+				{"d", IM_PTR(float, 0)},
+				{"max-i", IM_PTR(float, 500)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
 		}},	
-		{"triggerMotor", CF_DICT{
+		CF_DICT_END		
+	}},
+	//发射服务配置
+	{"shooter", CF_DICT{
+		//任务循环周期
+		{"task-interval", IM_PTR(uint8_t, 10)},
+		//拨一发弹丸的角度
+		{"trigger-angle",IM_PTR(float,45)},
+		//发射机构电机配置
+		{"fric-motor-left", CF_DICT{
+			{"type", "M3508"},
+			{"id", IM_PTR(uint16_t, 2)},
+			{"can-x", IM_PTR(uint8_t, 2)},
+			{"reduction-ratio", IM_PTR(float, 1)},
+			{"speed-pid", CF_DICT{
+				{"p", IM_PTR(float, 10)},
+				{"i", IM_PTR(float, 1)},
+				{"d", IM_PTR(float, 0)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
+				CF_DICT_END
+			}},
+			CF_DICT_END
+		}},		
+		{"fric-motor-right", CF_DICT{
+			{"type", "M3508"},
+			{"id", IM_PTR(uint16_t, 1)},
+			{"canX", IM_PTR(uint8_t, 2)},
+			{"reduction-ratio", IM_PTR(float, 1)},
+			{"speed-pid", CF_DICT{
+				{"p", IM_PTR(float, 10)},
+				{"i", IM_PTR(float, 1)},
+				{"d", IM_PTR(float, 0)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
+				CF_DICT_END
+			}},
+			CF_DICT_END
+		}},	
+		{"trigger-motor", CF_DICT{
 			{"type", "M2006"},
 			{"id", IM_PTR(uint16_t, 6)},
 			{"name","triggerMotor"},
-			{"canX", IM_PTR(uint8_t, 1)},
-			{"anglePID", CF_DICT{								//串级pid
+			{"can-x", IM_PTR(uint8_t, 1)},
+			{"angle-pid", CF_DICT{								//串级pid
 				{"inner", CF_DICT{								//内环pid参数设置
 					{"p", IM_PTR(float, 10)},
 					{"i", IM_PTR(float, 0)},
 					{"d", IM_PTR(float, 0)},
-					{"maxI", IM_PTR(float, 10000)},
-					{"maxOut", IM_PTR(float, 20000)},
+					{"max-i", IM_PTR(float, 10000)},
+					{"max-out", IM_PTR(float, 20000)},
 					CF_DICT_END
 				}},
 				{"outer", CF_DICT{								//外环pid参数设置
 					{"p", IM_PTR(float, 0.3)},
 					{"i", IM_PTR(float, 0)},
 					{"d", IM_PTR(float, 0)},
-					{"maxI", IM_PTR(float, 2000)},
-					{"maxOut", IM_PTR(float, 200)},
+					{"max-i", IM_PTR(float, 2000)},
+					{"max-out", IM_PTR(float, 200)},
 					CF_DICT_END
 				}},
 				CF_DICT_END
@@ -317,14 +317,14 @@ ConfItem* systemConfig = CF_DICT{
 	//遥控服务配置
 	{"rc",CF_DICT{
 		{"uart-x",IM_PTR(uint8_t, 3)},
-	   CF_DICT_END
+		CF_DICT_END
 	}},
 	//裁判系统服务配置
 	{"judge",CF_DICT{
-          {"maxTxQueueLength",IM_PTR(uint16_t,20)},
-          {"taskInterval",IM_PTR(uint16_t,150)},
-          {"uart-x",IM_PTR(uint8_t,6)},
-          CF_DICT_END
+		{"max-tx-queue-length",IM_PTR(uint16_t,20)},
+		{"task-interval",IM_PTR(uint16_t,150)},
+		{"uart-x",IM_PTR(uint8_t,6)},
+		CF_DICT_END
 	}},
 	//串口服务配置
 	{"uart",CF_DICT{
@@ -332,13 +332,13 @@ ConfItem* systemConfig = CF_DICT{
 			{"0",CF_DICT{
 				{"huart",&huart3},
 				{"uart-x",IM_PTR(uint8_t,3)},
-				{"maxRecvSize",IM_PTR(uint16_t,18)},
+				{"max-recv-size",IM_PTR(uint16_t,18)},
 				CF_DICT_END
 			}},
 			{"1",CF_DICT{
 				{"huart",&huart6},
 				{"uart-x",IM_PTR(uint8_t,6)},
-				{"maxRecvSize",IM_PTR(uint16_t,300)},
+				{"max-recv-size",IM_PTR(uint16_t,300)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
@@ -349,12 +349,12 @@ ConfItem* systemConfig = CF_DICT{
 		{"spi-x",IM_PTR(uint8_t,1)},
 		{"tim-x",IM_PTR(uint8_t,10)},
 		{"channel-x",IM_PTR(uint8_t,1)},
-		{"tmpPID", CF_DICT{
+		{"tmp-pid", CF_DICT{
 			{"p", IM_PTR(float, 0.15)},
 			{"i", IM_PTR(float, 0.01)},
 			{"d", IM_PTR(float, 0)},
-			{"maxI", IM_PTR(float, 0.15)},
-			{"maxOut", IM_PTR(float, 1)},
+			{"max-i", IM_PTR(float, 0.15)},
+			{"max-out", IM_PTR(float, 1)},
 			CF_DICT_END
 		}},
 		CF_DICT_END
@@ -364,7 +364,7 @@ ConfItem* systemConfig = CF_DICT{
 			{"0",CF_DICT{
 				{"hspi", &hspi1},
 				{"number",IM_PTR(uint8_t,1)},
-				{"maxRecvSize",IM_PTR(uint8_t,10)},
+				{"max-recv-size",IM_PTR(uint8_t,10)},
 				{"cs",CF_DICT{
 					{"0",CF_DICT{
 						{"pin", IM_PTR(uint8_t,0)},

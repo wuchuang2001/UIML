@@ -37,8 +37,8 @@ Filter* Kalman_Init(ConfItem* dict)
 	kalman->filter.cala = Kalman_Cala;
 	kalman->xLast = 0;
 	kalman->pLast = 1;
-	kalman->Q = Conf_GetValue(dict, "T-Q", float, 1);
-	kalman->R = Conf_GetValue(dict, "T-R", float, 1);
+	kalman->Q = Conf_GetValue(dict, "t-q", float, 1);
+	kalman->R = Conf_GetValue(dict, "t-r", float, 1);
 
 	return (Filter*)kalman;
 }

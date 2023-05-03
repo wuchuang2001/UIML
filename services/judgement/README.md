@@ -30,10 +30,10 @@
 
 ```c
 {"judge",CF_DICT{
-	{"maxTxQueueLength",IM_PTR(uint16_t,20)},
-	{"taskInterval",IM_PTR(uint16_t,150)},
-	{"uart-x",IM_PTR(uint8_t,6)},
-	CF_DICT_END
+    {"max-tx-queue-length",IM_PTR(uint16_t,20)},
+    {"task-interval",IM_PTR(uint16_t,150)},
+    {"uart-x",IM_PTR(uint8_t,6)},
+    CF_DICT_END
 }},
 ```
 ## 模块接口
@@ -146,8 +146,8 @@
         | `color` | `uint8_t` | × | 可选 | 颜色（详见颜色说明）  |
         | `width` | `uint8_t` | × | 可选 | 笔画宽度  |
         | `layer` | `uint8_t` | × | 可选 | 图层 |
-        | `start_x` | `int16_t` | × | 可选 | 开始x坐标 |
-        | `start_y` | `int16_t` | × | 可选 | 开始y坐标 |
+        | `start-x` | `int16_t` | × | 可选 | 开始x坐标 |
+        | `start-y` | `int16_t` | × | 可选 | 开始y坐标 |
         | `size` | `uint16_t` | × | 可选 | 文本大小  |
         | `len` | `uint16_t` | × | 可选 | 发送的文本长度  |
         | `lopera` | `uint8_t` | × | 可选 | 操作（详见操作说明）  |
@@ -166,10 +166,10 @@
         | `color` | `uint8_t` | × | 可选 | 颜色（详见颜色说明）  |
         | `width` | `uint8_t` | × | 可选 | 宽度  |
         | `layer` | `uint8_t` | × | 可选 | 图层 |
-        | `start_x` | `int16_t` | × | 可选 | 开始x坐标 |
-        | `start_y` | `int16_t` | × | 可选 | 开始y坐标 |
-        | `end_x` | `int16_t` | × | 可选 | 结束x坐标 |
-        | `end_y` | `int16_t` | × | 可选 | 结束y坐标 |
+        | `start-x` | `int16_t` | × | 可选 | 开始x坐标 |
+        | `start-y` | `int16_t` | × | 可选 | 开始y坐标 |
+        | `end-x` | `int16_t` | × | 可选 | 结束x坐标 |
+        | `end-y` | `int16_t` | × | 可选 | 结束y坐标 |
         | `lopera` | `uint8_t` | × | 可选 | 操作（详见操作说明）  |
     
     3. `/judge/send/ui/rect`
@@ -186,10 +186,10 @@
         | `color` | `uint8_t` | × | 可选 | 颜色（详见颜色说明）  |
         | `width` | `uint8_t` | × | 可选 | 宽度  |
         | `layer` | `uint8_t` | × | 可选 | 图层 |
-        | `start_x` | `int16_t` | × | 可选 | 开始x坐标 |
-        | `start_y` | `int16_t` | × | 可选 | 开始y坐标 |
-        | `end_x` | `int16_t` | × | 可选 | 对角x坐标 |
-        | `end_y` | `int16_t` | × | 可选 | 对角y坐标 |
+        | `start-x` | `int16_t` | × | 可选 | 开始x坐标 |
+        | `start-y` | `int16_t` | × | 可选 | 开始y坐标 |
+        | `end-x` | `int16_t` | × | 可选 | 对角x坐标 |
+        | `end-y` | `int16_t` | × | 可选 | 对角y坐标 |
         | `lopera` | `uint8_t` | × | 可选 | 操作（详见操作说明）  |
 
     4. `/judge/send/ui/circle`
@@ -207,8 +207,8 @@
         | `color` | `uint8_t` | × | 可选 | 颜色（详见颜色说明）  |
         | `width` | `uint8_t` | × | 可选 | 宽度  |
         | `layer` | `uint8_t` | × | 可选 | 图层 |
-        | `cent_x` | `int16_t` | × | 可选 | 中心x坐标 |
-        | `cent_y` | `int16_t` | × | 可选 | 中心y坐标 |
+        | `cent-x` | `int16_t` | × | 可选 | 中心x坐标 |
+        | `cent-y` | `int16_t` | × | 可选 | 中心y坐标 |
         | `radius` | `uint16_t` | × | 可选 | 半径 |
         | `lopera` | `uint8_t` | × | 可选 | 操作（详见操作说明）  |
 
@@ -227,10 +227,10 @@
         | `color` | `uint8_t` | × | 可选 | 颜色（详见颜色说明）  |
         | `width` | `uint8_t` | × | 可选 | 宽度  |
         | `layer` | `uint8_t` | × | 可选 | 图层 |
-        | `cent_x` | `int16_t` | × | 可选 | 中心x坐标 |
-        | `cent_y` | `int16_t` | × | 可选 | 中心y坐标 |
-        | `semiaxis_x` | `int16_t` | × | 可选 | x半轴长 |
-        | `semiaxis_y` | `int16_t` | × | 可选 | y半轴长|
+        | `cent-x` | `int16_t` | × | 可选 | 中心x坐标 |
+        | `cent-y` | `int16_t` | × | 可选 | 中心y坐标 |
+        | `semiaxis-x` | `int16_t` | × | 可选 | x半轴长 |
+        | `semiaxis-y` | `int16_t` | × | 可选 | y半轴长|
         | `lopera` | `uint8_t` | × | 可选 | 操作（详见操作说明）  |  
 
     6. `/judge/send/ui/arc`
@@ -248,12 +248,12 @@
         | `color` | `uint8_t` | × | 可选 | 颜色（详见颜色说明）  |
         | `width` | `uint8_t` | × | 可选 | 宽度  |
         | `layer` | `uint8_t` | × | 可选 | 图层 |
-         | `cent_x` | `int16_t` | × | 可选 | 中心x坐标 |
-        | `cent_y` | `int16_t` | × | 可选 | 中心y坐标 |
-        | `semiaxis_x` | `int16_t` | × | 可选 | x半轴长 |
-        | `semiaxis_y` | `int16_t` | × | 可选 | y半轴长|
-        | `start_angle` | `int16_t` | × | 可选 |起始角度|
-        | `end_angle` | `int16_t` | × | 可选 | 终止角度|
+        | `cent-x` | `int16_t` | × | 可选 | 中心x坐标 |
+        | `cent-y` | `int16_t` | × | 可选 | 中心y坐标 |
+        | `semiaxis-x` | `int16_t` | × | 可选 | x半轴长 |
+        | `semiaxis-y` | `int16_t` | × | 可选 | y半轴长|
+        | `start-angle` | `int16_t` | × | 可选 |起始角度|
+        | `end-angle` | `int16_t` | × | 可选 | 终止角度|
         | `lopera` | `uint8_t` | × | 可选 | 操作（详见操作说明）  |
 
     7. `/judge/send/ui/float`
@@ -272,8 +272,8 @@
         | `width` | `uint8_t` | × | 可选 | 宽度  |
         | `layer` | `uint8_t` | × | 可选 | 图层 |
         | `value` | `float` | × | 可选 |值 |
-        | `start_x` | `int16_t` | × | 可选 | 开始x坐标 |
-        | `start_y` | `int16_t` | × | 可选 | 开始y坐标 |
+        | `start-x` | `int16_t` | × | 可选 | 开始x坐标 |
+        | `start-y` | `int16_t` | × | 可选 | 开始y坐标 |
         | `size` | `uint16_t` | × | 可选 | 大小 |
         | `digit` | `uint8_t` | × | 可选 | 有效位数 |
         | `lopera` | `uint8_t` | × | 可选 | 操作（详见操作说明）  |
@@ -294,7 +294,7 @@
         | `width` | `uint8_t` | × | 可选 | 宽度  |
         | `layer` | `uint8_t` | × | 可选 | 图层 |
         | `value` | `float` | × | 可选 |值 |
-        | `start_x` | `int16_t` | × | 可选 | 开始x坐标 |
-        | `start_y` | `int16_t` | × | 可选 | 开始y坐标 |
+        | `start-x` | `int16_t` | × | 可选 | 开始x坐标 |
+        | `start-y` | `int16_t` | × | 可选 | 开始y坐标 |
         | `size` | `uint16_t` | × | 可选 | 大小 |
         | `lopera` | `uint8_t` | × | 可选 | 操作（详见操作说明）  |

@@ -8,8 +8,8 @@ void PID_Init(PID *pid, ConfItem* conf)
 	pid->kp=Conf_GetValue(conf, "p", float, 0);
 	pid->ki=Conf_GetValue(conf, "i", float, 0);
 	pid->kd=Conf_GetValue(conf, "d", float, 0);
-	pid->maxIntegral=Conf_GetValue(conf, "maxI", float, 0);
-	pid->maxOutput=Conf_GetValue(conf, "maxOut", float, 0);
+	pid->maxIntegral=Conf_GetValue(conf, "max-i", float, 0);
+	pid->maxOutput=Conf_GetValue(conf, "max-out", float, 0);
 	pid->deadzone=0;
 }
 

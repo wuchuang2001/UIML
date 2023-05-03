@@ -76,13 +76,13 @@ Motor* M3508_Init(ConfItem* dict)
 	m3508->motor.getData = M3508_GetData;
 	m3508->motor.stop = M3508_Stop;
 	//电机减速比
-	m3508->reductionRatio = Conf_GetValue(dict, "reductionRatio", float, 19.2f);//如果未配置电机减速比参数，则使用原装电机默认减速比
+	m3508->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 19.2f);//如果未配置电机减速比参数，则使用原装电机默认减速比
 	//初始化电机绑定can信息
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m3508->canInfo.recvID = id + 0x200;
 	m3508->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
 	m3508->canInfo.bufIndex =  ((id - 1)%4) * 2;
-	m3508->canInfo.canX = Conf_GetValue(dict, "canX", uint8_t, 0);
+	m3508->canInfo.canX = Conf_GetValue(dict, "can-x", uint8_t, 0);
 	//设置电机默认模式为扭矩模式
 	m3508->mode = MOTOR_TORQUE_MODE;
 	//初始化电机pid
@@ -106,9 +106,9 @@ Motor* M3508_Init(ConfItem* dict)
 //初始化pid
 void M3508_PIDInit(M3508* m3508, ConfItem* dict)
 {
-	PID_Init(&m3508->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
-	PID_Init(&m3508->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
-	PID_Init(&m3508->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
+	PID_Init(&m3508->speedPID, Conf_GetPtr(dict, "speed-pid", ConfItem));
+	PID_Init(&m3508->anglePID.inner, Conf_GetPtr(dict, "angle-pid/inner", ConfItem));
+	PID_Init(&m3508->anglePID.outer, Conf_GetPtr(dict, "angle-pid/outer", ConfItem));
 	PID_SetMaxOutput(&m3508->anglePID.outer, m3508->anglePID.outer.maxOutput*m3508->reductionRatio);//将输出轴速度限幅放大到转子上
 }
 //软总线回调函数

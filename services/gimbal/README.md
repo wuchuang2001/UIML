@@ -31,34 +31,32 @@
 ## 在`sys_conf.h`中的配置
 
 ```c
+//云台服务配置
 {"gimbal", CF_DICT{
 	//yaw pitch 机械零点
 	{"zero-yaw",IM_PTR(uint16_t,4010)},
 	{"zero-pitch",IM_PTR(uint16_t,5300)},
 	//任务循环周期
-	{"taskInterval", IM_PTR(uint8_t, 10)},
+	{"task-interval", IM_PTR(uint8_t, 10)},
 	//云台电机配置
 	{"motor-yaw", CF_DICT{
 		{"type", "M6020"},
 		{"id", IM_PTR(uint16_t, 1)},
-		{"canX", IM_PTR(uint8_t, 1)},
-		{"anglePID", CF_DICT{                  			//串级pid
-			{"inner", CF_DICT{							//内环pid参数设置
-				{"p", IM_PTR(float,15)},
-				{"i", IM_PTR(float, 0)},
-				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
-			{"outer", CF_DICT{							//外环pid参数设置
-				{"p", IM_PTR(float, 15)},
-				{"i", IM_PTR(float, 0)},
-				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 500)},
-				{"maxOut", IM_PTR(float, 1000)},
-				CF_DICT_END
-			}},
+		{"can-x", IM_PTR(uint8_t, 1)},
+		{"imu",CF_DICT{								//陀螺仪pid参数设置
+			{"p", IM_PTR(float, -90)},
+			{"i", IM_PTR(float, 0)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 500)},
+			{"max-out", IM_PTR(float, 1000)},
+			CF_DICT_END
+		}},
+		{"speed-pid", CF_DICT{						//陀螺仪做角度外环电机执行速度内环
+			{"p", IM_PTR(float, 15)},
+			{"i", IM_PTR(float, 0)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 500)},
+			{"max-out", IM_PTR(float, 20000)},
 			CF_DICT_END
 		}},
 		CF_DICT_END
@@ -66,24 +64,21 @@
 	{"motor-pitch", CF_DICT{
 		{"type", "M6020"},
 		{"id", IM_PTR(uint16_t, 4)},
-		{"canX", IM_PTR(uint8_t, 2)},
-		{"anglePID", CF_DICT{                 //串级pid
-			{"inner", CF_DICT{								//内环pid参数设置
-				{"p", IM_PTR(float, 15)},
-				{"i", IM_PTR(float, 0)},
-				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
-				CF_DICT_END
+		{"can-x", IM_PTR(uint8_t, 2)},
+		{"imu",CF_DICT{								//陀螺仪pid参数设置
+			{"p", IM_PTR(float, 63)},
+			{"i", IM_PTR(float, 0)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 10000)},
+			{"max-out", IM_PTR(float, 20000)},
+			CF_DICT_END
 			}},
-			{"outer", CF_DICT{								//外环pid参数设置
-				{"p", IM_PTR(float, 20)},
-				{"i", IM_PTR(float, 0)},
-				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 500)},
-				{"maxOut", IM_PTR(float, 1000)},
-				CF_DICT_END
-			}},
+		{"speed-pid", CF_DICT{						//陀螺仪做角度外环电机执行速度内环
+			{"p", IM_PTR(float, 15)},
+			{"i", IM_PTR(float, 0)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 500)},
+			{"max-out", IM_PTR(float, 20000)},
 			CF_DICT_END
 		}},
 		CF_DICT_END

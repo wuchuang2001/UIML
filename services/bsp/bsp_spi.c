@@ -118,7 +118,7 @@ void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 	//初始化片选引脚
 	BSP_SPI_InitCS(info, Conf_GetPtr(dict, "cs", ConfItem));
 	//初始化缓冲区
-	info->recvBuffer.maxBufSize = Conf_GetValue(dict, "maxRecvSize", uint16_t, 1);
+	info->recvBuffer.maxBufSize = Conf_GetValue(dict, "max-recv-size", uint16_t, 1);
 	info->recvBuffer.data = pvPortMalloc(info->recvBuffer.maxBufSize);
     memset(info->recvBuffer.data,0,info->recvBuffer.maxBufSize);
 }
@@ -152,16 +152,16 @@ void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict)
 
 bool BSP_SPI_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame,{"spi-x", "txData", "len", "csName", "isBlock"}))
+	if(!Bus_CheckMapKeys(frame,{"spi-x", "tx-data", "len", "cs-name", "is-block"}))
 		return false;
 	uint8_t spiX = *(uint8_t *)Bus_GetMapValue(frame, "spi-x");
-	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "txData");
+	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "tx-data");
 	uint8_t* rxData = NULL;
-	if(Bus_IsMapKeyExist(frame, "rxData"))
-		rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData"); //不检查该项是因为若为null则指向spi缓冲区
+	if(Bus_IsMapKeyExist(frame, "rx-data"))
+		rxData = (uint8_t*)Bus_GetMapValue(frame, "rx-data"); //不检查该项是因为若为null则指向spi缓冲区
 	uint16_t len = *(uint16_t*)Bus_GetMapValue(frame, "len");
-	char* csName = (char*)Bus_GetMapValue(frame, "csName");
-	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "isBlock"))? osWaitForever: 0;
+	char* csName = (char*)Bus_GetMapValue(frame, "cs-name");
+	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "is-block"))? osWaitForever: 0;
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
 		if(spiX == spiService.spiList[num].number) //找到对应的spi
@@ -190,17 +190,17 @@ bool BSP_SPI_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 
 bool BSP_SPI_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame,{"spi-x", "txData", "len", "timeout", "csName", "isBlock"}))
+	if(!Bus_CheckMapKeys(frame,{"spi-x", "tx-data", "len", "timeout", "cs-name", "is-block"}))
 		return false;
 	uint8_t spiX = *(uint8_t *)Bus_GetMapValue(frame, "spi-x");
-	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "txData");
+	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "tx-data");
 	uint8_t* rxData = NULL;
-	if(Bus_IsMapKeyExist(frame, "rxData"))
-		rxData = (uint8_t*)Bus_GetMapValue(frame, "rxData"); //不检查该项是因为若为null则指向spi缓冲区
+	if(Bus_IsMapKeyExist(frame, "rx-data"))
+		rxData = (uint8_t*)Bus_GetMapValue(frame, "rx-data"); //不检查该项是因为若为null则指向spi缓冲区
 	uint16_t len = *(uint16_t*)Bus_GetMapValue(frame, "len");
 	uint32_t timeout = *(uint32_t*)Bus_GetMapValue(frame, "timeout");
-	char* csName = (char*)Bus_GetMapValue(frame, "csName");
-	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "isBlock"))? osWaitForever: 0;
+	char* csName = (char*)Bus_GetMapValue(frame, "cs-name");
+	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "is-block"))? osWaitForever: 0;
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
 		if(spiX == spiService.spiList[num].number)	//找到对应的spi

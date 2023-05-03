@@ -35,60 +35,60 @@
 ```c
 {"shooter", CF_DICT{
 	//任务循环周期
-	{"taskInterval", IM_PTR(uint8_t, 10)},
+	{"task-interval", IM_PTR(uint8_t, 10)},
 	//拨一发弹丸的角度
-	{"triggerAngle",IM_PTR(float,45)},
+	{"trigger-angle",IM_PTR(float,45)},
 	//发射机构电机配置
-	{"fricMotorLeft", CF_DICT{
+	{"fric-motor-left", CF_DICT{
 		{"type", "M3508"},
 		{"id", IM_PTR(uint16_t, 2)},
-		{"canX", IM_PTR(uint8_t, 2)},
-		{"reductionRatio", IM_PTR(float, 1)},
-		{"speedPID", CF_DICT{
+		{"can-x", IM_PTR(uint8_t, 2)},
+		{"reduction-ratio", IM_PTR(float, 1)},
+		{"speed-pid", CF_DICT{
 			{"p", IM_PTR(float, 10)},
 			{"i", IM_PTR(float, 1)},
 			{"d", IM_PTR(float, 0)},
-			{"maxI", IM_PTR(float, 10000)},
-			{"maxOut", IM_PTR(float, 20000)},
+			{"max-i", IM_PTR(float, 10000)},
+			{"max-out", IM_PTR(float, 20000)},
 			CF_DICT_END
 		}},
 		CF_DICT_END
 	}},		
-	{"fricMotorRight", CF_DICT{
+	{"fric-motor-right", CF_DICT{
 		{"type", "M3508"},
 		{"id", IM_PTR(uint16_t, 1)},
 		{"canX", IM_PTR(uint8_t, 2)},
-		{"reductionRatio", IM_PTR(float, 1)},
-		{"speedPID", CF_DICT{
+		{"reduction-ratio", IM_PTR(float, 1)},
+		{"speed-pid", CF_DICT{
 			{"p", IM_PTR(float, 10)},
 			{"i", IM_PTR(float, 1)},
 			{"d", IM_PTR(float, 0)},
-			{"maxI", IM_PTR(float, 10000)},
-			{"maxOut", IM_PTR(float, 20000)},
+			{"max-i", IM_PTR(float, 10000)},
+			{"max-out", IM_PTR(float, 20000)},
 			CF_DICT_END
 		}},
 		CF_DICT_END
 	}},	
-	{"triggerMotor", CF_DICT{
+	{"trigger-motor", CF_DICT{
 		{"type", "M2006"},
 		{"id", IM_PTR(uint16_t, 6)},
-		{"name", "triggerMotor"},
-		{"canX", IM_PTR(uint8_t, 1)},
-		{"anglePID", CF_DICT{                  //串级pid
+		{"name","triggerMotor"},
+		{"can-x", IM_PTR(uint8_t, 1)},
+		{"angle-pid", CF_DICT{								//串级pid
 			{"inner", CF_DICT{								//内环pid参数设置
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 10000)},
-				{"maxOut", IM_PTR(float, 20000)},
+				{"max-i", IM_PTR(float, 10000)},
+				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
 			{"outer", CF_DICT{								//外环pid参数设置
 				{"p", IM_PTR(float, 0.3)},
 				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
-				{"maxI", IM_PTR(float, 2000)},
-				{"maxOut", IM_PTR(float, 200)},
+				{"max-i", IM_PTR(float, 2000)},
+				{"max-out", IM_PTR(float, 200)},
 				CF_DICT_END
 			}},
 			CF_DICT_END
@@ -138,4 +138,4 @@
         | 数据字段名 | 数据类型 | 是否为返回值 | 是否必须传输 | 说明 |
         | :---: | :---: | :---: | :---: | :---: |
         | `mode`         | `char*`    | × | 必须 | 设置拨弹模式(`"once","continue","idle"`) |
-        | `intervalTime` | `uint16_t` | × | 可选 | 仅在连发时需要设置，表示连发弹丸时两次发射的间隔时间 |
+        | `interval-time` | `uint16_t` | × | 可选 | 仅在连发时需要设置，表示连发弹丸时两次发射的间隔时间 |

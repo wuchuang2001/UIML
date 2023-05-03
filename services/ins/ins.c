@@ -88,10 +88,10 @@ void INS_Init(INS* ins, ConfItem* dict)
 	ins->targetTmp = Conf_GetValue(dict, "target-temperature", uint8_t, 40);
 	ins->timX = Conf_GetValue(dict,"tim-x",uint8_t,10);
 	ins->channelX = Conf_GetValue(dict,"channel-x",uint8_t,1);
-	ins->taskInterval = Conf_GetValue(dict,"taskInterval",uint16_t,10);
+	ins->taskInterval = Conf_GetValue(dict,"task-interval",uint16_t,10);
 
 	// ins->filter = Filter_Init(Conf_GetPtr(dict, "filter", ConfItem));
-	PID_Init(&ins->tmpPID, Conf_GetPtr(dict, "tmpPID", ConfItem));
+	PID_Init(&ins->tmpPID, Conf_GetPtr(dict, "tmp-pid", ConfItem));
 
 	ins->eulerAngleName = Conf_GetPtr(dict,"/ins/euler-angle",char);
 	ins->eulerAngleName = ins->eulerAngleName?ins->eulerAngleName:"/ins/euler-angle";

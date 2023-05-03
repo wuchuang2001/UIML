@@ -70,7 +70,7 @@ void Gimbal_TaskCallback(void const * argument)
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 {
 	//任务间隔
-	gimbal->taskInterval = Conf_GetValue(dict, "taskInterval", uint8_t, 2);
+	gimbal->taskInterval = Conf_GetValue(dict, "task-interval", uint8_t, 2);
 
 	//云台零点
 	gimbal->zeroAngle[0] = Conf_GetValue(dict, "zero-yaw", uint16_t, 0);
