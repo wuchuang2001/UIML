@@ -18,7 +18,7 @@ void Motor_Stop(Motor* motor);
 void Motor_InitDefault(Motor* motor);
 
 //声明子类初始化函数
-#define MOTOR_TYPE(name,initFunc) extern Motor* initFunc(ConfItem*);
+#define MOTOR_TYPE(name,initFunc) __weak Motor* initFunc(ConfItem* dict) {return NULL;}
 MOTOR_CHILD_LIST
 #undef MOTOR_TYPE
 
