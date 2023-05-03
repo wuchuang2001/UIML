@@ -18,14 +18,23 @@
 2. 根据UIML的外设周边模块说明文档**进行外设配置**，此处不详述操作细节
 3. **配置FreeRTOS**，以下简要介绍操作过程
 	- 使能FreeRTOS，选择为`CMSIS_V1`版本
+		
 		![使能FreeRTOS](README-IMG/使能FreeRTOS.png)
+
 	- 将初始任务的`Code Generation Option`设置为`As weak`，不需要额外添加任何其他任务
+		
 		![初始任务生成方式](README-IMG/初始任务生成方式.png)
+
 	- 打开软件定时器，并将其优先级设置为6，定时器队列大小设置为20
+		
 		![打开软件定时器](README-IMG/打开软件定时器.png)
+
 	- 开启`vTaskDelayUntil`
+		
 		![开启vTaskDelayUntil](README-IMG/开启vTaskDelayUntil.png)
+
 	- 修改堆栈大小，建议的系统堆栈和RTOS堆大小为如下图所示
+		
 		![修改堆栈大小](README-IMG/修改堆栈大小.png)
 		![修改堆栈大小](README-IMG/修改freertos堆栈大小.png)
 

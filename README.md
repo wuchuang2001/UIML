@@ -1,15 +1,17 @@
-<center>
+<div align=center>
 	<img src="README-IMG/uiml-icon.svg"/>
-</center>
+</div>
 
 ## 项目简介
 
 **UIML**为吉林大学`TARS_Go`战队**统一接口中间件库**(Uniform Interface Middlewares Library)，旨在提高底层代码的复用率，避免重复造轮子，提高开发效率
 
 **本项目最终目标：**
+
 尽可能少写甚至不写代码，不同机器人间仅通过修改配置文件进行适配，或仅需添加少量上层个性化逻辑
 
 **本项目特点：**
+
 - 与Linux内核驱动管理相似的模块管理机制
 	- 低耦合、易增删的**动态模块管理**
 	- 与Json文件相似的**系统配置**方式
