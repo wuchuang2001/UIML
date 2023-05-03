@@ -42,24 +42,26 @@
 #define SERVICE_LIST \
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,128) \
-	SERVICE(ins, INS_TaskCallback, osPriorityNormal,128)\
 	SERVICE(spi, BSP_SPI_TaskCallback, osPriorityNormal,512) \
+	SERVICE(tim, BSP_TIM_TaskCallback, osPriorityNormal,256)	\
+	SERVICE(ins, INS_TaskCallback, osPriorityNormal,128)\
 	SERVICE(gimbal, Gimbal_TaskCallback, osPriorityNormal,256)\
 	SERVICE(shooter, Shooter_TaskCallback, osPriorityNormal,256)\
 	SERVICE(chassis, Chassis_TaskCallback, osPriorityNormal,256) \
 	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)\
 	SERVICE(judge, Judge_TaskCallback, osPriorityNormal,128) \
 	SERVICE(sys, SYS_CTRL_TaskCallback, osPriorityNormal,256)\
+	
 //	//SERVICE(test, test_TaskCallback, osPriorityNormal,128)\
 	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) \
-	SERVICE(tim, BSP_TIM_TaskCallback, osPriorityNormal,256)	\
+
 	
 //各服务配置项
 ConfItem* systemConfig = CF_DICT{
 	{"sys",CF_DICT{
 		{"rotatePID",CF_DICT{
-				{"p", IM_PTR(float, 3)},
-				{"i", IM_PTR(float, 1)},
+				{"p", IM_PTR(float, 1.5)},
+				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
 				{"maxI", IM_PTR(float, 100)},
 				{"maxOut", IM_PTR(float, 200)},
@@ -200,7 +202,7 @@ ConfItem* systemConfig = CF_DICT{
 					CF_DICT_END
 				}},
 				{"imu",CF_DICT{								//陀螺仪pid参数设置
-						{"p", IM_PTR(float, -100)},
+						{"p", IM_PTR(float, -90)},
 						{"i", IM_PTR(float, 0)},
 						{"d", IM_PTR(float, 0)},
 						{"maxI", IM_PTR(float, 500)},
@@ -241,7 +243,7 @@ ConfItem* systemConfig = CF_DICT{
 					CF_DICT_END
 				}},
 				{"imu",CF_DICT{								//陀螺仪pid参数设置
-					{"p", IM_PTR(float, 70)},
+					{"p", IM_PTR(float, 63)},
 					{"i", IM_PTR(float, 0)},
 					{"d", IM_PTR(float, 0)},
 					{"maxI", IM_PTR(float, 10000)},
@@ -404,6 +406,16 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 	{"ins",CF_DICT{
 		{"spi-x",IM_PTR(uint8_t,1)},
+		{"tim-x",IM_PTR(uint8_t,10)},
+		{"channel-x",IM_PTR(uint8_t,1)},
+		{"tmpPID", CF_DICT{
+					{"p", IM_PTR(float, 0.15)},
+					{"i", IM_PTR(float, 0.01)},
+					{"d", IM_PTR(float, 0)},
+					{"maxI", IM_PTR(float, 0.15)},
+					{"maxOut", IM_PTR(float, 1)},
+				CF_DICT_END
+				}},
 		CF_DICT_END
 	}},
 	{"spi",CF_DICT{
@@ -433,7 +445,20 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 		CF_DICT_END
   }},
-//	//外部中断服务配置
+	//定时器服务配置
+	{"tim",CF_DICT{
+		{"tims",CF_DICT{
+			{"0",CF_DICT{
+				{"htim",&htim10},
+				{"number",IM_PTR(uint8_t,10)},
+				{"mode","pwm"},
+				CF_DICT_END
+				}}, 
+			CF_DICT_END
+			}},
+		CF_DICT_END
+		}},
+	//	//外部中断服务配置
 //	{"exti",CF_DICT{
 //		{"extis",CF_DICT{
 //			{"0",CF_DICT{
@@ -446,25 +471,6 @@ ConfItem* systemConfig = CF_DICT{
 //				{"pin-x",IM_PTR(uint8_t,4)},
 //				CF_DICT_END
 //				}},
-//			CF_DICT_END
-//			}},
-//		CF_DICT_END
-//		}},
-//	//定时器服务配置
-//	{"tim",CF_DICT{
-//		{"tims",CF_DICT{
-//			{"0",CF_DICT{
-//				{"htim",&htim2},
-//				{"number",IM_PTR(uint8_t,2)},
-//				{"mode","encode"},
-//				CF_DICT_END
-//				}},
-//			{"1",CF_DICT{
-//				{"htim",&htim1},
-//				{"number",IM_PTR(uint8_t,1)},
-//				{"mode","pwm"},
-//				CF_DICT_END
-//                }}, 
 //			CF_DICT_END
 //			}},
 //		CF_DICT_END

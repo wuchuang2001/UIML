@@ -116,7 +116,7 @@ void INS_TaskCallback(void const * argument)
 
 	/* USER CODE BEGIN IMU */ 
 	INS ins = {0};
-	osDelay(100);
+	osDelay(50);
 	INS_Init(&ins, (ConfItem*)argument);
 	AHRS_init(ins.imu.quat,ins.imu.accel,ins.imu.mag);
 	//Ð£×¼ÁãÆ«
@@ -163,6 +163,8 @@ void INS_Init(INS* ins, ConfItem* dict)
 {
 	ins->spiX = Conf_GetValue(dict, "spi-x", uint8_t, 0);
 	ins->targetTmp = Conf_GetValue(dict, "target-temperature", uint8_t, 40);
+	ins->timX = Conf_GetValue(dict,"tim-x",uint8_t,10);
+	ins->channelX = Conf_GetValue(dict,"channel-x",uint8_t,1);
 	ins->taskInterval = Conf_GetValue(dict,"taskInterval",uint16_t,10);
 
 	// ins->filter = Filter_Init(Conf_GetPtr(dict, "filter", ConfItem));

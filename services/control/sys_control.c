@@ -213,40 +213,39 @@ void Sys_Mode_ChangeCallback(const char* name, SoftBusFrame* frame, void* bindDa
 				break;
 		}
 	}
-	else if(!strcmp(name,"/rc/switch") && sysCtrl.rockerCtrl)  //遥控器控制
+	else if(!strcmp(name,"/rc/switch") )  //遥控器控制
 	{
-		if(!Bus_IsMapKeyExist(frame, "right"))
-			return;
-		switch(*(uint8_t*)Bus_GetMapValue(frame, "right"))
+		if(Bus_IsMapKeyExist(frame, "right")&& sysCtrl.rockerCtrl)
 		{
-			case 1:
-				sysCtrl.mode = SYS_SPIN_MODE; //小陀螺模式
-				break;                        
-			case 3:                         
-				sysCtrl.mode = SYS_FOLLOW_MODE;  //跟随模式
-				break;                        
-			case 2:                         
-				sysCtrl.mode = SYS_SEPARATE_MODE; //分离模式
-				break;
+			switch(*(uint8_t*)Bus_GetMapValue(frame, "right"))
+			{
+				case 1:
+					sysCtrl.mode = SYS_SPIN_MODE; //小陀螺模式
+					break;                        
+				case 3:                         
+					sysCtrl.mode = SYS_FOLLOW_MODE;  //跟随模式
+					break;                        
+				case 2:                         
+					sysCtrl.mode = SYS_SEPARATE_MODE; //分离模式
+					break;
+			}			
 		}
-	}
-	else if(!strcmp(name,"/rc/switch"))
-	{
-		if(!Bus_IsMapKeyExist(frame, "left"))
-			return;
-		switch(*(uint8_t*)Bus_GetMapValue(frame, "left"))
+		if(Bus_IsMapKeyExist(frame, "left"))
 		{
-			case 1:
-				sysCtrl.rockerCtrl = true; //切换至遥控器控制
-				sysCtrl.errFlag = 0;
-				break;
-			case 3:
-				sysCtrl.rockerCtrl = false; //切换至键鼠控制
-				sysCtrl.errFlag = 0;
-				break;
-			case 2:   
-				sysCtrl.errFlag = 1;
-				break;
+			switch(*(uint8_t*)Bus_GetMapValue(frame, "left"))
+			{
+				case 1:
+					sysCtrl.rockerCtrl = true; //切换至遥控器控制
+					sysCtrl.errFlag = 0;
+					break;
+				case 3:
+					sysCtrl.rockerCtrl = false; //切换至键鼠控制
+					sysCtrl.errFlag = 0;
+					break;
+				case 2:   
+					sysCtrl.errFlag = 1;
+					break;
+			}
 		}
 	}
 }
