@@ -36,7 +36,20 @@ spi配置如下
 ## 在`sys_conf.h`中的配置
 
 ```c
-
+{"ins",CF_DICT{
+	{"spi-x",IM_PTR(uint8_t,1)},
+	{"tim-x",IM_PTR(uint8_t,10)},
+	{"channel-x",IM_PTR(uint8_t,1)},
+	{"tmpPID", CF_DICT{
+		{"p", IM_PTR(float, 0.15)},
+		{"i", IM_PTR(float, 0.01)},
+		{"d", IM_PTR(float, 0)},
+		{"maxI", IM_PTR(float, 0.15)},
+		{"maxOut", IM_PTR(float, 1)},
+		CF_DICT_END
+	}},
+	CF_DICT_END
+}},
 ```
 
 ## 模块接口

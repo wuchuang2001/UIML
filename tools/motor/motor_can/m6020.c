@@ -213,7 +213,7 @@ float M6020_GetData(Motor* motor, const char* data)
 
 	if(!strcmp(data, "angle"))
 	{
-		return M6020_CODE2DGR(m6020->angle, m6020->reductionRatio);
+		return M6020_CODE2DGR(m6020->angle, 1);
 	}
 	else if(!strcmp(data, "totalAngle"))
 	{

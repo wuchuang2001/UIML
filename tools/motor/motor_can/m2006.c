@@ -221,7 +221,7 @@ float M2006_GetData(Motor* motor, const char* data)
 	M2006* m2006 = (M2006*)motor;
 	if(!strcmp(data, "angle"))
 	{
-		return M2006_CODE2DGR(m2006->angle, m2006->reductionRatio);
+		return M2006_CODE2DGR(m2006->angle, 1);
 	}
 	else if(!strcmp(data, "totalAngle"))
 	{

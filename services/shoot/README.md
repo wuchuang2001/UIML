@@ -1,44 +1,44 @@
-# 发射模块
+# ����ģ��
 
 ---
 
-## 简介
+## ���
 
-这是整个代码库的发射模块，根据用户设置发射单发、连射、停止，完成相应的动作，同时接收拨弹电机的堵转广播，若发生堵弹，会及时退弹。
+�������������ķ���ģ�飬�����û����÷��䵥�������䡢ֹͣ�������Ӧ�Ķ�����ͬʱ���ղ�������Ķ�ת�㲥���������µ����ἰʱ�˵���
 
 
-## 项目文件及依赖项
+## ��Ŀ�ļ���������
 
-- 本项目文件
-	- `softbus.c/h`、`config.c/h`、`sys_conf.h`、`motor.c/h`(及其使用到的电机子类)
-- hal库文件 
+- ����Ŀ�ļ�
+	- `softbus.c/h`��`config.c/h`��`sys_conf.h`��`motor.c/h`(����ʹ�õ��ĵ������)
+- hal���ļ� 
     - `cmsis_os.h`
-- 系统广播
-    - `/system/stop`：在监听到该广播后会设置该模块下所有电机进入急停模式
-- 电机堵转广播
-    - "/triggerMotor/stall"：在监听到拨弹电机堵转后会做出退弹操作
+- ϵͳ�㲥
+    - `/system/stop`���ڼ������ù㲥������ø�ģ�������е�����뼱ͣģʽ
+- �����ת�㲥
+    - "/triggerMotor/stall"���ڼ��������������ת��������˵�����
 
 ---
 
-> 注：下面远程函数所写的数据类型为指针的项仅强调该项传递的应该是数组，实际传递的参数只需数组名即可，不需要传递数组名的地址。广播也是如此，所写的数据类型若为指针的仅强调该项传递的应该是数组，获取该项的值是仅需要强制类型转换成相应的指针即可，无需额外解引用
+> ע������Զ�̺�����д����������Ϊָ������ǿ������ݵ�Ӧ�������飬ʵ�ʴ��ݵĲ���ֻ�����������ɣ�����Ҫ�����������ĵ�ַ���㲥Ҳ����ˣ���д������������Ϊָ��Ľ�ǿ������ݵ�Ӧ�������飬��ȡ�����ֵ�ǽ���Ҫǿ������ת������Ӧ��ָ�뼴�ɣ�������������
 
 ---
 
-## 说明
+## ˵��
 
-由于监听了拨弹电机堵转广播，因此需要在配置拨弹电机时，需要将拨弹电机命名`{"name", "triggerMotor"},`
+���ڼ����˲��������ת�㲥�������Ҫ�����ò������ʱ����Ҫ�������������`{"name", "triggerMotor"},`
 
 ---
 
-## 在`sys_conf.h`中的配置
+## ��`sys_conf.h`�е�����
 
 ```c
 {"shooter", CF_DICT{
-	//任务循环周期
+	//����ѭ������
 	{"taskInterval", IM_PTR(uint8_t, 10)},
-	//拨一发弹丸的角度
+	//��һ������ĽǶ�
 	{"triggerAngle",IM_PTR(float,45)},
-	//发射机构电机配置
+	//��������������
 	{"fricMotorLeft", CF_DICT{
 		{"type", "M3508"},
 		{"id", IM_PTR(uint16_t, 2)},
@@ -74,8 +74,8 @@
 		{"id", IM_PTR(uint16_t, 6)},
 		{"name", "triggerMotor"},
 		{"canX", IM_PTR(uint8_t, 1)},
-		{"anglePID", CF_DICT{                  //串级pid
-			{"inner", CF_DICT{								//内环pid参数设置
+		{"anglePID", CF_DICT{                  //����pid
+			{"inner", CF_DICT{								//�ڻ�pid��������
 				{"p", IM_PTR(float, 10)},
 				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
@@ -83,7 +83,7 @@
 				{"maxOut", IM_PTR(float, 20000)},
 				CF_DICT_END
 			}},
-			{"outer", CF_DICT{								//外环pid参数设置
+			{"outer", CF_DICT{								//�⻷pid��������
 				{"p", IM_PTR(float, 0.3)},
 				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
@@ -99,43 +99,43 @@
 }},
 ```
 
-## 模块接口
+## ģ��ӿ�
 
-> 注：name重映射只需要在配置表中配置名写入原本name字符串，在配置值处写入重映射后的name字符串，就完成了name的重映射。例如：`{"old-name", "new-name"},`
+> ע��name��ӳ��ֻ��Ҫ�����ñ���������д��ԭ��name�ַ�����������ֵ��д����ӳ����name�ַ������������name����ӳ�䡣���磺`{"old-name", "new-name"},`
 
-- 广播：无
+- �㲥����
 
-- 远程函数
+- Զ�̺���
   
     1. `/shooter/setting`
 
-        说明：设置拨弹电机的一些属性
+        ˵�������ò��������һЩ����
 
-        **是否允许name重映射：允许**
+        **�Ƿ�����name��ӳ�䣺����**
 
-        传入参数数据：
+        ����������ݣ�
 
-        | 数据字段名 | 数据类型 | 是否为返回值 | 是否必须传输 | 说明 |
+        | �����ֶ��� | �������� | �Ƿ�Ϊ����ֵ | �Ƿ���봫�� | ˵�� |
         | :---: | :---: | :---: | :---: | :---: |
-        | `fric-speed`    | `float` | × | 可选 | 设置摩擦轮转速(单位：rpm) |
-        | `trigger-angle` | `float` | × | 可选 | 设置拨一发弹丸旋转的角度(单位：°) |
-        | `fric-enable`   | `bool`  | × | 可选 | 使能摩擦轮 |
+        | `fric-speed`    | `float` | �� | ��ѡ | ����Ħ����ת��(��λ��rpm) |
+        | `trigger-angle` | `float` | �� | ��ѡ | ���ò�һ��������ת�ĽǶ�(��λ����) |
+        | `fric-enable`   | `bool`  | �� | ��ѡ | ʹ��Ħ���� |
     
     2. `/shooter/mode`
 
-        说明：修改发射机构运行模式
+        ˵�����޸ķ����������ģʽ
 
-		`once`：单发弹丸 
+		`once`���������� 
 
-		`continue`：连发弹丸直到修改模式为idle才停止
+		`continue`����������ֱ���޸�ģʽΪidle��ֹͣ
 		
-		`idle`：停止发射弹丸
+		`idle`��ֹͣ���䵯��
 
-        **是否允许name重映射：允许**
+        **�Ƿ�����name��ӳ�䣺����**
 
-        传入参数数据：
+        ����������ݣ�
 
-        | 数据字段名 | 数据类型 | 是否为返回值 | 是否必须传输 | 说明 |
+        | �����ֶ��� | �������� | �Ƿ�Ϊ����ֵ | �Ƿ���봫�� | ˵�� |
         | :---: | :---: | :---: | :---: | :---: |
-        | `mode`         | `char*`    | × | 必须 | 设置拨弹模式(`"once","continue","idle"`) |
-        | `intervalTime` | `uint16_t` | × | 可选 | 仅在连发时需要设置，表示连发弹丸时两次发射的间隔时间 |
+        | `mode`         | `char*`    | �� | ���� | ���ò���ģʽ(`"once","continue","idle"`) |
+        | `intervalTime` | `uint16_t` | �� | ��ѡ | ��������ʱ��Ҫ���ã���ʾ��������ʱ���η���ļ��ʱ�� |
