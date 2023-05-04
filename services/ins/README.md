@@ -37,6 +37,7 @@
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
     | `task-interval`      | (uint16_t)2 | 任务执行间隔  |
+	| `name`               | (char*)`"ins"` | 如果需要重命名模块则配置该项  |
 	| `spi-x`              | (uint8_t)0  | imu外设所在spi |
 	| `target-temperature` | (float)40   | imu目标温度  |
 	| `tim-x`              | (uint8_t)10 | 温控pwm所在tim |
@@ -72,7 +73,7 @@
   
   	1. `/<ins_name>/euler-angle`
 
-		说明：广播imu坐标系下3轴姿态角(单位：°)，`<ins_name>`为可以替换部分，例如：在配置文件中添加`{"ins", "up-ins"},`就可以将默认的`/ins/euler-angle`，替换成`/up-ins/euler-angle`
+		说明：广播imu坐标系下3轴姿态角(单位：°)，`<ins_name>`为可以替换部分，例如：在配置文件中添加`{"name", "up-ins"},`就可以将默认的`/ins/euler-angle`，替换成`/up-ins/euler-angle`
 
         广播数据：
 

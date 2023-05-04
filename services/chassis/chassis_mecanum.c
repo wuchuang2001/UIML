@@ -128,7 +128,7 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
 	}
 	//软总线广播、远程函数name重映射
-	char* temp = Conf_GetPtr(dict, "chassis", char);
+	char* temp = Conf_GetPtr(dict, "name", char);
 	temp = temp ? temp : "chassis";
 	uint8_t len = strlen(temp);
 	chassis->speedName = pvPortMalloc(len + 7+ 1); //7为"/   /speed"的长度，1为'\0'的长度

@@ -59,7 +59,8 @@
     
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
-    | `task-interval` | (uint16_t)2                        | 任务执行间隔  |
+    | `task-interval` | (uint16_t)2                       | 任务执行间隔  |
+	| `name`          | (char*)`"chassis"`                | 如果需要重命名模块则配置该项  |
 	| `info`          | [>>](#chassis2)                   | 底盘基础配置信息  |
 	| `move`          | [>>](#chassis3)                   | 底盘移动配置信息  |
 	| `motor-fl`      | [>>](../../tools/motor/README.md/#模块配置项) | 左前电机配置信息  |
@@ -180,7 +181,7 @@
   
     1. `/<chassis_name>/speed`
 
-        说明：设置底盘在用户坐标系下的速度，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"chassis", "mecanum"},`就可以将默认的`/chassis/speed`，替换成`/mecanum/speed`
+        说明：设置底盘在用户坐标系下的速度，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"name", "mecanum"},`就可以将默认的`/chassis/speed`，替换成`/mecanum/speed`
 
         传入参数数据：
 
@@ -192,7 +193,7 @@
     
     2. `/<chassis_name>/acc`
 
-        说明：设置底盘在用户坐标系下的加速度，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"chassis", "mecanum"},`就可以将默认的`/chassis/acc`，替换成`/mecanum/acc`
+        说明：设置底盘在用户坐标系下的加速度，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"name", "mecanum"},`就可以将默认的`/chassis/acc`，替换成`/mecanum/acc`
 
 
         传入参数数据：
@@ -204,7 +205,7 @@
     
     3. `/<chassis_name>/relative-angle`
 
-        说明：设置用户坐标系和底盘坐标系的分离角，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"chassis", "mecanum"},`就可以将默认的`/chassis/relative-angle`，替换成`/mecanum/relative-angle`
+        说明：设置用户坐标系和底盘坐标系的分离角，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"name", "mecanum"},`就可以将默认的`/chassis/relative-angle`，替换成`/mecanum/relative-angle`
 
         传入参数数据：
 

@@ -5,7 +5,7 @@
 ## 模块介绍
 
 1. 这是整个代码库的发射模块，根据用户设置发射单发、连射、停止，完成相应的动作，同时接收拨弹电机的堵转广播，若发生堵弹，会及时退弹。
-2. 由于监听了拨弹电机堵转广播，因此需要在配置拨弹电机时，需要将拨弹电机命名`{"name", "triggerMotor"},`
+2. 由于监听了拨弹电机堵转广播，因此需要在配置拨弹电机时，需要将拨弹电机重命名`{"name", "triggerMotor"},`
 
 
 ## 项目文件及依赖项
@@ -37,6 +37,7 @@
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
     | `task-interval`    | (uint16_t)20                      | 任务执行间隔  |
+	| `name`             | (char*)`"shooter"`                | 如果需要重命名模块则配置该项  |
 	| `trigger-angle`    | (float)1/7.0*360                  | 拨一发弹丸的角度 |
 	| `fric-speed`       | (float)5450                       | 初始弹速 |
 	| `fric-motor-left`  | [>>](../../tools/motor/README.md/#模块配置项) | 左摩擦轮电机配置信息  |
@@ -120,7 +121,7 @@
   
     1. `/<shooter_name>/setting`
 
-        说明：设置拨弹电机的一些属性，`<shooter_name>`为可以替换部分，例如：在配置文件中添加`{"shooter", "up-shooter"},`就可以将默认的`/shooter/setting`，替换成`/up-shooter/setting`
+        说明：设置拨弹电机的一些属性，`<shooter_name>`为可以替换部分，例如：在配置文件中添加`{"name", "up-shooter"},`就可以将默认的`/shooter/setting`，替换成`/up-shooter/setting`
 
         传入参数数据：
 

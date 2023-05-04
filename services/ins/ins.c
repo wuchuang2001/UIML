@@ -93,7 +93,7 @@ void INS_Init(INS* ins, ConfItem* dict)
 	// ins->filter = Filter_Init(Conf_GetPtr(dict, "filter", ConfItem));
 	PID_Init(&ins->tmpPID, Conf_GetPtr(dict, "tmp-pid", ConfItem));
 
-	char* temp = Conf_GetPtr(dict, "ins", char);
+	char* temp = Conf_GetPtr(dict, "name", char);
 	temp = temp ? temp : "ins";
 	uint8_t len = strlen(temp);
 	ins->eulerAngleName = pvPortMalloc(len + 13+ 1); //13为"/   /euler-angle"的长度，1为'\0'的长度

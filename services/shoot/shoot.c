@@ -100,7 +100,7 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 	}
 	shooter->triggerMotor->changeMode(shooter->triggerMotor,MOTOR_ANGLE_MODE);
 
-	char* temp = Conf_GetPtr(dict, "shooter", char);
+	char* temp = Conf_GetPtr(dict, "name", char);
 	temp = temp ? temp : "shooter";
 	uint8_t len = strlen(temp);
 	shooter->settingName = pvPortMalloc(len + 9+ 1); //9为"/   /setting"的长度，1为'\0'的长度
