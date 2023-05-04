@@ -86,16 +86,16 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	char* temp = Conf_GetPtr(dict, "gimbal", char);
 	temp = temp ? temp : "gimbal";
 	uint8_t len = strlen(temp);
-	gimbal->settingName = MOTOR_MALLOC_PORT(len + 9+ 1); //9为"/   /setting"的长度，1为'\0'的长度
+	gimbal->settingName = pvPortMalloc(len + 9+ 1); //9为"/   /setting"的长度，1为'\0'的长度
 	sprintf(gimbal->settingName, "/%s/setting", temp);
 
-	gimbal->yawRelAngleName = MOTOR_MALLOC_PORT(len + 20+ 1); //20为"/   /yaw/relative-angle"的长度，1为'\0'的长度
+	gimbal->yawRelAngleName = pvPortMalloc(len + 20+ 1); //20为"/   /yaw/relative-angle"的长度，1为'\0'的长度
 	sprintf(gimbal->yawRelAngleName, "/%s/yaw/relative-angle", temp);
 
 	temp = Conf_GetPtr(dict, "ins", char);
 	temp = temp ? temp : "ins";
 	len = strlen(temp);
-	gimbal->imuEulerAngleName = MOTOR_MALLOC_PORT(len + 13+ 1); //13为"/   /euler-angle"的长度，1为'\0'的长度
+	gimbal->imuEulerAngleName = pvPortMalloc(len + 13+ 1); //13为"/   /euler-angle"的长度，1为'\0'的长度
 	sprintf(gimbal->imuEulerAngleName, "/%s/euler-angle", temp);
 
 	//不在这里设置电机模式，因为在未设置好零点前，pid会驱使电机达到编码器的零点或者imu的初始化零点

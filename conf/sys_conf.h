@@ -9,7 +9,7 @@
 //<i>Select to include "can.h"
 //<q1>UART
 //<i>Select to include "usart.h"
-//<q2>EXIT
+//<q2>EXTI
 //<i>Select to include "gpio.h"
 //<q3>TIM
 //<i>Select to include "tim.h"
@@ -17,7 +17,7 @@
 //<i>Select to include "spi.h"
 #define CONF_CAN_ENABLE		1
 #define CONF_USART_ENABLE	1
-#define CONF_EXIT_ENABLE 1
+#define CONF_EXTI_ENABLE 1
 #define CONF_TIM_ENABLE 1
 #define CONF_SPI_ENABLE 1
 //</h>
@@ -27,7 +27,7 @@
 #if CONF_USART_ENABLE
 #include "usart.h"
 #endif
-#if CONF_EXIT_ENABLE
+#if CONF_EXTI_ENABLE
 #include "gpio.h"
 #endif
 #if CONF_TIM_ENABLE

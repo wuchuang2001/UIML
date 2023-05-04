@@ -2,19 +2,21 @@
 
 ---
 
-## 简介
+## 模块介绍
 
-这是整个代码库的惯导系统模块，根据imu的驱动获取imu的角速度和加速度，进而进行姿态解算出当前imu坐标系的姿态角同时广播出去。
+1. 这是整个代码库的惯导系统模块，根据imu的驱动获取imu的角速度和加速度，进而进行姿态解算出当前imu坐标系的姿态角同时广播出去
+2. 目前bmi088配置未开放到`sys_conf.h`，如需要修改加速度计或陀螺仪量程等请到`bmi088_driver.c`中修改命令表的值，目前使用的是mahony算法作为姿态解算算法
 
 
 ## 模块依赖项
 
-- 本项目文件
-	- `softbus.c/h`、`config.c/h`、`sys_conf.h`、`bmi088_driver.c/h`、`AHRS_MiddleWare.c/h`、`AHRS.lib/h`、`pid.c/h`、`filter.c/h`
-- 标准库文件
-	- `stdint.h`、`stdbool.h`、`stdlib.h`
-- hal库文件 
-    - `cmsis_os.h`
+1. 文件依赖
+    - 本项目文件
+      	- `softbus.c/h`、`config.c/h`、`sys_conf.h`、`bmi088_driver.c/h`、`AHRS_MiddleWare.c/h`、`AHRS.lib/h`、`pid.c/h`、`filter.c/h`
+    - 标准库文件
+      	- `stdint.h`、`stdbool.h`、`stdlib.h`
+    - hal库文件 
+        - `cmsis_os.h`
 
 ---
 
@@ -22,37 +24,34 @@
 
 ---
 
-## 说明
-目前bmi088配置未开放到`sys_conf.h`，如需要修改加速度计或陀螺仪量程等请到`bmi088_driver.c`中修改命令表的值，目前使用的是mahony算法作为姿态解算算法
+## 准备工作
 
-## 在STM32CubeMX中需要的bmi088的spi配置
-
-spi配置如下
+1. 在CubeMX中配置spi
   
    ![spi配置](README-IMG/bmi088的spi配置.png)
 	
 
 
-## 在`sys_conf.h`中的配置
+## 模块配置项
 
 ```c
 {"ins",CF_DICT{
 	{"spi-x",IM_PTR(uint8_t,1)},
 	{"tim-x",IM_PTR(uint8_t,10)},
 	{"channel-x",IM_PTR(uint8_t,1)},
-	{"tmpPID", CF_DICT{
+	{"tmp-pid", CF_DICT{
 		{"p", IM_PTR(float, 0.15)},
 		{"i", IM_PTR(float, 0.01)},
 		{"d", IM_PTR(float, 0)},
-		{"maxI", IM_PTR(float, 0.15)},
-		{"maxOut", IM_PTR(float, 1)},
+		{"max-i", IM_PTR(float, 0.15)},
+		{"max-out", IM_PTR(float, 1)},
 		CF_DICT_END
 	}},
 	CF_DICT_END
 }},
 ```
 
-## 模块接口
+## 软总线接口
 
 - 广播：
 

@@ -96,7 +96,7 @@ void INS_Init(INS* ins, ConfItem* dict)
 	char* temp = Conf_GetPtr(dict, "ins", char);
 	temp = temp ? temp : "ins";
 	uint8_t len = strlen(temp);
-	ins->eulerAngleName = MOTOR_MALLOC_PORT(len + 13+ 1); //13为"/   /euler-angle"的长度，1为'\0'的长度
+	ins->eulerAngleName = pvPortMalloc(len + 13+ 1); //13为"/   /euler-angle"的长度，1为'\0'的长度
 	sprintf(ins->eulerAngleName, "/%s/euler-angle", temp);
 
 	while(BMI088_AccelInit(ins->spiX) || BMI088_GyroInit(ins->spiX))

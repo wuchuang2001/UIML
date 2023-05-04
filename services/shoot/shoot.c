@@ -103,16 +103,16 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 	char* temp = Conf_GetPtr(dict, "shooter", char);
 	temp = temp ? temp : "shooter";
 	uint8_t len = strlen(temp);
-	shooter->settingName = MOTOR_MALLOC_PORT(len + 9+ 1); //9为"/   /setting"的长度，1为'\0'的长度
+	shooter->settingName = pvPortMalloc(len + 9+ 1); //9为"/   /setting"的长度，1为'\0'的长度
 	sprintf(shooter->settingName, "/%s/setting", temp);
 
-	shooter->changeModeName = MOTOR_MALLOC_PORT(len + 6+ 1); //6为"/   /mode"的长度，1为'\0'的长度
+	shooter->changeModeName = pvPortMalloc(len + 6+ 1); //6为"/   /mode"的长度，1为'\0'的长度
 	sprintf(shooter->changeModeName, "/%s/mode", temp);
 	
 	temp = Conf_GetPtr(dict, "trigger-motor/name", char);
 	temp = temp ? temp : "trigger-motor";
 	len = strlen(temp);
-	shooter->triggerStallName = MOTOR_MALLOC_PORT(len + 7+ 1); //7为"/   /stall"的长度，1为'\0'的长度
+	shooter->triggerStallName = pvPortMalloc(len + 7+ 1); //7为"/   /stall"的长度，1为'\0'的长度
 	sprintf(shooter->triggerStallName, "/%s/stall", temp);
 
 	//注册回调函数

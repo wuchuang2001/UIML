@@ -131,13 +131,13 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 	char* temp = Conf_GetPtr(dict, "chassis", char);
 	temp = temp ? temp : "chassis";
 	uint8_t len = strlen(temp);
-	chassis->speedName = MOTOR_MALLOC_PORT(len + 7+ 1); //7为"/   /speed"的长度，1为'\0'的长度
+	chassis->speedName = pvPortMalloc(len + 7+ 1); //7为"/   /speed"的长度，1为'\0'的长度
 	sprintf(chassis->speedName, "/%s/speed", temp);
 	
-	chassis->accName = MOTOR_MALLOC_PORT(len + 5+ 1); //5为"/   /acc"的长度，1为'\0'的长度
+	chassis->accName = pvPortMalloc(len + 5+ 1); //5为"/   /acc"的长度，1为'\0'的长度
 	sprintf(chassis->accName, "/%s/acc", temp);
 	
-	chassis->relAngleName = MOTOR_MALLOC_PORT(len + 16+ 1); //16为"/   /relative-angle"的长度，1为'\0'的长度
+	chassis->relAngleName = pvPortMalloc(len + 16+ 1); //16为"/   /relative-angle"的长度，1为'\0'的长度
 	sprintf(chassis->relAngleName, "/%s/relative-angle", temp);
 	
 	//注册远程函数
