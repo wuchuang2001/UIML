@@ -63,8 +63,8 @@ Motor* DcMotor_Init(ConfItem* dict)
 	dcMotor->motor.changeMode = DcMotor_ChangeMode;
 	dcMotor->motor.setStartAngle = DcMotor_SetStartAngle;
 	//电机减速比
-	dcMotor->reductionRatio = Conf_GetValue(dict, "reductionRatio", float, 19.0f);//如果未配置电机减速比参数，则使用原装电机默认减速比
-	dcMotor->circleEncode = Conf_GetValue(dict, "maxEncode", float, 48.0f); //倍频后编码器转一圈的最大值
+	dcMotor->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 19.0f);//电机减速比参数
+	dcMotor->circleEncode = Conf_GetValue(dict, "max-encode", float, 48.0f); //倍频后编码器转一圈的最大值
 	//初始化电机绑定tim信息
 	DcMotor_TimInit(dcMotor, dict);
 	//设置电机默认模式为速度模式
@@ -82,20 +82,20 @@ Motor* DcMotor_Init(ConfItem* dict)
 //初始化pid
 void DcMotor_PIDInit(DcMotor* dcMotor, ConfItem* dict)
 {
-	PID_Init(&dcMotor->speedPID, Conf_GetPtr(dict, "speedPID", ConfItem));
-	PID_Init(&dcMotor->anglePID.inner, Conf_GetPtr(dict, "anglePID/inner", ConfItem));
-	PID_Init(&dcMotor->anglePID.outer, Conf_GetPtr(dict, "anglePID/outer", ConfItem));
+	PID_Init(&dcMotor->speedPID, Conf_GetPtr(dict, "speed-pid", ConfItem));
+	PID_Init(&dcMotor->anglePID.inner, Conf_GetPtr(dict, "angle-pid/inner", ConfItem));
+	PID_Init(&dcMotor->anglePID.outer, Conf_GetPtr(dict, "angle-pid/outer", ConfItem));
 	PID_SetMaxOutput(&dcMotor->anglePID.outer, dcMotor->anglePID.outer.maxOutput*dcMotor->reductionRatio);//将输出轴速度限幅放大到转子上
 }
 
 //初始化tim
 void DcMotor_TimInit(DcMotor* dcMotor, ConfItem* dict)
 {
-	dcMotor->posRotateTim.timX = Conf_GetValue(dict,"posRotateTim/tim-x",uint8_t,0);
-	dcMotor->posRotateTim.channelX = Conf_GetValue(dict,"posRotateTim/channel-x",uint8_t,0);
-	dcMotor->negRotateTim.timX = Conf_GetValue(dict,"negRotateTim/tim-x",uint8_t,0);
-	dcMotor->negRotateTim.channelX = Conf_GetValue(dict,"negRotateTim/channel-x",uint8_t,0);
-	dcMotor->encodeTim.channelX = Conf_GetValue(dict,"encodeTim/tim-x",uint8_t,0);
+	dcMotor->posRotateTim.timX = Conf_GetValue(dict,"pos-rotate-tim/tim-x",uint8_t,0);
+	dcMotor->posRotateTim.channelX = Conf_GetValue(dict,"pos-rotate-tim/channel-x",uint8_t,0);
+	dcMotor->negRotateTim.timX = Conf_GetValue(dict,"neg-rotate-tim/tim-x",uint8_t,0);
+	dcMotor->negRotateTim.channelX = Conf_GetValue(dict,"neg-rotate-tim/channel-x",uint8_t,0);
+	dcMotor->encodeTim.channelX = Conf_GetValue(dict,"encode-tim/tim-x",uint8_t,0);
 }
 
 //开始统计电机累计角度

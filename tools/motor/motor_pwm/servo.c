@@ -27,11 +27,11 @@ Motor* Servo_Init(ConfItem* dict)
 	//子类多态
 	servo->motor.setTarget = Servo_SetTarget;
 	//初始化电机绑定TIM信息
-	servo->timInfo.timX = Conf_GetValue(dict,"timX",uint8_t,0);
-	servo->timInfo.channelX = Conf_GetValue(dict,"channelX",uint8_t,0);
-	servo->maxAngle = Conf_GetValue(dict,"maxAngle",float,180);
-	servo->maxDuty = Conf_GetValue(dict,"maxDuty",float,0.125f);
-	servo->minDuty = Conf_GetValue(dict,"minDuty",float,0.025f);
+	servo->timInfo.timX = Conf_GetValue(dict,"tim-x",uint8_t,0);
+	servo->timInfo.channelX = Conf_GetValue(dict,"channel-x",uint8_t,0);
+	servo->maxAngle = Conf_GetValue(dict,"max-angle",float,180);
+	servo->maxDuty = Conf_GetValue(dict,"max-duty",float,0.125f);
+	servo->minDuty = Conf_GetValue(dict,"min-duty",float,0.025f);
 
 	return (Motor*)servo;
 }
@@ -42,7 +42,7 @@ void Servo_SetTarget(Motor* motor,float targetValue)
 	Servo* servo=(Servo*) motor;
 	servo->targetAngle = targetValue; //无实际用途，可用于debug
 	float pwmDuty = servo->targetAngle / servo->maxAngle * (servo->maxDuty - servo->minDuty) + servo->minDuty;
-	Bus_RemoteCall("/tim/pwm/set-duty", {{"timX", &servo->timInfo.timX}, {"channelX", &servo->timInfo.channelX}, {"duty", &pwmDuty}});
+	Bus_RemoteCall("/tim/pwm/set-duty", {{"tim-x", &servo->timInfo.timX}, {"channel-x", &servo->timInfo.channelX}, {"duty", &pwmDuty}});
 }
 
 
