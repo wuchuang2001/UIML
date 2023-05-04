@@ -38,12 +38,12 @@
     | `task-interval` | (uint16_t)2                        | 任务执行间隔  |
 	| `zero-yaw`      | (uint16_t)0                       | yaw轴零点(编码器值)  |
 	| `zero-pitch`    | (uint16_t)0                       | pitch轴零点(编码器值)  |
-	| `motor-yaw`     | [>>](../../tools/motor/README.md) | yaw电机配置信息  |
-	| `motor-pitch`   | [>>](../../tools/motor/README.md) | pitch电机配置信息  |
+	| `motor-yaw`     | [>>](../../tools/motor/README.md/#模块配置项) | yaw电机配置信息  |
+	| `motor-pitch`   | [>>](../../tools/motor/README.md/#模块配置项) | pitch电机配置信息  |
 
 > 注：由于电机角度外环返回数据由惯导提供因此外环pid计算由云台模块完成，电机类只负责速度闭环
 
-> `motor-yaw/imu`，`motor-pitch/imu`两者配置项详见[>>](../../tools/controller/README.md)
+> `motor-yaw/imu`，`motor-pitch/imu`两者配置项详见[>>](../../tools/controller/README.md/#模块配置项)
 
 #### 示例：
 

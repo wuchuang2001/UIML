@@ -41,7 +41,7 @@
 	| `target-temperature` | (float)40   | imu目标温度  |
 	| `tim-x`              | (uint8_t)10 | 温控pwm所在tim |
 	| `channel-x`          | (uint8_t)1  | 温控pwm所在tim通道 |
-	| `tmp-pid`            | [>>](../../tools/controller/README.md) | 温控pid |
+	| `tmp-pid`            | [>>](../../tools/controller/README.md/#模块配置项) | 温控pid |
 
 #### 示例：
 

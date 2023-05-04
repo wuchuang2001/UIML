@@ -30,7 +30,7 @@
 ### 准备工作
 
 1. 根据外设需求在CubeMX中配置，此处不详述操作细节
-2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md)，勾选CAN
+2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md/#sys_confh语法)，勾选CAN
     ![勾选can](README-IMG/勾选can.png)
 
 ### 模块配置项
@@ -42,14 +42,14 @@
     | `cans`           | [>>](#can2) | 配置can信息  |
     | `repeat-buffers` | [>>](#can3) | 配置循环帧  |
 
-2. <span id='can2'>`cans`配置项</span>
+2. <span id='can2'/>`cans`配置项
 
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
     | `hcan`   | (CAN_HandleTypeDef*)NULL | can句柄 |
     | `number` | (uint8_t)0               | can控制器编号，就是canX的X |
 
-3. <span id='can3'>`repeat-buffers`配置项</span>
+3. <span id='can3'/>`repeat-buffers`配置项
 
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
@@ -163,7 +163,7 @@
 ### 准备工作
 
 1. 根据外设需求在CubeMX中配置，此处不详述操作细节
-2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md)，勾选EXTI
+2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md/#sys_confh语法)，勾选EXTI
     ![勾选exti](README-IMG/勾选exti.png)
 ### 模块配置项
 
@@ -173,7 +173,7 @@
     | :---: | :---: | :---: |
     | `extis` | [>>](#exti2) | 配置外部中断信息  |
 
-2. <span id='exti2'>`extis`配置项</span>
+2. <span id='exti2'/>`extis`配置项
 
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
@@ -238,7 +238,7 @@
 ### 准备工作
 
 1. 根据外设需求在CubeMX中配置，此处不详述操作细节
-2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md)，勾选SPI
+2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md/#sys_confh语法)，勾选SPI
     ![勾选spi](README-IMG/勾选spi.png)
 
 ### 模块配置项
@@ -249,7 +249,7 @@
     | :---: | :---: | :---: |
     | `spis` | [>>](#spi2) | 配置spi信息  |
 
-2. <span id='spi2'>`spis`配置项</span>
+2. <span id='spi2'/>`spis`配置项
 
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
@@ -258,7 +258,7 @@
     | `max-recv-size` | (uint8_t)1               | spi接收缓存区大小 |
     | `cs`            | [>>](#spi3)              | 配置spi片选信息 |
 
-3. <span id='spi3'>`cs`配置项</span>
+3. <span id='spi3'/>`cs`配置项
 
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
@@ -359,7 +359,7 @@
 ### 准备工作
 
 1. 根据外设需求在CubeMX中配置，此处不详述操作细节
-2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md)，勾选TIM
+2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md/#sys_confh语法)，勾选TIM
     ![勾选tim](README-IMG/勾选tim.png)
 
 ### 模块配置项
@@ -370,7 +370,7 @@
     | :---: | :---: | :---: |
     | `tims` | [>>](#tim2) | 配置tim信息  |
 
-2. <span id='tim2'>`tims`配置项</span>
+2. <span id='tim2'/>`tims`配置项
 
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
@@ -448,7 +448,7 @@
 1. 根据外设需求在CubeMX中配置，此处不详述操作细节
 2. 在CubeMX工程NVIC的代码生成中，取消生成串口的中断服务函数，如下图所示
     ![不生成串口中断服务函数](README-IMG/不生成串口中断服务函数.png)
-3. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md)，勾选UART
+3. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md/#sys_confh语法)，勾选UART
     ![勾选uart](README-IMG/勾选uart.png)
 
 ### 模块配置项
@@ -459,7 +459,7 @@
     | :---: | :---: | :---: |
     | `uarts` | [>>](#uart2) | 配置串口信息  |
 
-2. <span id='uart2'>`uarts`配置项</span>
+2. <span id='uart2'/>`uarts`配置项
 
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |

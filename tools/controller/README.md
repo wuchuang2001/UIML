@@ -1,31 +1,31 @@
-# PIDÀà
+# PIDç±»
 
-## Ä£¿é¼ò½é
+## æ¨¡å—ç®€ä»‹
 
-1. ±¾ÏîÄ¿ÊµÏÖÁËÒ»¸öPIDÀà£¬ÄÜ¹»½øĞĞµ¥¼¶¡¢´®¼¶PID¼ÆËã¡¢Çå¿ÕPIDÊı¾İ¡¢ÉèÖÃËÀÇøµÈ¹¦ÄÜ
+1. æœ¬é¡¹ç›®å®ç°äº†ä¸€ä¸ªPIDç±»ï¼Œèƒ½å¤Ÿè¿›è¡Œå•çº§ã€ä¸²çº§PIDè®¡ç®—ã€æ¸…ç©ºPIDæ•°æ®ã€è®¾ç½®æ­»åŒºç­‰åŠŸèƒ½
 
-## Ä£¿éÒÀÀµÏî
+## æ¨¡å—ä¾èµ–é¡¹
 
-1. ÎÄ¼şÒÀÀµ
+1. æ–‡ä»¶ä¾èµ–
 
-    - ±¾ÏîÄ¿ÎÄ¼ş
-      	- `config.c/h`¡¢`sys_conf.h`
-  	- ±ê×¼¿âÎÄ¼ş
+    - æœ¬é¡¹ç›®æ–‡ä»¶
+      	- `config.c/h`ã€`sys_conf.h`
+  	- æ ‡å‡†åº“æ–‡ä»¶
     	- `stdint.h`
 
-## Ä£¿éÅäÖÃÏî
+## æ¨¡å—é…ç½®é¡¹
 
-1. Ä£¿éÅäÖÃÏî
+1. æ¨¡å—é…ç½®é¡¹
     
-    | ÅäÖÃÃû | (ÊıÖµÀàĞÍ)Ä¬ÈÏÖµ | ËµÃ÷ |
+    | é…ç½®å | (æ•°å€¼ç±»å‹)é»˜è®¤å€¼ | è¯´æ˜ |
     | :---: | :---: | :---: |
     | `p`       | (float)0  | kp |
 	| `i`       | (float)0  | ki |
 	| `d`       | (float)0  | kd |
-	| `max-i`   | (float)0  | »ı·ÖÏŞ·ù |
-	| `max-out` | (float)0  | Êä³öÏŞ·ù |
+	| `max-i`   | (float)0  | ç§¯åˆ†é™å¹… |
+	| `max-out` | (float)0  | è¾“å‡ºé™å¹… |
 
-#### Ê¾Àı£º
+#### ç¤ºä¾‹ï¼š
 
 ```c
 {"pid", CF_DICT{
@@ -38,23 +38,23 @@
 }},
 ```
 
-## ½Ó¿ÚËµÃ÷
+## æ¥å£è¯´æ˜
 
 1. `void PID_Init(PID *pid, ConfItem* conf)`
    
-    »á¸ù¾İ´«ÈëµÄÅäÖÃ³õÊ¼»¯pid²ÎÊı¡£Ê¹ÓÃÊ¾Àı£º
+    ä¼šæ ¹æ®ä¼ å…¥çš„é…ç½®åˆå§‹åŒ–pidå‚æ•°ã€‚ä½¿ç”¨ç¤ºä¾‹ï¼š
 
 	```c
-	PID pid;//µ¥¼¶pid
+	PID pid;//å•çº§pid
     PID_Init(&pid, dict); 
-    CascadePID pidC;//´®¼¶pid
-    PID_Init(&pidC.inner, dict); //³õÊ¼»¯ÄÚ»·
-    PID_Init(&pidC.outer, dict); //³õÊ¼»¯Íâ»·
+    CascadePID pidC;//ä¸²çº§pid
+    PID_Init(&pidC.inner, dict); //åˆå§‹åŒ–å†…ç¯
+    PID_Init(&pidC.outer, dict); //åˆå§‹åŒ–å¤–ç¯
 	```
 
 2. `void PID_SingleCalc(PID *pid,float reference,float feedback)`
 
-	Í¨¹ı´Ëº¯Êı¿ÉÒÔ¼ÆËãµ¥¼¶pid£¬ÆäÖĞ`reference`ÎªÄ¿±êÖµ£¬`feedback`Îª·´À¡Öµ¡£Ê¹ÓÃÊ¾Àı£º
+	é€šè¿‡æ­¤å‡½æ•°å¯ä»¥è®¡ç®—å•çº§pidï¼Œå…¶ä¸­`reference`ä¸ºç›®æ ‡å€¼ï¼Œ`feedback`ä¸ºåé¦ˆå€¼ã€‚ä½¿ç”¨ç¤ºä¾‹ï¼š
 
 	```c
 	PID_SingleCalc(&pid, ref, fd);
@@ -62,7 +62,7 @@
 
 3. `void PID_CascadeCalc(CascadePID *pid,float angleRef,float angleFdb,float speedFdb)`
 
-	Í¨¹ı´Ëº¯Êı¿ÉÒÔ¼ÆËãµ¥¼¶pid£¬ÆäÖĞ`angleRef`Îª½Ç¶ÈÄ¿±êÖµ£¬`angleFdb`Îª½Ç¶È·´À¡Öµ£¬`speedFdb`ÎªËÙ¶È·´À¡Öµ¡£Ê¹ÓÃÊ¾Àı£º
+	é€šè¿‡æ­¤å‡½æ•°å¯ä»¥è®¡ç®—å•çº§pidï¼Œå…¶ä¸­`angleRef`ä¸ºè§’åº¦ç›®æ ‡å€¼ï¼Œ`angleFdb`ä¸ºè§’åº¦åé¦ˆå€¼ï¼Œ`speedFdb`ä¸ºé€Ÿåº¦åé¦ˆå€¼ã€‚ä½¿ç”¨ç¤ºä¾‹ï¼š
 
 	```c
 	PID_SingleCalc(&pidC, angleRef, angleFdb, speedFdb);
@@ -70,14 +70,14 @@
 
 4. `void PID_Clear(PID *pid)`
 
-	Í¨¹ı´Ëº¯Êı¿ÉÒÔÇå³ıpidµÄÀúÊ·Êı¾İ¡£Ê¹ÓÃÊ¾Àı£º
+	é€šè¿‡æ­¤å‡½æ•°å¯ä»¥æ¸…é™¤pidçš„å†å²æ•°æ®ã€‚ä½¿ç”¨ç¤ºä¾‹ï¼š
 
 	```c
 	PID_Clear(&pid);
 	```
 5. `void PID_SetMaxOutput(PID *pid,float maxOut)`
 
-	Í¨¹ı´Ëº¯Êı¿ÉÒÔÉèÖÃpidµÄÊä³öÏŞ·ù¡£Ê¹ÓÃÊ¾Àı£º
+	é€šè¿‡æ­¤å‡½æ•°å¯ä»¥è®¾ç½®pidçš„è¾“å‡ºé™å¹…ã€‚ä½¿ç”¨ç¤ºä¾‹ï¼š
 
 	```c
 	PID_SetMaxOutput(&pid);
@@ -85,7 +85,7 @@
 
 6. `void PID_SetDeadzone(PID *pid,float deadzone)`
 
-	Í¨¹ı´Ëº¯Êı¿ÉÒÔÉèÖÃpidµÄËÀÇø¡£Ê¹ÓÃÊ¾Àı£º
+	é€šè¿‡æ­¤å‡½æ•°å¯ä»¥è®¾ç½®pidçš„æ­»åŒºã€‚ä½¿ç”¨ç¤ºä¾‹ï¼š
 
 	```c
 	PID_SetDeadzone(&pid, 5);
