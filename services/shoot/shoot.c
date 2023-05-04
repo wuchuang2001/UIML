@@ -100,12 +100,20 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 	}
 	shooter->triggerMotor->changeMode(shooter->triggerMotor,MOTOR_ANGLE_MODE);
 
-	shooter->settingName = Conf_GetPtr(dict,"/shooter/setting",char);
-	shooter->settingName = shooter->settingName?shooter->settingName:"/shooter/setting";
-	shooter->changeModeName = Conf_GetPtr(dict,"/shooter/mode",char);
-	shooter->changeModeName = shooter->changeModeName?shooter->changeModeName:"/shooter/mode";
-	shooter->triggerStallName = Conf_GetPtr(dict,"/triggerMotor/stall",char);
-	shooter->triggerStallName = shooter->triggerStallName?shooter->triggerStallName:"/triggerMotor/stall";
+	char* temp = Conf_GetPtr(dict, "shooter", char);
+	temp = temp ? temp : "shooter";
+	uint8_t len = strlen(temp);
+	shooter->settingName = MOTOR_MALLOC_PORT(len + 9+ 1); //9为"/   /setting"的长度，1为'\0'的长度
+	sprintf(shooter->settingName, "/%s/setting", temp);
+
+	shooter->changeModeName = MOTOR_MALLOC_PORT(len + 6+ 1); //6为"/   /mode"的长度，1为'\0'的长度
+	sprintf(shooter->changeModeName, "/%s/mode", temp);
+	
+	temp = Conf_GetPtr(dict, "trigger-motor/name", char);
+	temp = temp ? temp : "trigger-motor";
+	len = strlen(temp);
+	shooter->triggerStallName = MOTOR_MALLOC_PORT(len + 7+ 1); //7为"/   /stall"的长度，1为'\0'的长度
+	sprintf(shooter->triggerStallName, "/%s/stall", temp);
 
 	//注册回调函数
 	Bus_RegisterRemoteFunc(shooter,Shooter_SettingCallback, shooter->settingName);

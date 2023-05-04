@@ -139,17 +139,13 @@
 
 ## 模块接口
 
-> 注：name重映射只需要在配置表中配置名写入原本name字符串，在配置值处写入重映射后的name字符串，就完成了name的重映射。例如：`{"old-name", "new-name"},`
-
 - 广播：无
 
 - 远程函数
   
-    1. `/chassis/speed`
+    1. `/<chassis_name>/speed`
 
-        说明：设置底盘在用户坐标系下的速度
-
-        **是否允许name重映射：允许**
+        说明：设置底盘在用户坐标系下的速度，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"chassis", "mecanum"},`就可以将默认的`/chassis/speed`，替换成`/mecanum/speed`
 
         传入参数数据：
 
@@ -159,11 +155,10 @@
         | `vy` | `float` | × | 可选 | 底盘在用户坐标系下y轴方向的速度(单位mm/s) |
         | `vw` | `float` | × | 可选 | 底盘旋转的角速度(单位°/s)  |
     
-    2. `/chassis/acc`
+    2. `/<chassis_name>/acc`
 
-        说明：设置底盘在用户坐标系下的加速度
+        说明：设置底盘在用户坐标系下的加速度，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"chassis", "mecanum"},`就可以将默认的`/chassis/acc`，替换成`/mecanum/acc`
 
-        **是否允许name重映射：允许**
 
         传入参数数据：
 
@@ -172,11 +167,9 @@
         | `ax` | `float` | × | 可选 | 底盘在用户坐标系下x轴方向的加速度(单位mm/s²) |
         | `ay` | `float` | × | 可选 | 底盘在用户坐标系下y轴方向的加速度(单位mm/s²) |
     
-    3. `/chassis/relative-angle`
+    3. `/<chassis_name>/relative-angle`
 
-        说明：设置用户坐标系和底盘坐标系的分离角
-
-        **是否允许name重映射：允许**
+        说明：设置用户坐标系和底盘坐标系的分离角，`<chassis_name>`为可以替换部分，例如：在配置文件中添加`{"chassis", "mecanum"},`就可以将默认的`/chassis/relative-angle`，替换成`/mecanum/relative-angle`
 
         传入参数数据：
 

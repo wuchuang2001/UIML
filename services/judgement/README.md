@@ -38,8 +38,6 @@
 ```
 ## 模块接口
 
-> 注：name重映射只需要在配置表中配置名写入原本name字符串，在配置值处写入重映射后的name字符串，就完成了name的重映射。例如：`{"old-name", "new-name"},`
-
 - 广播
     
     英雄机器人
@@ -86,7 +84,7 @@
 
     非英雄机器人
 
-    1. `/judge/recv/robot-state`
+    5. `/judge/recv/robot-state`
 
          说明：解析裁判系统数据得到的机器人状态数据
     
@@ -99,7 +97,7 @@
         | `is-chassis-power-output` | `bool` | 电源管理底盘端是否输出|
         | `is-gimbal-power-output` | `bool` | 电源管理云台端是否输出  |
 
-    2. `/judge/recv/power-Heat`
+    6. `/judge/recv/power-Heat`
 
         说明：解析裁判系统数据得到的功率/热量数据
 
@@ -109,7 +107,7 @@
         | `chassis-power_buffer` | `uint6_t` |底盘功率缓冲|
         | `17mm-cooling-heat` | `uint16_t` | 17mm热量 |
 
-    3. `/judge/recv/shoot`
+    7. `/judge/recv/shoot`
 
         说明：解析裁判系统数据得到的发射数据
 
@@ -117,7 +115,7 @@
         | :---: | :---: |  :---: |
         | `bullet-speed` | `float` | 发射弹丸弹速|
 
-    4. `/judge/recv/bullet`
+    8. `/judge/recv/bullet`
 
         说明：解析裁判系统数据得到的弹丸数据
 
@@ -134,8 +132,6 @@
     1. `/judge/send/ui/text`
 
         说明：发送文本UI数据
-
-        **是否允许name重映射：不允许**
 
         传入参数数据：
 
@@ -156,8 +152,6 @@
 
         说明：发送直线UI数据
 
-        **是否允许name重映射：不允许**
-
         传入参数数据：
 
         | 数据字段名 | 数据类型 | 是否为返回值 | 是否必须传输 | 说明 |
@@ -175,8 +169,6 @@
     3. `/judge/send/ui/rect`
 
         说明：发送矩形UI数据
-
-        **是否允许name重映射：允许**
 
         传入参数数据：
 
@@ -196,8 +188,6 @@
 
         说明：发送圆形UI数据
 
-        **是否允许name重映射：不允许**
-
         传入参数数据：
 
 
@@ -215,8 +205,6 @@
     5. `/judge/send/ui/oval`
 
         说明：发送椭圆UI数据
-
-        **是否允许name重映射：不允许**
 
         传入参数数据：
 
@@ -236,8 +224,6 @@
     6. `/judge/send/ui/arc`
 
         说明：发送圆弧UI数据
-
-        **是否允许name重映射：不允许**
 
         传入参数数据：
 
@@ -260,8 +246,6 @@
 
         说明：发送浮点数UI数据
 
-        **是否允许name重映射：不允许**
-
         传入参数数据：
 
 
@@ -281,8 +265,6 @@
     8. `/judge/send/ui/int`
 
         说明：发送整型UI数据
-
-        **是否允许name重映射：不允许**
 
         传入参数数据：
 

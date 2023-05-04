@@ -54,19 +54,15 @@ spi配置如下
 
 ## 模块接口
 
-> 注：name重映射只需要在配置表中配置名写入原本name字符串，在配置值处写入重映射后的name字符串，就完成了name的重映射。例如：`{"old-name", "new-name"},`
-
 - 广播：
 
     - 快速方式：无
   
     - 普通方式
   
-  	1. `/ins/euler-angle`
+  	1. `/<ins_name>/euler-angle`
 
-		说明：广播imu坐标系下3轴姿态角(单位：°)
-
-        **是否允许name重映射：允许**
+		说明：广播imu坐标系下3轴姿态角(单位：°)，`<ins_name>`为可以替换部分，例如：在配置文件中添加`{"ins", "up-ins"},`就可以将默认的`/ins/euler-angle`，替换成`/up-ins/euler-angle`
 
         广播数据：
 

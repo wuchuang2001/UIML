@@ -83,12 +83,20 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	PID_Init(&gimbal->imu.pid[0], Conf_GetPtr(dict, "motor-yaw/imu", ConfItem));
 	PID_Init(&gimbal->imu.pid[1], Conf_GetPtr(dict, "motor-pitch/imu", ConfItem));
 	//广播、远程函数name重映射
-	gimbal->imuEulerAngleName = Conf_GetPtr(dict, "/ins/euler-angle", char);
-	gimbal->imuEulerAngleName = gimbal->imuEulerAngleName?gimbal->imuEulerAngleName:"/ins/euler-angle";
-	gimbal->settingName = Conf_GetPtr(dict, "/gimbal/setting", char);
-	gimbal->settingName = gimbal->settingName?gimbal->settingName:"/gimbal/setting";
-	gimbal->yawRelAngleName = Conf_GetPtr(dict, "/gimbal/yaw/relative-angle", char);
-	gimbal->yawRelAngleName = gimbal->yawRelAngleName?gimbal->yawRelAngleName:"/gimbal/yaw/relative-angle";
+	char* temp = Conf_GetPtr(dict, "gimbal", char);
+	temp = temp ? temp : "gimbal";
+	uint8_t len = strlen(temp);
+	gimbal->settingName = MOTOR_MALLOC_PORT(len + 9+ 1); //9为"/   /setting"的长度，1为'\0'的长度
+	sprintf(gimbal->settingName, "/%s/setting", temp);
+
+	gimbal->yawRelAngleName = MOTOR_MALLOC_PORT(len + 20+ 1); //20为"/   /yaw/relative-angle"的长度，1为'\0'的长度
+	sprintf(gimbal->yawRelAngleName, "/%s/yaw/relative-angle", temp);
+
+	temp = Conf_GetPtr(dict, "ins", char);
+	temp = temp ? temp : "ins";
+	len = strlen(temp);
+	gimbal->imuEulerAngleName = MOTOR_MALLOC_PORT(len + 13+ 1); //13为"/   /euler-angle"的长度，1为'\0'的长度
+	sprintf(gimbal->imuEulerAngleName, "/%s/euler-angle", temp);
 
 	//不在这里设置电机模式，因为在未设置好零点前，pid会驱使电机达到编码器的零点或者imu的初始化零点
 

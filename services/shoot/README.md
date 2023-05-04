@@ -72,7 +72,7 @@
 	{"trigger-motor", CF_DICT{
 		{"type", "M2006"},
 		{"id", IM_PTR(uint16_t, 6)},
-		{"name","triggerMotor"},
+		{"name","trigger-motor"},
 		{"can-x", IM_PTR(uint8_t, 1)},
 		{"angle-pid", CF_DICT{								//串级pid
 			{"inner", CF_DICT{								//内环pid参数设置
@@ -101,17 +101,13 @@
 
 ## 模块接口
 
-> 注：name重映射只需要在配置表中配置名写入原本name字符串，在配置值处写入重映射后的name字符串，就完成了name的重映射。例如：`{"old-name", "new-name"},`
-
 - 广播：无
 
 - 远程函数
   
-    1. `/shooter/setting`
+    1. `/<shooter_name>/setting`
 
-        说明：设置拨弹电机的一些属性
-
-        **是否允许name重映射：允许**
+        说明：设置拨弹电机的一些属性，`<shooter_name>`为可以替换部分，例如：在配置文件中添加`{"shooter", "up-shooter"},`就可以将默认的`/shooter/setting`，替换成`/up-shooter/setting`
 
         传入参数数据：
 
@@ -121,17 +117,15 @@
         | `trigger-angle` | `float` | × | 可选 | 设置拨一发弹丸旋转的角度(单位：°) |
         | `fric-enable`   | `bool`  | × | 可选 | 使能摩擦轮 |
     
-    2. `/shooter/mode`
+    2. `/<shooter_name>/mode`
 
-        说明：修改发射机构运行模式
+        说明：修改发射机构运行模式，`<shooter_name>`为可以替换部分，例如：在配置文件中添加`{"shooter", "up-shooter"},`就可以将默认的`/shooter/mode`，替换成`/up-shooter/mode`
 
 		`once`：单发弹丸 
 
 		`continue`：连发弹丸直到修改模式为idle才停止
 		
 		`idle`：停止发射弹丸
-
-        **是否允许name重映射：允许**
 
         传入参数数据：
 

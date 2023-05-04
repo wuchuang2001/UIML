@@ -128,12 +128,18 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
 	}
 	//软总线广播、远程函数name重映射
-	chassis->speedName = Conf_GetPtr(dict, "/chassis/speed", char);
-	chassis->speedName = chassis->speedName?chassis->speedName:"/chassis/speed";
-	chassis->accName = Conf_GetPtr(dict, "/chassis/acc", char);
-	chassis->accName = chassis->accName?chassis->accName:"/chassis/acc";
-	chassis->relAngleName = Conf_GetPtr(dict, "/chassis/relative-angle", char);
-	chassis->relAngleName = chassis->relAngleName?chassis->relAngleName:"/chassis/relative-angle";
+	char* temp = Conf_GetPtr(dict, "chassis", char);
+	temp = temp ? temp : "chassis";
+	uint8_t len = strlen(temp);
+	chassis->speedName = MOTOR_MALLOC_PORT(len + 7+ 1); //7为"/   /speed"的长度，1为'\0'的长度
+	sprintf(chassis->speedName, "/%s/speed", temp);
+	
+	chassis->accName = MOTOR_MALLOC_PORT(len + 5+ 1); //5为"/   /acc"的长度，1为'\0'的长度
+	sprintf(chassis->accName, "/%s/acc", temp);
+	
+	chassis->relAngleName = MOTOR_MALLOC_PORT(len + 16+ 1); //16为"/   /relative-angle"的长度，1为'\0'的长度
+	sprintf(chassis->relAngleName, "/%s/relative-angle", temp);
+	
 	//注册远程函数
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetSpeedCallback, chassis->speedName);
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetAccCallback, chassis->accName);

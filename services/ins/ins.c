@@ -93,8 +93,11 @@ void INS_Init(INS* ins, ConfItem* dict)
 	// ins->filter = Filter_Init(Conf_GetPtr(dict, "filter", ConfItem));
 	PID_Init(&ins->tmpPID, Conf_GetPtr(dict, "tmp-pid", ConfItem));
 
-	ins->eulerAngleName = Conf_GetPtr(dict,"/ins/euler-angle",char);
-	ins->eulerAngleName = ins->eulerAngleName?ins->eulerAngleName:"/ins/euler-angle";
+	char* temp = Conf_GetPtr(dict, "ins", char);
+	temp = temp ? temp : "ins";
+	uint8_t len = strlen(temp);
+	ins->eulerAngleName = MOTOR_MALLOC_PORT(len + 13+ 1); //13为"/   /euler-angle"的长度，1为'\0'的长度
+	sprintf(ins->eulerAngleName, "/%s/euler-angle", temp);
 
 	while(BMI088_AccelInit(ins->spiX) || BMI088_GyroInit(ins->spiX))
 	{

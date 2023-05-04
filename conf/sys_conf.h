@@ -243,7 +243,7 @@ ConfItem* systemConfig = CF_DICT{
 		{"trigger-motor", CF_DICT{
 			{"type", "M2006"},
 			{"id", IM_PTR(uint16_t, 6)},
-			{"name","triggerMotor"},
+			{"name","trigger-motor"},
 			{"can-x", IM_PTR(uint8_t, 1)},
 			{"angle-pid", CF_DICT{								//串级pid
 				{"inner", CF_DICT{								//内环pid参数设置

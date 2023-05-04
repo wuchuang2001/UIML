@@ -16,7 +16,7 @@
 - 系统广播
     - `/system/stop`：在监听到该广播后会设置该模块下所有电机进入急停模式
 - 其他模块
-    - `ins`模块：在惯导模式下需要提供`/ins/euler-angle`惯导计算出来的欧拉角
+    - `ins`模块：在惯导模式下需要提供`/<ins_name>/euler-angle`惯导计算出来的欧拉角，`<ins_name>`为可以替换部分，例如：在配置文件中添加`{"ins", "up-ins"},`就可以将默认的`/ins/euler-angle`，替换成`/up-ins/speed`
 
 ---
 
@@ -89,19 +89,15 @@
 
 ## 模块接口
 
-> 注：name重映射只需要在配置表中配置名写入原本name字符串，在配置值处写入重映射后的name字符串，就完成了name的重映射。例如：`{"old-name", "new-name"},`
-
 - 广播：
   
     - 快速方式：无
   
     - 普通方式
   
-  	1. `/gimbal/yaw/relative-angle`
+  	1. `/<gimbal_name>/yaw/relative-angle`
 
-		说明：广播云台yaw轴相对于机械零点的偏离角(单位：°，范围：0°-360°)
-
-        **是否允许name重映射：允许**
+		说明：广播云台yaw轴相对于机械零点的偏离角(单位：°，范围：0°-360°)，`<gimbal_name>`为可以替换部分，例如：在配置文件中添加`{"gimbal", "up-gimbal"},`就可以将默认的`/gimbal/yaw/relative-angle`，替换成`/up-gimbal/yaw/relative-angle`
 
         广播数据：
 
@@ -112,11 +108,9 @@
 
 - 远程函数
   
-    1. `/gimbal/setting`
+    1. `/<gimbal_name>/setting`
 
-        说明：设置云台yaw、pitch的角度
-
-        **是否允许name重映射：允许**
+        说明：设置云台yaw、pitch的角度，`<gimbal_name>`为可以替换部分，例如：在配置文件中添加`{"gimbal", "up-gimbal"},`就可以将默认的`/gimbal/setting`，替换成`/up-gimbal/setting`
 
         传入参数数据：
 
