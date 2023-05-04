@@ -19,7 +19,7 @@ typedef struct
 	float triggerAngle,targetTrigAngle; //拨弹一次角度及累计角度
 	uint16_t intervalTime; //连发间隔ms
 	uint8_t mode;
-	uint8_t taskInterval;
+	uint16_t taskInterval;
 
 	char* settingName;
 	char* changeModeName;
@@ -84,7 +84,7 @@ void Shooter_TaskCallback(void const * argument)
 void Shooter_Init(Shooter* shooter, ConfItem* dict)
 {
 	//任务间隔
-	shooter->taskInterval = Conf_GetValue(dict, "task-interval", uint8_t, 20);
+	shooter->taskInterval = Conf_GetValue(dict, "task-interval", uint16_t, 20);
 	//初始弹速
 	shooter->fricSpeed = Conf_GetValue(dict,"fric-speed",float,5450);
 	//拨弹轮拨出一发弹丸转角

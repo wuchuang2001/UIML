@@ -35,6 +35,30 @@
 
 ### 模块配置项
 
+1. 模块配置项
+    
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `cans`           | [>>](#can2) | 配置can信息  |
+    | `repeat-buffers` | [>>](#can3) | 配置循环帧  |
+
+2. <span id='can2'>`cans`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `hcan`   | (CAN_HandleTypeDef*)NULL | can句柄 |
+    | `number` | (uint8_t)0               | can控制器编号，就是canX的X |
+
+3. <span id='can3'>`repeat-buffers`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `can-x`    | (uint8_t)0     | 该循环帧与哪条can总线绑定 |
+    | `id`       | (uint16_t)0x00 | 该循环帧的id |
+    | `interval` | (uint16_t)100  | 该循环帧循环发送can帧的间隔时间(单位：ms) |
+
+#### 示例：
+
 ```c
 {"can", CF_DICT{
     //CAN控制器信息
@@ -143,6 +167,21 @@
     ![勾选exti](README-IMG/勾选exti.png)
 ### 模块配置项
 
+1. 模块配置项
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `extis` | [>>](#exti2) | 配置外部中断信息  |
+
+2. <span id='exti2'>`extis`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `gpio-x` | (GPIO_TypeDef*)NULL | 由哪个gpio触发外部中断，如：PA4触发则为GPIOA |
+    | `pin-x`  | (uint8_t)0          | 由哪个gpio触发外部中断，如：PA4触发则为4 |
+
+#### 示例：
+
 ```c
 {"exti",CF_DICT{
 	{"extis",CF_DICT{
@@ -203,6 +242,31 @@
     ![勾选spi](README-IMG/勾选spi.png)
 
 ### 模块配置项
+
+1. 模块配置项
+    
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `spis` | [>>](#spi2) | 配置spi信息  |
+
+2. <span id='spi2'>`spis`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `hspi`          | (SPI_HandleTypeDef*)NULL | spi句柄 |
+    | `number`        | (uint8_t)0               | spiX的X |
+    | `max-recv-size` | (uint8_t)1               | spi接收缓存区大小 |
+    | `cs`            | [>>](#spi3)              | 配置spi片选信息 |
+
+3. <span id='spi3'>`cs`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `gpio` | (GPIO_TypeDef*)NULL | 片选的gpio |
+    | `pin`  | (uint8_t)0          | 片选的gpio |
+    | `name` | (char*)NULL         | 片选名，在调用远程函数时使用，用于选择与哪一个从机通信 |
+
+#### 示例：
 
 ```c
 {"spi",CF_DICT{
@@ -300,6 +364,22 @@
 
 ### 模块配置项
 
+1. 模块配置项
+    
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `tims` | [>>](#tim2) | 配置tim信息  |
+
+2. <span id='tim2'>`tims`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `htim`   | (TIM_HandleTypeDef*)NULL | tim句柄 |
+    | `number` | (uint8_t)0               | timX的X |
+    | `mode`   | (char*)NULL              | 使用定时器什么功能，目前仅支持`"encode"`、`pwm` |
+
+#### 示例：
+
 ```c
 {"tim",CF_DICT{
 	{"tims",CF_DICT{
@@ -373,24 +453,40 @@
 
 ### 模块配置项
 
+1. 模块配置项
+    
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `uarts` | [>>](#uart2) | 配置串口信息  |
+
+2. <span id='uart2'>`uarts`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `huart`         | (UART_HandleTypeDef*)NULL | 串口句柄 |
+    | `number`        | (uint8_t)0                | uartX的X |
+    | `max-recv-size` | (uint16_t)1               | 串口缓存区 |
+
+#### 示例：
+
 ```c
 {"uart",CF_DICT{
 	{"uarts",CF_DICT{
 		{"0",CF_DICT{ //相当于数组下标，在一个配置名下如果有多个配置项的话，需要按顺序依次顺序输入
 			{"huart",&huart1},
-			{"uart-x",IM_PTR(uint8_t,1)},
+			{"number",IM_PTR(uint8_t,1)},
 			{"max-recv-size",IM_PTR(uint16_t,100)},
 			CF_DICT_END
 		}},
 		{"1",CF_DICT{
 			{"huart",&huart3},
-			{"uart-x",IM_PTR(uint8_t,3)},
+			{"number",IM_PTR(uint8_t,3)},
 			{"max-recv-size",IM_PTR(uint16_t,18)},
 			CF_DICT_END
 		}},
 		{"2",CF_DICT{
 			{"huart",&huart6},
-			{"uart-x",IM_PTR(uint8_t,6)},
+			{"number",IM_PTR(uint8_t,6)},
 			{"max-recv-size",IM_PTR(uint16_t,300)},
 			CF_DICT_END
 		}},

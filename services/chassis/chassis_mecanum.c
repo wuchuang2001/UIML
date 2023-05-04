@@ -36,7 +36,7 @@ typedef struct _Chassis
 	
 	float relativeAngle; //与底盘的偏离角，单位度
 	
-	uint8_t taskInterval;
+	uint16_t taskInterval;
 
 	char* speedName;
 	char* accName;
@@ -101,7 +101,7 @@ void Chassis_TaskCallback(void const * argument)
 void Chassis_Init(Chassis* chassis, ConfItem* dict)
 {
 	//任务间隔
-	chassis->taskInterval = Conf_GetValue(dict, "task-interval", uint8_t, 2);
+	chassis->taskInterval = Conf_GetValue(dict, "task-interval", uint16_t, 2);
 	//底盘尺寸信息（用于解算轮速）
 	chassis->info.wheelbase = Conf_GetValue(dict, "info/wheelbase", float, 0);
 	chassis->info.wheeltrack = Conf_GetValue(dict, "info/wheeltrack", float, 0);

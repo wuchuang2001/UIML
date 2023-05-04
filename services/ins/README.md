@@ -30,9 +30,20 @@
   
    ![spi配置](README-IMG/bmi088的spi配置.png)
 	
-
-
 ## 模块配置项
+
+1. 模块配置项
+    
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `task-interval`      | (uint16_t)2 | 任务执行间隔  |
+	| `spi-x`              | (uint8_t)0  | imu外设所在spi |
+	| `target-temperature` | (float)40   | imu目标温度  |
+	| `tim-x`              | (uint8_t)10 | 温控pwm所在tim |
+	| `channel-x`          | (uint8_t)1  | 温控pwm所在tim通道 |
+	| `tmp-pid`            | [>>](../../tools/controller/README.md) | 温控pid |
+
+#### 示例：
 
 ```c
 {"ins",CF_DICT{

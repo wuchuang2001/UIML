@@ -23,7 +23,7 @@ typedef struct _Gimbal
 		PID pid[2];
 	}imu;
 	float angle[2];	//云台角度
-	uint8_t taskInterval;	
+	uint16_t taskInterval;	
 	//软总线广播、远程函数name
 	char* yawRelAngleName;	
 	char* imuEulerAngleName;
@@ -70,7 +70,7 @@ void Gimbal_TaskCallback(void const * argument)
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 {
 	//任务间隔
-	gimbal->taskInterval = Conf_GetValue(dict, "task-interval", uint8_t, 2);
+	gimbal->taskInterval = Conf_GetValue(dict, "task-interval", uint16_t, 2);
 
 	//云台零点
 	gimbal->zeroAngle[0] = Conf_GetValue(dict, "zero-yaw", uint16_t, 0);

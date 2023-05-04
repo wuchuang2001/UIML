@@ -27,6 +27,16 @@
 
 ## 模块配置项
 
+1. 模块配置项
+    
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `task-interval`       | (uint16_t)150 | 任务执行间隔  |
+	| `uart-x`              | (uint8_t)0    | 裁判系统对应串口号 |
+	| `max-tx-queue-length` | (uint16_t)20  | 发送队列长度  |
+
+#### 示例：
+
 ```c
 {"judge",CF_DICT{
     {"max-tx-queue-length",IM_PTR(uint16_t,20)},

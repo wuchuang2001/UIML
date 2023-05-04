@@ -55,88 +55,121 @@
 
 ## 模块配置项
 
+1. 模块配置项
+    
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `task-interval` | (uint16_t)2                        | 任务执行间隔  |
+	| `info`          | [>>](#chassis2)                   | 底盘基础配置信息  |
+	| `move`          | [>>](#chassis3)                   | 底盘移动配置信息  |
+	| `motor-fl`      | [>>](../../tools/motor/README.md) | 左前电机配置信息  |
+	| `motor-fr`      | [>>](../../tools/motor/README.md) | 右前电机配置信息  |
+	| `motor-bl`      | [>>](../../tools/motor/README.md) | 左后电机配置信息  |
+	| `motor-br`      | [>>](../../tools/motor/README.md) | 右后电机配置信息  |
+
+2. <span id='chassis2'>`info`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `wheelbase`    | (float)0 | 底盘轴距 |
+    | `wheeltrack`   | (float)0    | 底盘轮距 |
+    | `wheel-radius` | (float)76    | 底盘轮半径 |
+	| `offset-x`     | (float)0    | 底盘旋转中心x方向偏移 |
+	| `offset-y`     | (float)0    | 底盘旋转中心y方向偏移 |
+
+3. <span id='chassis3'>`move`配置项</span>
+
+    | 配置名 | (数值类型)默认值 | 说明 |
+    | :---: | :---: | :---: |
+    | `max-vx` | (float)2000 | x方向最大速度(单位：mm/s) |
+    | `max-vy` | (float)2000 | y方向最大速度(单位：mm/s) |
+    | `max-vw` | (float)180  | 旋转最大角速度(单位：°/s) |
+	| `x-acc`  | (float)1000 | x方向加速度(单位：mm/s²) |
+	| `y-acc`  | (float)1000 | y方向加速度(单位：mm/s²) |
+
+#### 示例：
+
 ```c
 {"chassis", CF_DICT{
-		//任务循环周期
-		{"taskInterval", IM_PTR(uint8_t, 2)},
-		//底盘尺寸信息
-		{"info", CF_DICT{
-			{"wheelbase", IM_PTR(float, 100)},
-			{"wheeltrack", IM_PTR(float, 100)},
-			{"wheel-radius", IM_PTR(float, 76)},
-			{"offset-x", IM_PTR(float, 0)},
-			{"offset-y", IM_PTR(float, 0)},
-			CF_DICT_END
-		}},
-		//底盘移动速度/加速度配置
-		{"move", CF_DICT{
-			{"max-vx", IM_PTR(float, 2000)},
-			{"max-vy", IM_PTR(float, 2000)},
-			{"max-vw", IM_PTR(float, 2)},
-			{"x-acc", IM_PTR(float, 1000)},
-			{"y-acc", IM_PTR(float, 1000)},
-			CF_DICT_END
-		}},
-		//四个电机配置
-		{"motor-fl", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 1)},
-			{"can-x", IM_PTR(uint8_t, 1)},
-//			{"reduction-ratio", IM_PTR(float, 1)},   //若使用改装减速箱或者拆掉减速箱的电机则修改此参数，若使用原装电机则无需配置此参数
-			{"speed-pid", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
-				{"d", IM_PTR(float, 0)},
-				{"max-i", IM_PTR(float, 10000)},
-				{"max-out", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
-			CF_DICT_END
-		}},
-		{"motor-fr", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 2)},
-			{"can-x", IM_PTR(uint8_t, 1)},
-			{"speed-pid", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
-				{"d", IM_PTR(float, 0)},
-				{"max-i", IM_PTR(float, 10000)},
-				{"max-out", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
-			CF_DICT_END
-		}},
-		{"motor-bl", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 3)},
-			{"can-x", IM_PTR(uint8_t, 1)},
-			{"speed-pid", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
-				{"d", IM_PTR(float, 0)},
-				{"max-i", IM_PTR(float, 10000)},
-				{"max-out", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
-			CF_DICT_END
-		}},
-		{"motor-br", CF_DICT{
-			{"type", "M3508"},
-			{"id", IM_PTR(uint16_t, 4)},
-			{"can-x", IM_PTR(uint8_t, 1)},
-			{"speed-pid", CF_DICT{
-				{"p", IM_PTR(float, 10)},
-				{"i", IM_PTR(float, 1)},
-				{"d", IM_PTR(float, 0)},
-				{"max-i", IM_PTR(float, 10000)},
-				{"max-out", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
+	//任务循环周期
+	{"task-interval", IM_PTR(uint16_t, 2)},
+	//底盘尺寸信息
+	{"info", CF_DICT{
+		{"wheelbase", IM_PTR(float, 100)},
+		{"wheeltrack", IM_PTR(float, 100)},
+		{"wheel-radius", IM_PTR(float, 76)},
+		{"offset-x", IM_PTR(float, 0)},
+		{"offset-y", IM_PTR(float, 0)},
+		CF_DICT_END
+	}},
+	//底盘移动速度/加速度配置
+	{"move", CF_DICT{
+		{"max-vx", IM_PTR(float, 2000)},
+		{"max-vy", IM_PTR(float, 2000)},
+		{"max-vw", IM_PTR(float, 2)},
+		{"x-acc", IM_PTR(float, 1000)},
+		{"y-acc", IM_PTR(float, 1000)},
+		CF_DICT_END
+	}},
+	//四个电机配置
+	{"motor-fl", CF_DICT{
+		{"type", "M3508"},
+		{"id", IM_PTR(uint16_t, 1)},
+		{"can-x", IM_PTR(uint8_t, 1)}
+		{"speed-pid", CF_DICT{
+			{"p", IM_PTR(float, 10)},
+			{"i", IM_PTR(float, 1)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 10000)},
+			{"max-out", IM_PTR(float, 20000)},
 			CF_DICT_END
 		}},
 		CF_DICT_END
 	}},
+	{"motor-fr", CF_DICT{
+		{"type", "M3508"},
+		{"id", IM_PTR(uint16_t, 2)},
+		{"can-x", IM_PTR(uint8_t, 1)},
+		{"speed-pid", CF_DICT{
+			{"p", IM_PTR(float, 10)},
+			{"i", IM_PTR(float, 1)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 10000)},
+			{"max-out", IM_PTR(float, 20000)},
+			CF_DICT_END
+		}},
+		CF_DICT_END
+	}},
+	{"motor-bl", CF_DICT{
+		{"type", "M3508"},
+		{"id", IM_PTR(uint16_t, 3)},
+		{"can-x", IM_PTR(uint8_t, 1)},
+		{"speed-pid", CF_DICT{
+			{"p", IM_PTR(float, 10)},
+			{"i", IM_PTR(float, 1)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 10000)},
+			{"max-out", IM_PTR(float, 20000)},
+			CF_DICT_END
+		}},
+		CF_DICT_END
+	}},
+	{"motor-br", CF_DICT{
+		{"type", "M3508"},
+		{"id", IM_PTR(uint16_t, 4)},
+		{"can-x", IM_PTR(uint8_t, 1)},
+		{"speed-pid", CF_DICT{
+			{"p", IM_PTR(float, 10)},
+			{"i", IM_PTR(float, 1)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 10000)},
+			{"max-out", IM_PTR(float, 20000)},
+			CF_DICT_END
+		}},
+		CF_DICT_END
+	}},
+	CF_DICT_END
+}},
 ```
 
 ## 软总线接口

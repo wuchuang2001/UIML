@@ -85,7 +85,7 @@ void INS_TaskCallback(void const * argument)
 void INS_Init(INS* ins, ConfItem* dict)
 {
 	ins->spiX = Conf_GetValue(dict, "spi-x", uint8_t, 0);
-	ins->targetTmp = Conf_GetValue(dict, "target-temperature", uint8_t, 40);
+	ins->targetTmp = Conf_GetValue(dict, "target-temperature", float, 40);
 	ins->timX = Conf_GetValue(dict,"tim-x",uint8_t,10);
 	ins->channelX = Conf_GetValue(dict,"channel-x",uint8_t,1);
 	ins->taskInterval = Conf_GetValue(dict,"task-interval",uint16_t,10);

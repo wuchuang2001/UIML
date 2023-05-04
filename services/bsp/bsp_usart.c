@@ -117,7 +117,7 @@ void BSP_UART_Init(ConfItem* dict)
 //初始化uart信息
 void BSP_UART_InitInfo(UARTInfo* info, ConfItem* dict)
 {
-	uint8_t number = Conf_GetValue(dict, "uart-x", uint8_t, 0);
+	uint8_t number = Conf_GetValue(dict, "number", uint8_t, 0);
 	info[number-1].huart = Conf_GetPtr(dict, "huart", UART_HandleTypeDef);
 	info[number-1].number = number;
 	info[number-1].recvBuffer.maxBufSize = Conf_GetValue(dict, "max-recv-size", uint16_t, 1);

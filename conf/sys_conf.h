@@ -71,7 +71,7 @@ ConfItem* systemConfig = CF_DICT{
 	//底盘服务配置
 	{"chassis", CF_DICT{
 		//任务循环周期
-		{"task-interval", IM_PTR(uint8_t, 2)},
+		{"task-interval", IM_PTR(uint16_t, 2)},
 		//底盘尺寸信息
 		{"info", CF_DICT{
 			{"wheelbase", IM_PTR(float, 100)},
@@ -155,7 +155,7 @@ ConfItem* systemConfig = CF_DICT{
 		{"zero-yaw",IM_PTR(uint16_t,4010)},
 		{"zero-pitch",IM_PTR(uint16_t,5300)},
 		//任务循环周期
-		{"task-interval", IM_PTR(uint8_t, 10)},
+		{"task-interval", IM_PTR(uint16_t, 10)},
 		//云台电机配置
 		{"motor-yaw", CF_DICT{
 			{"type", "M6020"},
@@ -206,7 +206,7 @@ ConfItem* systemConfig = CF_DICT{
 	//发射服务配置
 	{"shooter", CF_DICT{
 		//任务循环周期
-		{"task-interval", IM_PTR(uint8_t, 10)},
+		{"task-interval", IM_PTR(uint16_t, 10)},
 		//拨一发弹丸的角度
 		{"trigger-angle",IM_PTR(float,45)},
 		//发射机构电机配置
@@ -331,13 +331,13 @@ ConfItem* systemConfig = CF_DICT{
 		{"uarts",CF_DICT{
 			{"0",CF_DICT{
 				{"huart",&huart3},
-				{"uart-x",IM_PTR(uint8_t,3)},
+				{"number",IM_PTR(uint8_t,3)},
 				{"max-recv-size",IM_PTR(uint16_t,18)},
 				CF_DICT_END
 			}},
 			{"1",CF_DICT{
 				{"huart",&huart6},
-				{"uart-x",IM_PTR(uint8_t,6)},
+				{"number",IM_PTR(uint8_t,6)},
 				{"max-recv-size",IM_PTR(uint16_t,300)},
 				CF_DICT_END
 			}},
