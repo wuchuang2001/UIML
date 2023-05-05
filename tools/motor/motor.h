@@ -3,10 +3,6 @@
 #include "config.h"
 #include "cmsis_os.h"
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
 #define MOTOR_MALLOC_PORT(len) pvPortMalloc(len)
 #define MOTOR_FREE_PORT(ptr) vPortFree(ptr)
 //ģʽ

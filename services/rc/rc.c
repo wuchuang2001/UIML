@@ -1,7 +1,6 @@
 #include "config.h"
 #include "softbus.h"
 #include "cmsis_os.h"
-#include "main.h"
 
 #define KEY_NUM 18
 //X-MACRO
@@ -175,7 +174,7 @@ void RC_PublishData(RC *rc)
 void RC_UpdateKeys(RC* rc)
 {
 	static uint32_t lastUpdateTime;
-	uint32_t presentTime=HAL_GetTick();//获取系统时间戳
+	uint32_t presentTime=osKernelSysTick();//获取系统时间戳
 	
 	//检查组合键
 	char* combineKey="none";

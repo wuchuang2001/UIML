@@ -7,14 +7,17 @@
 
 ## 模块依赖项
 
-1. 文件依赖
+### 模块依赖
 
-    - 本项目文件
-      	- `softbus.c、h`、`config.c/h`、`sys_conf.h`、`motor.c/h`、`pid.h`
-  	- 标准库文件
-    	- `stdint.h`、`stdlib.h`、`string.h`
-    - hal库文件 
-        - `cmsis_os.h`
+- 服务类模块
+	- [can模块](../../../services/bsp/README.md)（必选）
+- 工具类模块
+	- [PID模块](../../tools/controller/README.md)（必选）
+
+### 文件依赖
+
+- 本模块文件
+	- `motor.c/h`（必选）
 
 ## 模块配置项
 
@@ -25,7 +28,7 @@
     | `type`            | `char*` | NULL | 电机类型，类型有：[>>>](../README.md/#模块配置项) |
     | `id`              | `uint16_t` | 0 | 电调id(电调灯闪几下就是几) |
 	| `can-x`           | `uint16_t` | 0 | 挂载在哪条can总线上 |
-	| `name`            | `char*` | `"motor"` | 如需要订阅电机堵转广播，需要配置此信息 |
+	| `name`            | `char*` | `"motor"` | 电机模块名称，需要订阅电机堵转广播时配置 |
 	| `reduction-ratio` | `float` | 默认原装电机减速比 | 电机减速比，使用原装电机则无需配置此参数 |
 	| `speed-pid`       | `CF_DICT`  | / | 速度单级pid[>>>](../../controller/README.md/#模块配置项) |
 	| `angle-pid`       | `CF_DICT`  | / | 角度串级pid[>>>](#motor2) |
@@ -37,7 +40,7 @@
     | `inner` | `CF_DICT`  | / | 内环pid[>>>](../../controller/README.md/#模块配置项) |
     | `outer` | `CF_DICT`  | / | 外环pid[>>>](../../controller/README.md/#模块配置项) |
 
-### 示例：
+### 配置示例：
 
 ```c
 {"motor", CF_DICT{

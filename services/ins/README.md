@@ -10,17 +10,22 @@
 
 ## 模块依赖项
 
-1. 文件依赖
-    - 本项目文件
-      	- `softbus.c/h`、`config.c/h`、`sys_conf.h`、`bmi088_driver.c/h`、`AHRS_MiddleWare.c/h`、`AHRS.lib/h`、`pid.c/h`、`filter.c/h`
-    - 标准库文件
-      	- `stdint.h`、`stdbool.h`、`stdlib.h`
-    - hal库文件 
-        - `cmsis_os.h`
+### 模块依赖
 
----
+- 服务类模块
+	- [定时器模块](../bsp/README.md)（可选）
+- 工具类模块
+	- [滤波器模块](../../tools/first_order_filter/README.md)（可选）
+	- [PID模块](../../tools/controller/README.md)（可选）
 
-> 注：下面远程函数所写的数据类型为指针的项仅强调该项传递的应该是数组，实际传递的参数只需数组名即可，不需要传递数组名的地址。广播也是如此，所写的数据类型若为指针的仅强调该项传递的应该是数组，获取该项的值是仅需要强制类型转换成相应的指针即可，无需额外解引用
+### 文件依赖
+
+- 本模块文件
+	- `ins.c`（必选）
+- 硬件驱动文件
+	- `bmi088_driver.c/h`（必选）、`AHRS_MiddleWare.c/h`（必选）、`AHRS.lib/h`（必选）
+- 底层库文件 
+	- `cmsis_os.h`（必选）
 
 ---
 
@@ -37,14 +42,14 @@
     | 配置名 | 数值类型 | 默认值 | 说明 |
     | :---: | :---: | :---: | :---: |
     | `task-interval`      | `uint16_t` | 2 | 任务执行间隔  |
-	| `name`               | `char*`   | `"ins"` | 如果需要重命名模块则配置该项  |
+	| `name`               | `char*`   | `"ins"` | 本服务的运行时名称  |
 	| `spi-x`              | `uint8_t` | 0  | imu外设所在spi |
 	| `target-temperature` | `float`   | 40 | imu目标温度  |
 	| `tim-x`              | `uint8_t` | 10 | 温控pwm所在tim |
 	| `channel-x`          | `uint8_t` | 1  | 温控pwm所在tim通道 |
 	| `tmp-pid`            | `CF_DICT` | /  | 温控pid[>>>](../../tools/controller/README.md/#模块配置项) |
 
-#### 示例：
+### 配置示例：
 
 ```c
 {"ins",CF_DICT{
@@ -65,23 +70,23 @@
 
 ## 软总线接口
 
-- 广播：
+> 注：下述广播和远程函数名称中`<ins_name>`代表服务配置表中`name`配置项的值
 
-    - 快速方式：无
+### 广播接口
   
-    - 普通方式
-  
-  	1. `/<ins_name>/euler-angle`
+- **广播imu坐标系下3轴欧拉角**：`/<ins_name>/euler-angle`
 
-		说明：广播imu坐标系下3轴姿态角(单位：°)，`<ins_name>`为可以替换部分，例如：在配置文件中添加`{"name", "up-ins"},`就可以将默认的`/ins/euler-angle`，替换成`/up-ins/euler-angle`
+	- **广播类型**：普通方式（映射表数据帧）
+    
+    - **数据帧格式**
 
-        广播数据：
+    | 数据字段名 | 数据类型 | 说明 |
+    | :---: | :---: | :---: |
+    | `yaw`   | `float` | imu坐标系的yaw旋转角度(单位：°) |
+	| `pitch` | `float` | imu坐标系的pitch旋转角度(单位：°) |
+	| `roll`  | `float` | imu坐标系的roll旋转角度(单位：°) |
 
-        | 数据字段名 | 数据类型 | 说明 |
-        | :---: | :---: | :---: |
-        | `yaw`   | `float` | imu坐标系的yaw旋转角度 |
-		| `pitch` | `float` | imu坐标系的pitch旋转角度 |
-		| `roll`  | `float` | imu坐标系的roll旋转角度 |
+### 远程函数接口
 
-- 远程函数：无
+本模块暂无广播接口
   

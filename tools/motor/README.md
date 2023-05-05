@@ -14,14 +14,12 @@
 
 ## 模块依赖项
 
-1. 文件依赖
+### 文件依赖
 
-    - 本项目文件
-      	- `config.c/h`、`sys_conf.h`
-  	- 标准库文件
-    	- `stdint.h`、`stdlib.h`、`string.h`
-    - hal库文件 
-        - `cmsis_os.h`
+- 本模块文件
+	- `motor.c/h`（必选）、子类文件（可选）
+- 底层库文件 
+	- `cmsis_os.h`（必选）
 
 ## 准备工作
 1. 将`motor.c/h`及其需要的子类文件添加至项目

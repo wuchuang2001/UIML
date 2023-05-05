@@ -3,8 +3,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
-
 #ifndef LIMIT
 #define LIMIT(x,min,max) (x)=(((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
 #endif
