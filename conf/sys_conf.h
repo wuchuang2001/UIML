@@ -1,7 +1,15 @@
+/*
+	sys_conf.h
+	系统配置文件
+*/
+
 #ifndef _SYSCONF_H_
 #define _SYSCONF_H_
 
 #include "config.h"
+
+/****************** 外设配置 ******************/
+//可使用Configuration Wizard配置
 
 //<<< Use Configuration Wizard in Context Menu >>>
 //<h>BSP Config
@@ -38,7 +46,9 @@
 #endif
 // <<< end of configuration section >>>
 
-//服务配置列表，每项格式(服务名,服务任务函数,任务优先级,任务栈大小)
+/****************** 服务列表配置 (X-MACRO) ******************/
+
+//每项格式(服务名,服务任务函数,任务优先级,任务栈大小)
 #define SERVICE_LIST \
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,128) \
@@ -51,13 +61,16 @@
 	SERVICE(rc, RC_TaskCallback, osPriorityNormal,256)\
 	SERVICE(judge, Judge_TaskCallback, osPriorityNormal,128) \
 	SERVICE(sys, SYS_CTRL_TaskCallback, osPriorityNormal,256)
-	
-//	SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) 
+//SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) 
 
-	
-//各服务配置项
+
+/****************** 各服务配置表 ******************/
+
 ConfItem* systemConfig = CF_DICT{
+	
+	//用户逻辑服务配置
 	{"sys",CF_DICT{
+		//底盘跟随PID配置
 		{"rotate-pid",CF_DICT{
 			{"p", IM_PTR(float, 1.5)},
 			{"i", IM_PTR(float, 0)},
@@ -68,6 +81,7 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
+	
 	//底盘服务配置
 	{"chassis", CF_DICT{
 		//任务循环周期
@@ -90,7 +104,7 @@ ConfItem* systemConfig = CF_DICT{
 			{"y-acc", IM_PTR(float, 1000)},
 			CF_DICT_END
 		}},
-		//四个电机配置
+		//左前电机配置
 		{"motor-fl", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 1)},
@@ -105,6 +119,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},
+		//右前电机配置
 		{"motor-fr", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 2)},
@@ -119,6 +134,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},
+		//左后电机配置
 		{"motor-bl", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 3)},
@@ -133,6 +149,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},
+		//右后电机配置
 		{"motor-br", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 4)},
@@ -149,6 +166,7 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
+	
 	//云台服务配置
 	{"gimbal", CF_DICT{
 		//yaw pitch 机械零点
@@ -161,7 +179,8 @@ ConfItem* systemConfig = CF_DICT{
 			{"type", "M6020"},
 			{"id", IM_PTR(uint16_t, 1)},
 			{"can-x", IM_PTR(uint8_t, 1)},
-			{"imu",CF_DICT{								//陀螺仪pid参数设置
+			//陀螺仪pid参数设置，作为角度外环
+			{"imu",CF_DICT{
 				{"p", IM_PTR(float, -90)},
 				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
@@ -169,7 +188,8 @@ ConfItem* systemConfig = CF_DICT{
 				{"max-out", IM_PTR(float, 1000)},
 				CF_DICT_END
 			}},
-			{"speed-pid", CF_DICT{						//陀螺仪做角度外环电机执行速度内环
+			//内环参数设置
+			{"speed-pid", CF_DICT{						
 				{"p", IM_PTR(float, 15)},
 				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
@@ -178,20 +198,22 @@ ConfItem* systemConfig = CF_DICT{
 				CF_DICT_END
 			}},
 			CF_DICT_END
-		}},			
+		}},	
 		{"motor-pitch", CF_DICT{
 			{"type", "M6020"},
 			{"id", IM_PTR(uint16_t, 4)},
 			{"can-x", IM_PTR(uint8_t, 2)},
-			{"imu",CF_DICT{								//陀螺仪pid参数设置
+			//陀螺仪pid参数设置，作为角度外环
+			{"imu",CF_DICT{
 				{"p", IM_PTR(float, 63)},
 				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
 				{"max-i", IM_PTR(float, 10000)},
 				{"max-out", IM_PTR(float, 20000)},
 				CF_DICT_END
-				}},
-			{"speed-pid", CF_DICT{						//陀螺仪做角度外环电机执行速度内环
+			}},
+			//内环参数设置
+			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 15)},
 				{"i", IM_PTR(float, 0)},
 				{"d", IM_PTR(float, 0)},
@@ -203,6 +225,7 @@ ConfItem* systemConfig = CF_DICT{
 		}},	
 		CF_DICT_END		
 	}},
+	
 	//发射服务配置
 	{"shooter", CF_DICT{
 		//任务循环周期
@@ -224,7 +247,7 @@ ConfItem* systemConfig = CF_DICT{
 				CF_DICT_END
 			}},
 			CF_DICT_END
-		}},		
+		}},	
 		{"fric-motor-right", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 1)},
@@ -245,8 +268,8 @@ ConfItem* systemConfig = CF_DICT{
 			{"id", IM_PTR(uint16_t, 6)},
 			{"name","trigger-motor"},
 			{"can-x", IM_PTR(uint8_t, 1)},
-			{"angle-pid", CF_DICT{								//串级pid
-				{"inner", CF_DICT{								//内环pid参数设置
+			{"angle-pid", CF_DICT{
+				{"inner", CF_DICT{
 					{"p", IM_PTR(float, 10)},
 					{"i", IM_PTR(float, 0)},
 					{"d", IM_PTR(float, 0)},
@@ -254,7 +277,7 @@ ConfItem* systemConfig = CF_DICT{
 					{"max-out", IM_PTR(float, 20000)},
 					CF_DICT_END
 				}},
-				{"outer", CF_DICT{								//外环pid参数设置
+				{"outer", CF_DICT{
 					{"p", IM_PTR(float, 0.3)},
 					{"i", IM_PTR(float, 0)},
 					{"d", IM_PTR(float, 0)},
@@ -268,6 +291,7 @@ ConfItem* systemConfig = CF_DICT{
 		}},	
 		CF_DICT_END		
 	}},
+	
 	//CAN服务配置
 	{"can", CF_DICT{
 		//CAN控制器信息
@@ -314,11 +338,13 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
+	
 	//遥控服务配置
 	{"rc",CF_DICT{
 		{"uart-x",IM_PTR(uint8_t, 3)},
 		CF_DICT_END
 	}},
+	
 	//裁判系统服务配置
 	{"judge",CF_DICT{
 		{"max-tx-queue-length",IM_PTR(uint16_t,20)},
@@ -326,6 +352,7 @@ ConfItem* systemConfig = CF_DICT{
 		{"uart-x",IM_PTR(uint8_t,6)},
 		CF_DICT_END
 	}},
+	
 	//串口服务配置
 	{"uart",CF_DICT{
 		{"uarts",CF_DICT{
@@ -345,10 +372,13 @@ ConfItem* systemConfig = CF_DICT{
 		}},	
 		CF_DICT_END
 	}},
+	
+	//惯导服务配置
 	{"ins",CF_DICT{
 		{"spi-x",IM_PTR(uint8_t,1)},
 		{"tim-x",IM_PTR(uint8_t,10)},
 		{"channel-x",IM_PTR(uint8_t,1)},
+		//温度控制PID配置
 		{"tmp-pid", CF_DICT{
 			{"p", IM_PTR(float, 0.15)},
 			{"i", IM_PTR(float, 0.01)},
@@ -359,6 +389,8 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
+	
+	//SPI驱动服务配置
 	{"spi",CF_DICT{
 		{"spis",CF_DICT{
 			{"0",CF_DICT{
@@ -386,6 +418,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 		CF_DICT_END
 	}},
+
 	//定时器服务配置
 	{"tim",CF_DICT{
 		{"tims",CF_DICT{
@@ -399,23 +432,25 @@ ConfItem* systemConfig = CF_DICT{
 		}},
 		CF_DICT_END
 	}},
-	//	//外部中断服务配置
-//	{"exti",CF_DICT{
-//		{"extis",CF_DICT{
-//			{"0",CF_DICT{
-//				{"gpio-x", GPIOA},
-//				{"pin-x",IM_PTR(uint8_t,0)},
-//				CF_DICT_END
-//			}},
-//			{"1",CF_DICT{
-//				{"gpio-x", GPIOA},
-//				{"pin-x",IM_PTR(uint8_t,4)},
-//				CF_DICT_END
-//			}},
-//			CF_DICT_END
-//		}},
-//		CF_DICT_END
-//	}},
+
+	//外部中断服务配置
+	// {"exti",CF_DICT{
+	// 	{"extis",CF_DICT{
+	// 		{"0",CF_DICT{
+	// 			{"gpio-x", GPIOA},
+	// 			{"pin-x",IM_PTR(uint8_t,0)},
+	// 			CF_DICT_END
+	// 		}},
+	// 		{"1",CF_DICT{
+	// 			{"gpio-x", GPIOA},
+	// 			{"pin-x",IM_PTR(uint8_t,4)},
+	// 			CF_DICT_END
+	// 		}},
+	// 		CF_DICT_END
+	// 	}},
+	// 	CF_DICT_END
+	// }},
+
 	CF_DICT_END
 };
 
