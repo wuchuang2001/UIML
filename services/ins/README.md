@@ -34,15 +34,15 @@
 
 1. 模块配置项
     
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `task-interval`      | (uint16_t)2 | 任务执行间隔  |
-	| `name`               | (char*)`"ins"` | 如果需要重命名模块则配置该项  |
-	| `spi-x`              | (uint8_t)0  | imu外设所在spi |
-	| `target-temperature` | (float)40   | imu目标温度  |
-	| `tim-x`              | (uint8_t)10 | 温控pwm所在tim |
-	| `channel-x`          | (uint8_t)1  | 温控pwm所在tim通道 |
-	| `tmp-pid`            | [>>](../../tools/controller/README.md/#模块配置项) | 温控pid |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `task-interval`      | `uint16_t` | 2 | 任务执行间隔  |
+	| `name`               | `char*`   | `"ins"` | 如果需要重命名模块则配置该项  |
+	| `spi-x`              | `uint8_t` | 0  | imu外设所在spi |
+	| `target-temperature` | `float`   | 40 | imu目标温度  |
+	| `tim-x`              | `uint8_t` | 10 | 温控pwm所在tim |
+	| `channel-x`          | `uint8_t` | 1  | 温控pwm所在tim通道 |
+	| `tmp-pid`            | `CF_DICT` | /  | 温控pid[>>>](../../tools/controller/README.md/#模块配置项) |
 
 #### 示例：
 

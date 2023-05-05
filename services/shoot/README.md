@@ -36,13 +36,13 @@
     
     | 配置名 | (数值类型)默认值 | 说明 |
     | :---: | :---: | :---: |
-    | `task-interval`    | (uint16_t)20                      | 任务执行间隔  |
-	| `name`             | (char*)`"shooter"`                | 如果需要重命名模块则配置该项  |
-	| `trigger-angle`    | (float)1/7.0*360                  | 拨一发弹丸的角度 |
-	| `fric-speed`       | (float)5450                       | 初始弹速 |
-	| `fric-motor-left`  | [>>](../../tools/motor/README.md/#模块配置项) | 左摩擦轮电机配置信息  |
-	| `fric-motor-right` | [>>](../../tools/motor/README.md/#模块配置项) | 右摩擦轮电机配置信息  |
-	| `trigger-motor`    | [>>](../../tools/motor/README.md/#模块配置项) | 拨弹电机配置信息  |
+    | `task-interval`    | `uint16_t` | 20 | 任务执行间隔  |
+	| `name`             | `char*`   | `"shooter"` | 如果需要重命名模块则配置该项  |
+	| `trigger-angle`    | `float`   | 1/7.0*360 | 拨一发弹丸的角度 |
+	| `fric-speed`       | `float`   | 5450      | 初始弹速 |
+	| `fric-motor-left`  | `CF_DICT` | / | 左摩擦轮电机配置信息[>>>](../../tools/motor/README.md/#模块配置项)  |
+	| `fric-motor-right` | `CF_DICT` | / | 右摩擦轮电机配置信息[>>>](../../tools/motor/README.md/#模块配置项)  |
+	| `trigger-motor`    | `CF_DICT` | / | 拨弹电机配置信息[>>>](../../tools/motor/README.md/#模块配置项)  |
 
 #### 示例：
 

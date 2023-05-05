@@ -22,43 +22,43 @@
 
 1. 模块配置项
     
-    | 配置名 | (数值类型)默认值 | 说明 |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
     | :---: | :---: | :---: |
-    | `type`            | (char*)NULL   | 电机类型，类型有：[>>](../README.md/#模块配置项) |
-    | `max-encode`      | (float)48     | 倍频后编码器转一圈的最大值 |
-	| `reduction-ratio` | (float)19     | 电机减速比 |
-	| `pos-rotate-tim`  | [>>](#motor2) | 正转pwm配置信息 |
-	| `neg-rotate-tim`  | [>>](#motor3) | 反转pwm配置信息 |
-	| `encode-tim`      | [>>](#motor4) | 编码器配置信息 |
-	| `speed-pid`       | [>>](../../controller/README.md/#模块配置项) | 速度单级pid |
-	| `angle-pid`       | [>>](#motor5) | 角度串级pid |
+    | `type`            | `char*`    | NULL   | 电机类型，类型有：[>>>](../README.md/#模块配置项) |
+    | `max-encode`      | `float`    | 48     | 倍频后编码器转一圈的最大值 |
+	| `reduction-ratio` | `float`    | 19     | 电机减速比 |
+	| `pos-rotate-tim`  | `CF_DICT`  | / | 正转pwm配置信息[>>>](#motor2) |
+	| `neg-rotate-tim`  | `CF_DICT`  | / | 反转pwm配置信息[>>>](#motor3) |
+	| `encode-tim`      | `CF_DICT`  | / | 编码器配置信息[>>>](#motor4) |
+	| `speed-pid`       | `CF_DICT`  | / | 速度单级pid[>>>](../../controller/README.md/#模块配置项) |
+	| `angle-pid`       | `CF_DICT`  | / | 角度串级pid[>>>](#motor5) |
 
 2. <span id='motor2'/>`pos-rotate-tim`配置项
 
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `tim-x`     | (uint8_t)0 | 正转pwm使用的定时器几   |
-    | `channel-x` | (uint8_t)0 | 正转pwm使用的定时器通道 |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `tim-x`     | `uint8_t` | 0 | 正转pwm使用的定时器几   |
+    | `channel-x` | `uint8_t` | 0 | 正转pwm使用的定时器通道 |
 
 3. <span id='motor3'/>`neg-rotate-tim`配置项
 
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `tim-x`     | (uint8_t)0 | 反转pwm使用的定时器几   |
-    | `channel-x` | (uint8_t)0 | 反转pwm使用的定时器通道 |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `tim-x`     | `uint8_t` | 0 | 反转pwm使用的定时器几   |
+    | `channel-x` | `uint8_t` | 0 | 反转pwm使用的定时器通道 |
 
 4. <span id='motor4'/>`encode-tim`配置项
 
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `tim-x` | (uint8_t)0 | 编码器使用的定时器几 |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `tim-x` | `uint8_t` | 0 | 编码器使用的定时器几 |
 
 5. <span id='motor5'/>`angle-pid`配置项
 
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `inner` | [>>](../../controller/README.md/#模块配置项) | 内环pid |
-    | `outer` | [>>](../../controller/README.md/#模块配置项) | 外环pid |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `inner` | `CF_DICT`  | / | 内环pid[>>>](../../controller/README.md/#模块配置项) |
+    | `outer` | `CF_DICT`  | / | 外环pid[>>>](../../controller/README.md/#模块配置项) |
 
 	```c
 	{"dc-motor", CF_DICT{
@@ -113,14 +113,14 @@
 
 1. 模块配置项
     
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `type`      | (char*)NULL  | 电机类型，类型有：[>>](../README.md/#模块配置项) |
-    | `tim-x`     | (uint8_t)0   | 舵机使用的定时器几 |
-	| `channel-x` | (uint8_t)0   | 舵机使用的定时器通道 |
-	| `max-angle` | (float)180   | 舵机最大转角 |
-	| `max-duty`  | (float)0.125 | 舵机最大转角对应的占空比 |
-	| `min-duty`  | (float)0.025 | 舵机0°对应的占空比 |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `type`      | `char*` | NULL  | 电机类型，类型有：[>>>](../README.md/#模块配置项) |
+    | `tim-x`     | `uint8_t` | 0   | 舵机使用的定时器几 |
+	| `channel-x` | `uint8_t` | 0   | 舵机使用的定时器通道 |
+	| `max-angle` | `float` | 180   | 舵机最大转角 |
+	| `max-duty`  | `float` | 0.125 | 舵机最大转角对应的占空比 |
+	| `min-duty`  | `float` | 0.025 | 舵机0°对应的占空比 |
 
 	```c
 	{"servo", CF_DICT{

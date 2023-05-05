@@ -20,22 +20,22 @@
 
 1. 模块配置项
     
-    | 配置名 | (数值类型)默认值 | 说明 |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
     | :---: | :---: | :---: |
-    | `type`            | (char*)NULL | 电机类型，类型有：[>>](../README.md/#模块配置项) |
-    | `id`              | (uint16_t)0 | 电调id(电调灯闪几下就是几) |
-	| `can-x`           | (uint16_t)0 | 挂载在哪条can总线上 |
-	| `name`            | (char*)"motor" | 如需要订阅电机堵转广播，需要配置此信息 |
-	| `reduction-ratio` | (float)默认原装电机减速比 | 电机减速比，使用原装电机则无需配置此参数 |
-	| `speed-pid`       | [>>](../../controller/README.md/#模块配置项) | 速度单级pid |
-	| `angle-pid`       | [>>](#motor2) | 角度串级pid |
+    | `type`            | `char*` | NULL | 电机类型，类型有：[>>>](../README.md/#模块配置项) |
+    | `id`              | `uint16_t` | 0 | 电调id(电调灯闪几下就是几) |
+	| `can-x`           | `uint16_t` | 0 | 挂载在哪条can总线上 |
+	| `name`            | `char*` | `"motor"` | 如需要订阅电机堵转广播，需要配置此信息 |
+	| `reduction-ratio` | `float` | 默认原装电机减速比 | 电机减速比，使用原装电机则无需配置此参数 |
+	| `speed-pid`       | `CF_DICT`  | / | 速度单级pid[>>>](../../controller/README.md/#模块配置项) |
+	| `angle-pid`       | `CF_DICT`  | / | 角度串级pid[>>>](#motor2) |
 
 2. <span id='motor2'/>`angle-pid`配置项
 
-    | 配置名 | (数值类型)默认值 | 说明 |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
     | :---: | :---: | :---: |
-    | `inner` | [>>](../../controller/README.md/#模块配置项) | 内环pid |
-    | `outer` | [>>](../../controller/README.md/#模块配置项) | 外环pid |
+    | `inner` | `CF_DICT`  | / | 内环pid[>>>](../../controller/README.md/#模块配置项) |
+    | `outer` | `CF_DICT`  | / | 外环pid[>>>](../../controller/README.md/#模块配置项) |
 
 ### 示例：
 

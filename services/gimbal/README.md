@@ -33,19 +33,19 @@
 
 1. 模块配置项
     
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `task-interval` | (uint16_t)2                       | 任务执行间隔  |
-	| `name`          | (char*)`"gimbal"`                 | 如果需要重命名模块则配置该项  |
-	| `ins-name`      | (char*)`"ins"`                    | 如果需要重命名惯导接收广播则配置该项  |
-	| `zero-yaw`      | (uint16_t)0                       | yaw轴零点(编码器值)  |
-	| `zero-pitch`    | (uint16_t)0                       | pitch轴零点(编码器值)  |
-	| `motor-yaw`     | [>>](../../tools/motor/README.md/#模块配置项) | yaw电机配置信息  |
-	| `motor-pitch`   | [>>](../../tools/motor/README.md/#模块配置项) | pitch电机配置信息  |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `task-interval` | `uint16_t` | 2 | 任务执行间隔  |
+	| `name`          | `char*`    | `"gimbal"`  | 如果需要重命名模块则配置该项  |
+	| `ins-name`      | `char*`    | `"ins"`     | 如果需要重命名惯导接收广播则配置该项  |
+	| `zero-yaw`      | `uint16_t` | 0 | yaw轴零点(编码器值)  |
+	| `zero-pitch`    | `uint16_t` | 0 | pitch轴零点(编码器值)  |
+	| `motor-yaw`     | `CF_DICT`  | / | yaw电机配置信息[>>>](../../tools/motor/README.md/#模块配置项)|
+	| `motor-pitch`   | `CF_DICT`  | / | pitch电机配置信息[>>>](../../tools/motor/README.md/#模块配置项)  |
 
 > 注：由于电机角度外环返回数据由惯导提供因此外环pid计算由云台模块完成，电机类只负责速度闭环
 
-> `motor-yaw/imu`，`motor-pitch/imu`两者配置项详见[>>](../../tools/controller/README.md/#模块配置项)
+> `motor-yaw/imu`，`motor-pitch/imu`两者配置项详见[>>>](../../tools/controller/README.md/#模块配置项)
 
 #### 示例：
 

@@ -57,36 +57,36 @@
 
 1. 模块配置项
     
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `task-interval` | (uint16_t)2                       | 任务执行间隔  |
-	| `name`          | (char*)`"chassis"`                | 如果需要重命名模块则配置该项  |
-	| `info`          | [>>](#chassis2)                   | 底盘基础配置信息  |
-	| `move`          | [>>](#chassis3)                   | 底盘移动配置信息  |
-	| `motor-fl`      | [>>](../../tools/motor/README.md/#模块配置项) | 左前电机配置信息  |
-	| `motor-fr`      | [>>](../../tools/motor/README.md/#模块配置项) | 右前电机配置信息  |
-	| `motor-bl`      | [>>](../../tools/motor/README.md/#模块配置项) | 左后电机配置信息  |
-	| `motor-br`      | [>>](../../tools/motor/README.md/#模块配置项) | 右后电机配置信息  |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `task-interval` | `uint16_t` | 2 | 任务执行间隔 |
+	| `name`          | `char*`    | `"chassis"` | 如果需要重命名模块则配置该项 |
+	| `info`          | `CF_DICT` | / | 底盘基础配置信息[>>>](#chassis2) |
+	| `move`          | `CF_DICT` | / | 底盘移动配置信息[>>>](#chassis3) |
+	| `motor-fl`      | `CF_DICT` | / | 左前电机配置信息[>>>](../../tools/motor/README.md/#模块配置项) |
+	| `motor-fr`      | `CF_DICT` | / | 右前电机配置信息[>>>](../../tools/motor/README.md/#模块配置项) |
+	| `motor-bl`      | `CF_DICT` | / | 左后电机配置信息[>>>](../../tools/motor/README.md/#模块配置项) |
+	| `motor-br`      | `CF_DICT` | / | 右后电机配置信息[>>>](../../tools/motor/README.md/#模块配置项) |
 
 2. <span id='chassis2'/>`info`配置项
 
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `wheelbase`    | (float)0 | 底盘轴距 |
-    | `wheeltrack`   | (float)0    | 底盘轮距 |
-    | `wheel-radius` | (float)76    | 底盘轮半径 |
-	| `offset-x`     | (float)0    | 底盘旋转中心x方向偏移 |
-	| `offset-y`     | (float)0    | 底盘旋转中心y方向偏移 |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `wheelbase`    | `float` | 0  | 底盘轴距 |
+    | `wheeltrack`   | `float` | 0  | 底盘轮距 |
+    | `wheel-radius` | `float` | 76 | 底盘轮半径 |
+	| `offset-x`     | `float` | 0  | 底盘旋转中心x方向偏移 |
+	| `offset-y`     | `float` | 0  | 底盘旋转中心y方向偏移 |
 
 3. <span id='chassis3'/>`move`配置项
 
-    | 配置名 | (数值类型)默认值 | 说明 |
-    | :---: | :---: | :---: |
-    | `max-vx` | (float)2000 | x方向最大速度(单位：mm/s) |
-    | `max-vy` | (float)2000 | y方向最大速度(单位：mm/s) |
-    | `max-vw` | (float)180  | 旋转最大角速度(单位：°/s) |
-	| `x-acc`  | (float)1000 | x方向加速度(单位：mm/s²) |
-	| `y-acc`  | (float)1000 | y方向加速度(单位：mm/s²) |
+    | 配置名 | 数值类型 | 默认值 | 说明 |
+    | :---: | :---: | :---: | :---: |
+    | `max-vx` | `float` | 2000 | x方向最大速度(单位：mm/s) |
+    | `max-vy` | `float` | 2000 | y方向最大速度(单位：mm/s) |
+    | `max-vw` | `float` | 180  | 旋转最大角速度(单位：°/s) |
+	| `x-acc`  | `float` | 1000 | x方向加速度(单位：mm/s²) |
+	| `y-acc`  | `float` | 1000 | y方向加速度(单位：mm/s²) |
 
 #### 示例：
 
