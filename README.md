@@ -1,6 +1,12 @@
 <div align=center>
 	<img src="README-IMG/uiml-icon.svg"/>
 	<p><i>“只改配置文件就能让各种机器人动起来？试试 UIML 吧！”</i></p>
+	<p>
+		<img src="https://img.shields.io/badge/version-1.0.0-red"/>
+		<img src="https://img.shields.io/badge/license-GPL3.0-red"/>
+		<img src="https://gitee.com/tarsgo-embedded/UIML/badge/star.svg"/>
+		<img src="https://gitee.com/tarsgo-embedded/UIML/badge/fork.svg"/>
+	</p>
 </div>
 
 ## 项目简介
@@ -67,7 +73,7 @@
 
 ---
 
-### Todo List
+## Todo List
 
 ![已完成进度](https://img.shields.io/badge/已完成-22/30-blue)
 
@@ -114,7 +120,7 @@
 
 ---
 
-### 参与贡献
+## 参与贡献
 
 1.  Fork 本仓库
 2.  提交代码
