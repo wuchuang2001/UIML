@@ -3,7 +3,6 @@
 #include "cmsis_os.h"
 
 #include "tim.h"
-#include <stdio.h>
 
 #ifndef LIMIT
 #define LIMIT(x,min,max) (x)=(((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
@@ -33,6 +32,18 @@ bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindDa
 bool BSP_TIM_GetEncodeCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 TIMService timService={0};
+
+void BSP_TIM_UpdateCallback(TIM_HandleTypeDef *htim)
+{
+	for(uint8_t num = 0;num<timService.timNum;num++)
+	{
+		if(htim == timService.timList[num].htim) //找到对应的TIM
+		{
+			TIMInfo* timInfo = &timService.timList[num];
+			Bus_FastBroadcastSend(timInfo->fastHandle,{""});
+		}
+	}
+}
 
 //TIM任务回调函数
 void BSP_TIM_TaskCallback(void const * argument)
@@ -80,6 +91,10 @@ void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict)
 {
 	info->htim = Conf_GetPtr(dict,"htim",TIM_HandleTypeDef);
 	info->number = Conf_GetValue(dict,"number",uint8_t,0);
+	
+	char name[17] = {0};
+	sprintf(name, "/tim%d/update", info->number);
+	info->fastHandle=Bus_CreateReceiverHandle(name);
 }
 
 //开启TIM硬件
@@ -98,21 +113,41 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 	}
 }
 
-
 //TIM设置占空比远程函数回调
 bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","duty"}))
+	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x"}))
 		return false;
 	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
 	uint8_t	channelX=*(uint8_t*)Bus_GetMapValue(frame,"channel-x");
-	float duty=*(float*)Bus_GetMapValue(frame,"duty");
-	LIMIT(duty,0,1);
+	float duty = 0;
+	uint32_t pwmValue=0;
+	uint32_t autoReload=0; 
+	if(Bus_IsMapKeyExist(frame, "duty"))
+	{
+		duty=*(float*)Bus_GetMapValue(frame,"duty");
+		LIMIT(duty,0,1);
+	}
+	else if(Bus_IsMapKeyExist(frame, "compare-value"))
+	{
+		pwmValue = *(uint32_t*)Bus_GetMapValue(frame,"compare-value");
+	}
+	else
+	{
+		return false;
+	}
+	if(Bus_IsMapKeyExist(frame, "auto-reload"))
+	{
+		autoReload=*(uint32_t*)Bus_GetMapValue(frame,"auto-reload");
+	}
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
 		if(timX==timService.timList[num].number) //找到对应的TIM
 		{
-			uint32_t pwmValue = duty * __HAL_TIM_GetAutoreload(timService.timList[num].htim);
+			if(!autoReload)
+				autoReload =  __HAL_TIM_GetAutoreload(timService.timList[num].htim);
+			if(!pwmValue)
+				pwmValue = duty * autoReload;
 			switch (channelX)
 			{
 			case 1:
