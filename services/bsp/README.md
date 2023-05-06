@@ -463,6 +463,8 @@
 1. 根据外设需求在CubeMX中配置，此处不详述操作细节
 2. 在`sys_conf.h`中使用[图形化配置](../../conf/README.md/#sys_confh语法)，勾选TIM
     ![勾选tim](README-IMG/勾选tim.png)
+3. 如需使用定时器中断，请在main函数前`extern void BSP_TIM_UpdateCallback(TIM_HandleTypeDef *htim);`，并在hal库定时器更新中断回调函数中添加`BSP_TIM_UpdateCallback(htim);`，如下图所示
+    ![添加自定义回调函数](README-IMG/添加自定义回调函数.png)
 
 ### 模块配置项
 
@@ -517,7 +519,13 @@
 
 #### 广播接口
 
-本模块暂无广播接口
+- **定时器更新事件**： `/<tim_>/update`
+
+    > 例如：若tim1发生了定时器更新中断，其广播名为`/tim1/update`
+    
+    - **广播类型**：快速方式（列表数据帧）
+    
+    - **数据帧格式**：无数据
     
 #### 远程函数接口
   
@@ -529,7 +537,9 @@
     | :---: | :---: | :---: | :---: | :---: |
     | `tim-x`     | `uint8_t` | × | 必须 | timX的X     |
     | `channel-x` | `uint8_t` | × | 必须 | 定时器的通道几 |
-    | `duty`      | `float`   | × | 必须 | PWM的占空比 **(范围0-1)**  |
+    | `duty`      | `float`   | × | 可选 | PWM的占空比 **(范围0-1)** (与比较值二选一传入)|
+    | `compare-value` | `uint32_t` | × | 可选 | PWM的比较值(与占空比二选一传入) |
+    | `auto-reload` | `uint32_t`   | × | 可选 | 设置自动重装载值(若不填则不变) |
     
 - **获取当前编码器值**：`/tim/encode`
 
@@ -653,7 +663,7 @@
 
 #### 远程函数接口
   
-- **使用阻塞方式进行spi通信**：`/uart/trans/block`
+- **使用阻塞方式发送数据**：`/uart/trans/block`
 
     参数格式如下
   

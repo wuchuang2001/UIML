@@ -111,6 +111,10 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 		HAL_TIM_PWM_Start(info->htim, TIM_CHANNEL_3);
 		HAL_TIM_PWM_Start(info->htim, TIM_CHANNEL_4);
 	}
+	else if(!strcmp(Conf_GetPtr(dict,"mode",char),"update-interrupted"))
+	{
+		HAL_TIM_Base_Start_IT(info->htim);
+	}
 }
 
 //TIM设置占空比远程函数回调
@@ -148,6 +152,8 @@ bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindDa
 				autoReload =  __HAL_TIM_GetAutoreload(timService.timList[num].htim);
 			if(!pwmValue)
 				pwmValue = duty * autoReload;
+			else if(pwmValue > autoReload)
+				pwmValue = autoReload;
 			switch (channelX)
 			{
 			case 1:

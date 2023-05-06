@@ -80,8 +80,8 @@ void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 	gimbal->motors[0] = Motor_Init(Conf_GetPtr(dict, "motor-yaw", ConfItem));
 	gimbal->motors[1] = Motor_Init(Conf_GetPtr(dict, "motor-pitch", ConfItem));
 
-	PID_Init(&gimbal->imu.pid[0], Conf_GetPtr(dict, "motor-yaw/imu", ConfItem));
-	PID_Init(&gimbal->imu.pid[1], Conf_GetPtr(dict, "motor-pitch/imu", ConfItem));
+	PID_Init(&gimbal->imu.pid[0], Conf_GetPtr(dict, "yaw-imu-pid", ConfItem));
+	PID_Init(&gimbal->imu.pid[1], Conf_GetPtr(dict, "pitch-imu-pid", ConfItem));
 	//广播、远程函数name重映射
 	char* temp = Conf_GetPtr(dict, "name", char);
 	temp = temp ? temp : "gimbal";

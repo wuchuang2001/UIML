@@ -44,12 +44,12 @@
 	| `ins-name`      | `char*`    | `"ins"`     | 提供本服务欧拉角数据的惯导模块的名称  |
 	| `zero-yaw`      | `uint16_t` | 0 | yaw轴零点(编码器值)  |
 	| `zero-pitch`    | `uint16_t` | 0 | pitch轴零点(编码器值)  |
+	| `yaw-imu-pid`   | `CF_DICT`  | / | yaw轴角度外环pid配置[>>>](../../tools/controller/README.md/#模块配置项)  |
+	| `pitch-imu-pid` | `CF_DICT`  | / | pitch轴角度外环pid配置[>>>](../../tools/controller/README.md/#模块配置项)  |
 	| `motor-yaw`     | `CF_DICT`  | / | yaw电机配置信息[>>>](../../tools/motor/README.md/#模块配置项)|
 	| `motor-pitch`   | `CF_DICT`  | / | pitch电机配置信息[>>>](../../tools/motor/README.md/#模块配置项)  |
 
 > 注：由于电机角度外环返回数据由惯导提供因此外环pid计算由云台模块完成，电机类只负责速度闭环
-
-> `motor-yaw/imu`，`motor-pitch/imu`两者配置项详见[>>>](../../tools/controller/README.md/#模块配置项)
 
 ### 配置示例：
 

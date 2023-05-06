@@ -174,20 +174,20 @@ ConfItem* systemConfig = CF_DICT{
 		{"zero-pitch",IM_PTR(uint16_t,5300)},
 		//任务循环周期
 		{"task-interval", IM_PTR(uint16_t, 10)},
+		//陀螺仪pid参数设置，作为角度外环
+		{"yaw-imu-pid",CF_DICT{
+			{"p", IM_PTR(float, -90)},
+			{"i", IM_PTR(float, 0)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 500)},
+			{"max-out", IM_PTR(float, 1000)},
+			CF_DICT_END
+		}},
 		//云台电机配置
 		{"motor-yaw", CF_DICT{
 			{"type", "M6020"},
 			{"id", IM_PTR(uint16_t, 1)},
 			{"can-x", IM_PTR(uint8_t, 1)},
-			//陀螺仪pid参数设置，作为角度外环
-			{"imu",CF_DICT{
-				{"p", IM_PTR(float, -90)},
-				{"i", IM_PTR(float, 0)},
-				{"d", IM_PTR(float, 0)},
-				{"max-i", IM_PTR(float, 500)},
-				{"max-out", IM_PTR(float, 1000)},
-				CF_DICT_END
-			}},
 			//内环参数设置
 			{"speed-pid", CF_DICT{						
 				{"p", IM_PTR(float, 15)},
@@ -199,19 +199,19 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},	
+		//陀螺仪pid参数设置，作为角度外环
+		{"pitch-imu-pid",CF_DICT{
+			{"p", IM_PTR(float, 63)},
+			{"i", IM_PTR(float, 0)},
+			{"d", IM_PTR(float, 0)},
+			{"max-i", IM_PTR(float, 10000)},
+			{"max-out", IM_PTR(float, 20000)},
+			CF_DICT_END
+		}},
 		{"motor-pitch", CF_DICT{
 			{"type", "M6020"},
 			{"id", IM_PTR(uint16_t, 4)},
 			{"can-x", IM_PTR(uint8_t, 2)},
-			//陀螺仪pid参数设置，作为角度外环
-			{"imu",CF_DICT{
-				{"p", IM_PTR(float, 63)},
-				{"i", IM_PTR(float, 0)},
-				{"d", IM_PTR(float, 0)},
-				{"max-i", IM_PTR(float, 10000)},
-				{"max-out", IM_PTR(float, 20000)},
-				CF_DICT_END
-			}},
 			//内环参数设置
 			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 15)},
