@@ -38,7 +38,7 @@ typedef struct _DCmotor
 
 void DcMotor_TimInit(DcMotor* dcMotor, ConfItem* dict);
 void DcMotor_PIDInit(DcMotor* dcMotor, ConfItem* dict);
-void DcMotor_SetStartAngle(Motor *motor, float startAngle);
+void DcMotor_InitTotalAngle(Motor *motor, float startAngle);
 void DcMotor_SetTarget(Motor* motor, float targetValue);
 void DcMotor_ChangeMode(Motor* motor, MotorCtrlMode mode);
 
@@ -61,7 +61,7 @@ Motor* DcMotor_Init(ConfItem* dict)
 	//子类多态
 	dcMotor->motor.setTarget = DcMotor_SetTarget;
 	dcMotor->motor.changeMode = DcMotor_ChangeMode;
-	dcMotor->motor.setStartAngle = DcMotor_SetStartAngle;
+	dcMotor->motor.initTotalAngle = DcMotor_InitTotalAngle;
 	//电机减速比
 	dcMotor->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 19.0f);//电机减速比参数
 	dcMotor->circleEncode = Conf_GetValue(dict, "max-encode", float, 48.0f); //倍频后编码器转一圈的最大值
@@ -99,7 +99,7 @@ void DcMotor_TimInit(DcMotor* dcMotor, ConfItem* dict)
 }
 
 //开始统计电机累计角度
-void DcMotor_SetStartAngle(Motor *motor, float startAngle)
+void DcMotor_InitTotalAngle(Motor *motor, float startAngle)
 {
 	DcMotor* dcMotor = (DcMotor*)motor;
 	

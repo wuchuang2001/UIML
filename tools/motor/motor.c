@@ -12,7 +12,7 @@
 //内部函数声明
 void Motor_SetTarget(Motor* motor, float targetValue);
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode ctrlerType);
-void Motor_SetStartAngle(Motor* motor, float angle);
+void Motor_InitTotalAngle(Motor* motor, float angle);
 float Motor_GetData(Motor* motor, const char* data);
 void Motor_Stop(Motor* motor);
 void Motor_InitDefault(Motor* motor);
@@ -48,8 +48,8 @@ void Motor_InitDefault(Motor* motor)
 		motor->changeMode = Motor_ChangeCtrler;
 	if(!motor->setTarget)
 		motor->setTarget = Motor_SetTarget;
-	if(!motor->setStartAngle)
-		motor->setStartAngle = Motor_SetStartAngle;
+	if(!motor->initTotalAngle)
+		motor->initTotalAngle = Motor_InitTotalAngle;
 	if(!motor->getData)
 		motor->getData = Motor_GetData;
 	if(!motor->stop)
@@ -61,7 +61,7 @@ void Motor_SetTarget(Motor* motor, float targetValue) { }
 
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode mode) { }
 
-void Motor_SetStartAngle(Motor* motor, float angle) { }
+void Motor_InitTotalAngle(Motor* motor, float angle) { }
 
 float Motor_GetData(Motor* motor, const char* data) {return 0;}
 

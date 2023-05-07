@@ -19,7 +19,7 @@ typedef struct _Motor
 	void (*changeMode)(struct _Motor* motor, MotorCtrlMode mode);
 	void (*setTarget)(struct _Motor* motor,float targetValue);
 	
-	void (*setStartAngle)(struct _Motor* motor, float angle);
+	void (*initTotalAngle)(struct _Motor* motor, float angle);
 	float (*getData)(struct _Motor* motor,  const char* data);
 	void (*stop)(struct _Motor* motor);
 }Motor;

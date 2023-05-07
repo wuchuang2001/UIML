@@ -38,7 +38,7 @@ typedef struct _M2006
 
 Motor* M2006_Init(ConfItem* dict);
 
-void M2006_SetStartAngle(Motor *motor, float startAngle);
+void M2006_InitTotalAngle(Motor *motor, float startAngle);
 void M2006_SetTarget(Motor* motor, float targetValue);
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode);
 float M2006_GetData(Motor* motor, const char* data);
@@ -72,7 +72,7 @@ Motor* M2006_Init(ConfItem* dict)
 	//子类多态
 	m2006->motor.setTarget = M2006_SetTarget;
 	m2006->motor.changeMode = M2006_ChangeMode;
-	m2006->motor.setStartAngle = M2006_SetStartAngle;
+	m2006->motor.initTotalAngle = M2006_InitTotalAngle;
 	m2006->motor.getData = M2006_GetData;
 	m2006->motor.stop = M2006_Stop;
 	//电机减速比
@@ -126,7 +126,7 @@ void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData
 }
 
 //开始统计电机累计角度
-void M2006_SetStartAngle(Motor *motor, float startAngle)
+void M2006_InitTotalAngle(Motor *motor, float startAngle)
 {
 	M2006* m2006 = (M2006*)motor;
 	

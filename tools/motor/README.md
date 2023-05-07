@@ -112,14 +112,14 @@ motor->setTarget(motor, 100);
 	motor->setTarget(motor, 60);//设置输出轴角度60°
 	```
 
-4. 电机类中的`setStartAngle`接口
+4. 电机类中的`initTotalAngle`接口
 
-	通过此函数可以直接设置电机输出轴(不是转子)的当前累计角度，此后的旋转角会在此基础上进行累加：
+	通过此函数初始化电机输出轴(不是转子)的初始总角度，此后的旋转角会在此基础上进行累加：
 
 	```c
 	Motor* motor = NULL;
 	motor = Motor_Init(dict);
-	motor->setStartAngle(motor, -60);//设置当前的累计角度为-60°
+	motor->initTotalAngle(motor, -60);//设置初始总角度为-60°
 	```
 
 5. 电机类中的`getData`接口

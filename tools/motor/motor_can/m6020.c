@@ -34,7 +34,7 @@ typedef struct _M6020
 
 Motor* M6020_Init(ConfItem* dict);
 
-void M6020_SetStartAngle(Motor *motor, float startAngle);
+void M6020_InitTotalAngle(Motor *motor, float startAngle);
 void M6020_SetTarget(Motor* motor, float targetValue);
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode);
 float M6020_GetData(Motor* motor, const char* data);
@@ -62,7 +62,7 @@ Motor* M6020_Init(ConfItem* dict)
 	//子类多态
 	m6020->motor.setTarget = M6020_SetTarget;
 	m6020->motor.changeMode = M6020_ChangeMode;
-	m6020->motor.setStartAngle = M6020_SetStartAngle;
+	m6020->motor.initTotalAngle = M6020_InitTotalAngle;
 	m6020->motor.getData = M6020_GetData;
 	m6020->motor.stop = M6020_Stop;
 	//电机减速比
@@ -118,7 +118,7 @@ void M6020_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 }
 
 //开始统计电机累计角度
-void M6020_SetStartAngle(Motor *motor, float startAngle)
+void M6020_InitTotalAngle(Motor *motor, float startAngle)
 {
 	M6020* m6020 = (M6020*)motor;
 	

@@ -38,7 +38,7 @@ typedef struct _M3508
 
 Motor* M3508_Init(ConfItem* dict);
 
-void M3508_SetStartAngle(Motor *motor, float startAngle);
+void M3508_InitTotalAngle(Motor *motor, float startAngle);
 void M3508_SetTarget(Motor* motor, float targetValue);
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode);
 float M3508_GetData(Motor* motor, const char* data);
@@ -72,7 +72,7 @@ Motor* M3508_Init(ConfItem* dict)
 	//子类多态
 	m3508->motor.setTarget = M3508_SetTarget;
 	m3508->motor.changeMode = M3508_ChangeMode;
-	m3508->motor.setStartAngle = M3508_SetStartAngle;
+	m3508->motor.initTotalAngle = M3508_InitTotalAngle;
 	m3508->motor.getData = M3508_GetData;
 	m3508->motor.stop = M3508_Stop;
 	//电机减速比
@@ -134,7 +134,7 @@ void M3508_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 }
 
 //开始统计电机累计角度
-void M3508_SetStartAngle(Motor *motor, float startAngle)
+void M3508_InitTotalAngle(Motor *motor, float startAngle)
 {
 	M3508* m3508 = (M3508*)motor;
 	

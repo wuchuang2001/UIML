@@ -31,7 +31,7 @@ typedef struct _Gimbal
 }Gimbal;
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict);
-void Gimbal_StartAngleInit(Gimbal* gimbal);
+void Gimbal_TotalAngleInit(Gimbal* gimbal);
 void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll);
 
 void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData);
@@ -46,7 +46,7 @@ void Gimbal_TaskCallback(void const * argument)
 	Gimbal_Init(&gimbal, (ConfItem*)argument);
 	portEXIT_CRITICAL();
 	osDelay(2000);
-	Gimbal_StartAngleInit(&gimbal); //计算云台零点
+	Gimbal_TotalAngleInit(&gimbal); //计算云台零点
 	//计算好云台零点后，更改电机模式，imu反馈做角度外环电机速度反馈做内环
 	gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_SPEED_MODE);
 	gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_SPEED_MODE);
@@ -163,7 +163,7 @@ void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
 	}
 }
 
-void Gimbal_StartAngleInit(Gimbal* gimbal)
+void Gimbal_TotalAngleInit(Gimbal* gimbal)
 {
 	for(uint8_t i = 0; i<2; i++)
 	{
@@ -175,6 +175,6 @@ void Gimbal_StartAngleInit(Gimbal* gimbal)
 		else if(angle > 180)
 			angle -= 360;
 		gimbal->imu.totalEulerAngle[i] = angle;
-		gimbal->motors[i]->setStartAngle(gimbal->motors[i], angle); //设置电机的起始角度
+		gimbal->motors[i]->initTotalAngle(gimbal->motors[i], angle); //设置电机的起始角度
 	}	
 }
