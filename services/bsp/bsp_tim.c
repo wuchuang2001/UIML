@@ -30,6 +30,7 @@ void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict);
 void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict);
 bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindData);
 bool BSP_TIM_GetEncodeCallback(const char* name, SoftBusFrame* frame, void* bindData);
+bool BSP_TIM_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
 TIMService timService={0};
 
@@ -79,9 +80,9 @@ void BSP_TIM_Init(ConfItem* dict)
 		BSP_TIM_InitInfo(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
 		BSP_TIM_StartHardware(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
-	//注册接受
-	Bus_RegisterRemoteFunc(NULL,BSP_TIM_SetDutyCallback,"/tim/pwm/set-duty");
 	//注册远程服务
+	Bus_RegisterRemoteFunc(NULL,BSP_TIM_SettingCallback,"/tim/setting");
+	Bus_RegisterRemoteFunc(NULL,BSP_TIM_SetDutyCallback,"/tim/pwm/set-duty");
 	Bus_RegisterRemoteFunc(NULL,BSP_TIM_GetEncodeCallback,"/tim/encode");
 	timService.initFinished=1;
 }
@@ -113,47 +114,82 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 	}
 	else if(!strcmp(Conf_GetPtr(dict,"mode",char),"update-interrupted"))
 	{
+		//清除定时器中断标志位，避免一开启就中断
+		__HAL_TIM_CLEAR_IT(info->htim, TIM_IT_UPDATE);
 		HAL_TIM_Base_Start_IT(info->htim);
 	}
+}
+
+//TIM设置配置远程函数回调
+bool BSP_TIM_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData)
+{
+	if(!Bus_IsMapKeyExist(frame,"tim-x"))
+		return false;
+	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
+	TIMInfo* timInfo = NULL;
+	for(uint8_t num = 0;num<timService.timNum;num++)
+	{
+		if(timX==timService.timList[num].number) //找到对应的TIM
+		{
+			timInfo = &timService.timList[num];
+			break;
+		}
+	}
+	if(!timInfo)
+		return false;
+	if (Bus_CheckMapKeys(frame,{"channel-x","compare-value"}))
+	{
+		uint8_t	channelX = *(uint8_t*)Bus_GetMapValue(frame,"channel-x");
+		uint32_t compVal = *(uint32_t*)Bus_GetMapValue(frame,"compare-value");
+		switch (channelX)
+		{
+			case 1:
+				__HAL_TIM_SetCompare(timInfo->htim, TIM_CHANNEL_1, compVal);
+				break;
+			case 2:
+				__HAL_TIM_SetCompare(timInfo->htim, TIM_CHANNEL_2, compVal);
+				break;
+			case 3:
+				__HAL_TIM_SetCompare(timInfo->htim, TIM_CHANNEL_3, compVal);
+				break;
+			case 4:
+				__HAL_TIM_SetCompare(timInfo->htim, TIM_CHANNEL_4, compVal);
+				break;
+			default:
+				break;
+		}
+	}
+	if(Bus_IsMapKeyExist(frame,"auto-reload"))
+	{
+		uint32_t autoReload = *(uint32_t*)Bus_GetMapValue(frame,"auto-reload");
+		__HAL_TIM_SetAutoreload(timInfo->htim,autoReload);
+	}
+	if(Bus_IsMapKeyExist(frame,"enable"))
+	{
+		bool enable = *(bool*)Bus_GetMapValue(frame,"enable");
+		if(enable)
+			HAL_TIM_Base_Start_IT(timInfo->htim);
+		else
+			HAL_TIM_Base_Stop_IT(timInfo->htim);
+	}
+
+	return true;
 }
 
 //TIM设置占空比远程函数回调
 bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x"}))
+	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","duty"}))
 		return false;
 	uint8_t timX = *(uint8_t *)Bus_GetMapValue(frame,"tim-x");
 	uint8_t	channelX=*(uint8_t*)Bus_GetMapValue(frame,"channel-x");
-	float duty = 0;
-	uint32_t pwmValue=0;
-	uint32_t autoReload=0; 
-	if(Bus_IsMapKeyExist(frame, "duty"))
-	{
-		duty=*(float*)Bus_GetMapValue(frame,"duty");
-		LIMIT(duty,0,1);
-	}
-	else if(Bus_IsMapKeyExist(frame, "compare-value"))
-	{
-		pwmValue = *(uint32_t*)Bus_GetMapValue(frame,"compare-value");
-	}
-	else
-	{
-		return false;
-	}
-	if(Bus_IsMapKeyExist(frame, "auto-reload"))
-	{
-		autoReload=*(uint32_t*)Bus_GetMapValue(frame,"auto-reload");
-	}
+	float duty = *(float*)Bus_GetMapValue(frame,"duty");
+	LIMIT(duty,0,1);
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
 		if(timX==timService.timList[num].number) //找到对应的TIM
 		{
-			if(!autoReload)
-				autoReload =  __HAL_TIM_GetAutoreload(timService.timList[num].htim);
-			if(!pwmValue)
-				pwmValue = duty * autoReload;
-			else if(pwmValue > autoReload)
-				pwmValue = autoReload;
+			uint32_t pwmValue = duty * __HAL_TIM_GetAutoreload(timService.timList[num].htim);
 			switch (channelX)
 			{
 			case 1:
