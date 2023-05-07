@@ -21,35 +21,34 @@
 
 ## **广播模式简介**
 
-广播模式是一种多对多的数据传输的模式，用于提供不同模块之间的数据传输通道
+广播模式是一种多对多的数据传输的模式，提供了不同模块之间的数据传输通道
 
-在这个模式中广播的发送者可以广播一串消息，广播接收者可以订阅自己感兴趣的广播，并获取在该广播上所发布的消息
+广播的发送者可以广播一系列消息，广播接收者可以订阅自己感兴趣的广播，以监听在该广播上所发布的所有消息
 
 ![广播模式](README-IMG/广播模式.png)
 
-如上图所示，每个广播发送者/接收者就是一个模块，一个广播名就是一个字符串，每个广播可以视作一个通信管道，发送者通过“send”操作向管道中写入数据，订阅该管道的接收者就可以收到数据
+如上图所示，每个广播发送者/接收者就是一个模块，一个广播名就是一个字符串，每个广播名可以视作一个通信管道，发送者通过`"send"`操作向管道中写入数据，订阅该管道的接收者就可以收到数据
 
 相较于传统方式中模块间直接调用对方的函数来传递数据，该模式使用字符串话题来标记所传输数据的意义，使得模块间不产生函数依赖和类型依赖，从而不产生文件依赖（无需相互引用对方的文件），以此实现模块间的松耦合
 
-> 注：广播模式下传输数据的地址(data指针)禁止修改其指向的内容，否则会导致后续回调函数收到的数据混乱，即在广播模式下发送的数据只读不可写
-
-> 注：尽管广播模式在底层实现上允许多对多通信，但在实际使用中，我们建议广播模式只进行一对多通信。
+> 注：虽然广播模式支持多对多通信，但为降低模块间连接复杂度，建议尽可能只进行一对多通信，即同一广播名只由一个模块发出
 
 ## **远程函数模式简介**
 
-远程函数模式是一种多对一数据传输的模式，此模式与广播模式在用法上基本一样，与广播模式的区别是，广播模式所有数据只读，因此不能完成返回一些结果。在远程函数模式下，所有参数都允许可读可写的，因此可以将需要传递的参数和需要存储返回值的变量同时传递给远程函数以完成返回结果的操作。如下图所示：
+远程函数模式是一种多对一数据传输模式，当一个模块将一个函数注册为远程函数后，即可被其他模块通过软总线进行调用
+
+与广播模式相比，远程函数的主要意义在于可以向调用者返回数据，如下图所示：
 
 ![远程函数模式](README-IMG/远程函数.png)
 
-远程函数与广播的其中一个区别在于，在底层实现上，同一广播名允许注册多个回调函数，但远程函数只允许注册一个回调函数，因此远程函数模式下，如果一个远程函数名下尝试注册多个回调函数，只有第一次注册的回调函数会被成功绑定，后续的注册操作会注册失败。
+需要注意的是，如果一个远程函数名下尝试注册多个回调函数，只有第一次注册的回调函数会被成功绑定，后续的注册操作会被忽略。
 
 ---
 
 ## 本模块概念阐述
 
-- **软总线**：是对本模块作用的一种形象描述，系统中的所有模块通过本模块所提供的**广播、远程函数**功能进行数据传输，可以将本模块看做系统中的一根“总线”，各个模块挂接在总线上相互传输数据
-	<!-- > 注：本软总线与CAN通信等协议有一定相似之处，`name`的作用就类似于CAN数据帧ID，可用于标记数据帧的发送者或作用，订阅者订阅数据就相当于设置过滤器，过滤出总线上所发布的广播数据中感兴趣的部分 -->
-- **数据帧**(Frame)：在总线上所传输的数据是以“数据帧”为单位的，每次发布就是向软总线上发送一个数据帧
+- **软总线**：是对本模块作用的一种形象描述，系统中的所有模块通过本模块所提供的**广播**和**远程函数**功能进行数据传输，可以将本模块看做系统中的一根“总线”，各个模块挂接在总线上相互传输数据
+- **数据帧**(Frame)：在总线上所传输的数据是以“数据帧”为单位的，发送广播或调用远程函数就是向软总线上发送一个数据帧
 	- 数据帧是一个结构体，包含【数据】和【元素个数】两个信息
 	- 数据帧分为两种，映射表数据帧和列表数据帧
 		- **映射表数据帧**：数据帧中所传输的是一个映射表，可读性较好，但解析过程较慢
@@ -59,12 +58,12 @@
 	- 键有时也称作【字段名】
 - **列表**(List)：由有序的若干个值构成，每个值有一个索引，从0开始编号，通过索引即可获取对应的值
 - **快速句柄**(FastHandle)：在[广播的快速发布方式](#两种模式的发布方式和选用原则)中，需要提前由广播名字符串创建出快速句柄，后续发布时使用该句柄代替广播名字符串，其作用与广播名字符串一致
-- **绑定数据**(bindData)：对于每一次订阅，订阅者可以绑定上一个自定义数据，在收到数据的同时也会收到该绑定数据
-  > 例如：订阅者可以订阅一次topic1，此时绑定一个数据A，然后再次订阅topic1，并绑定一个数据B，那么当发布者在topic1上发布一次数据时，该订阅者可以收到两次数据，分别附带有所绑定的A和B
+- **绑定数据**(bindData)：在订阅广播时，订阅者可以绑定一个自定义数据，在收到广播的同时也会收到该绑定数据
+  > 例如：订阅者可以订阅一次"broadcast1"广播，此时绑定一个数据A，然后再次订阅"broadcast1"，并绑定一个数据B，那么当该广播发送时，该订阅者可以收到两次广播，分别附带有所绑定的A和B
 
 ---
 
-## 两种模式的发布方式和选用原则
+## 发布方式及其选用原则
 
 - **广播**
   - 普通方式
@@ -99,7 +98,7 @@
 
 > 注：此处仅展示基础用法，若要获取更多说明请查看项目文件中代码注释
 
-**广播(发送数据)**
+**发送广播**
 
 ```c
 /* 普通发布方式 */
@@ -112,24 +111,25 @@ Bus_BroadcastSend("topic1", {
 
 /* 快速发布方式 */
 //创建快速句柄(只在程序初始化时创建一次)
-SoftBusFastHandle handle = SoftBus_CreateFastHandle("topic2"); 
+SoftBusReceiverHandle handle = Bus_CreateReceiverHandle("topic2"); 
 //发布数据帧
 uint16_t value = 0x201; //要发布的第一个值
 uint8_t array[2] = {0x20, 0x01}; //要发布的第二个值
 Bus_FastBroadcastSend(handle, {&value, array}); //向总线快速广播一个列表数据帧
 ```
 
-**广播(接收数据)**
+**接收广播**
+
 ```c
 //定义软总线回调函数，收到数据时会自动调用
 void Callback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(strcmp(name, "topic1") == 0)
 	{
-		if(!SoftBus_CheckMapKeys(frame, {"key1", "key2"})) //确保数据帧中存在所需字段
+		if(!Bus_CheckMapKeys(frame, {"key1", "key2"})) //确保数据帧中存在所需字段
 			return;
-		uint8_t value1 = *(uint8_t*)SoftBus_GetMapValue(frame, "key1"); //读取key1字段值
-		float value2 = *(float*)SoftBus_GetMapValue(frame, "key2"); //读取key2字段值
+		uint8_t value1 = *(uint8_t*)Bus_GetMapValue(frame, "key1"); //读取key1字段值
+		float value2 = *(float*)Bus_GetMapValue(frame, "key2"); //读取key2字段值
 		/* ...其他处理逻辑 */
 	}
 }
@@ -137,8 +137,8 @@ void Callback(const char* name, SoftBusFrame* frame, void* bindData)
 //为提高总线效率，一般使用单独回调函数订阅快速发布的话题
 void FastCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
-	uint16_t value = *(uint16_t*)SoftBus_GetListValue(frame, 0); //获取第一个值
-	uint8_t* array = (uint8_t*)SoftBus_GetListValue(frame, 1); //获取第二个值
+	uint16_t value = *(uint16_t*)Bus_GetListValue(frame, 0); //获取第一个值
+	uint8_t* array = (uint8_t*)Bus_GetListValue(frame, 1); //获取第二个值
 	/* ...其他处理逻辑 */
 }
 
@@ -147,34 +147,23 @@ Bus_RegisterReceiver(NULL, Callback, "topic1");
 Bus_RegisterReceiver(NULL, Fastcallback, "topic2");
 ```
 
-**远程函数(调用远程函数(发送请求数据))**
-```c
-uint8_t value1 = 0x01; //要发布的第一个值
-float value2 = 1.0f; //要发布的第二个值
-float result1 ; //用于接收远程函数返回值
-uint8_t result2 ; 
-Bus_RemoteCall("fun1", {
-	{"key1", &value1},
-	{"key2", &value2},
-	{"key3", &result1},
-	{"key4", &result2}
-}); //调用远程函数fun1
+**编写和注册远程函数**
 
-```
-
-**远程函数(远程函数回调(处理数据，返回数据))**
 ```c
 //定义远程函数回调函数，其他模块请求调用时会自动调用
+//该远程函数接收四个参数，arg1:uint8_t, arg2:float, ret1:float, ret2:uint8_t
+//前两个参数为输入参数，后两个为输出参数(返回值)
 bool Callback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 
-	if(!SoftBus_CheckMapKeys(frame, {"key1", "key2"，"key3", "key4"})) //确保数据帧中存在所需字段
+	if(!Bus_CheckMapKeys(frame, {"arg1", "arg2"，"ret1", "ret2"})) //确保数据帧中存在所需所有参数
 		return false;
-	uint8_t value1 = *(uint8_t*)SoftBus_GetMapValue(frame, "key1"); //读取key1字段值
-	float value2 = *(float*)SoftBus_GetMapValue(frame, "key2"); //读取key2字段值
-	float* result1 = (float*)SoftBus_GetMapValue(frame, "key3"); //读取key3字段值
-	uint8_t* result2 = (uint8_t*)SoftBus_GetMapValue(frame, "key4"); //读取key4字段值
-	/* ...其他处理逻辑 */
+	uint8_t value1 = *(uint8_t*)Bus_GetMapValue(frame, "arg1"); //读取arg1参数值
+	float value2 = *(float*)Bus_GetMapValue(frame, "arg2"); //读取arg2参数值
+	float* result1 = (float*)Bus_GetMapValue(frame, "ret1"); //读取ret1参数值
+	uint8_t* result2 = (uint8_t*)Bus_GetMapValue(frame, "ret2"); //读取ret2参数值
+	
+	//...其他处理逻辑
 
 	//返回数据
 	*result1 = /* ... */;
@@ -182,7 +171,24 @@ bool Callback(const char* name, SoftBusFrame* frame, void* bindData)
 	return true;
 }
 
+//向软总线注册该回调函数
 Bus_RegisterRemoteFunc(NULL, Callback, "fun1")
+
+```
+
+**调用远程函数**
+
+```c
+uint8_t value1 = 0x01; //要传入的第一个参数
+float value2 = 1.0f; //要传入的第二个参数
+float result1; //用于接收远程函数第一个返回值
+uint8_t result2;  //用于接收远程函数第二个返回值
+Bus_RemoteCall("fun1", {
+	{"arg1", &value1},
+	{"arg2", &value2},
+	{"ret1", &result1},
+	{"ret2", &result2}
+}); //调用远程函数fun1
 
 ```
 
@@ -190,7 +196,8 @@ Bus_RegisterRemoteFunc(NULL, Callback, "fun1")
 
 ## 注意事项
 
-1. 回调函数是在广播发送者或者远程函数调用者所在线程中执行的，因此回调函数的执行速度应尽可能快，切不可发生阻塞
+1. 回调函数是在广播发送者或者远程函数调用者所在线程中执行的，因此**回调函数的执行速度应尽可能快**，切不可发生阻塞
 	> 注：用`Bus_BroadcastSend`或`Bus_FastBroadcastSend`函数发布时，只有当订阅了该name的所有回调函数执行结束后，该发布函数才会退出
-2. 软总线仅会传输数据的地址(data指针)，且数据指针仅保证在回调函数范围内有效，若需在回调函数外使用这些数据，请在回调中拷贝整个数据，而不只是保存数据指针
-3. 软总线底层是通过hash表匹配字符串跟回调函数的，可以通过修改`SoftBus_Str2Hash`这个宏来更换hash函数，进过我们测试在字符串长度小于20个字节时，`SoftBus_Str2Hash_8`该hash函数效率较高，而在字符串长度大于20个字节时，`SoftBus_Str2Hash_32`该hash函数效率较高
+2. **收到广播数据帧时，不得修改数据帧内容**，否则会导致后续回调函数收到的数据异常
+3. 软总线仅会传输数据的地址(data指针)，且**数据指针仅保证在回调函数范围内有效**，若需在回调函数外使用这些数据，请在回调中拷贝整个数据，而不只是保存数据指针
+4. 软总线底层通过hash表进行字符串的匹配，可以通过修改`SoftBus_Str2Hash`这个宏来更换hash函数，经测试在字符串长度小于20个字节时，`SoftBus_Str2Hash_8`函数效率较高，而在字符串长度大于20个字节时，`SoftBus_Str2Hash_32`函数效率较高
