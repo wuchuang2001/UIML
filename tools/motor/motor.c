@@ -1,4 +1,5 @@
 #include "motor.h"
+#include <string.h>
 
 //X-MACRO
 //子类列表，每一项格式为(类型名,初始化函数名)
@@ -34,7 +35,10 @@ Motor* Motor_Init(ConfItem* dict)
 	MOTOR_CHILD_LIST
 	#undef MOTOR_TYPE
 	if(!motor)
+	{
 		motor = MOTOR_MALLOC_PORT(sizeof(Motor));
+		memset(motor, 0, sizeof(Motor));
+	}
 	
 	//将子类未定义的方法设置为空函数
 	Motor_InitDefault(motor);
