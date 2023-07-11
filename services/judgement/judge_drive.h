@@ -488,7 +488,7 @@ typedef enum _GraphColor
 
 
 
-JudgeTxFrame JUDGE_PackGraphData(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *data);
-JudgeTxFrame JUDGE_PackTextData(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *textConf,uint8_t text[30]);
+JudgeTxFrame JUDGE_PackGraphData(uint16_t sendID,uint16_t receiveID,graphic_data_struct_t *data);
+JudgeTxFrame JUDGE_PackTextData(uint16_t sendID,uint16_t receiveID,graphic_data_struct_t *textConf,uint8_t text[30]);
 #endif
 
