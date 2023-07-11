@@ -123,7 +123,7 @@ bool JUDGE_Read_Data(JudgeRecInfo *judge,uint8_t *ReadFromUsart)
 }
 
 //打包文本数据，为文本数据添加帧头，校验码等信息，形成一个完整的帧
-JudgeTxFrame JUDGE_PackTextData(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *textConf,uint8_t text[30])
+JudgeTxFrame JUDGE_PackTextData(uint16_t sendID,uint16_t receiveID,graphic_data_struct_t *textConf,uint8_t text[30])
 {
 	JudgeTxFrame txFrame;
 	ext_TextData_t textData;
@@ -150,7 +150,7 @@ JudgeTxFrame JUDGE_PackTextData(uint8_t sendID,uint8_t receiveID,graphic_data_st
   return txFrame;
 }
 //打包图像数据，为图像数据添加帧头，校验码等信息，形成一个完整的帧
-JudgeTxFrame JUDGE_PackGraphData(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *data)
+JudgeTxFrame JUDGE_PackGraphData(uint16_t sendID,uint16_t receiveID,graphic_data_struct_t *data)
 {
 	JudgeTxFrame txFrame;
 	ext_GraphData_t graphData;
