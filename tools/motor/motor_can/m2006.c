@@ -3,8 +3,8 @@
 #include "pid.h"
 #include "config.h"
 
-//¸÷ÖÖµç»ú±àÂëÖµÓë½Ç¶ÈµÄ»»Ëã	
-#define M2006_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //¼õËÙ±È*8191/360
+//å„ç§ç”µæœºç¼–ç å€¼ä¸Žè§’åº¦çš„æ¢ç®—	
+#define M2006_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //å‡é€Ÿæ¯”*8191/360
 #define M2006_CODE2DGR(code,rdcr) ((float)((code)/(22.7528f*(rdcr))))
 
 typedef struct _M2006
@@ -22,16 +22,16 @@ typedef struct _M2006
 	
 	int16_t angle,speed,torque;
 	
-	int16_t lastAngle;//¼ÇÂ¼ÉÏÒ»´ÎµÃµ½µÄ½Ç¶È
+	int16_t lastAngle;//è®°å½•ä¸Šä¸€æ¬¡å¾—åˆ°çš„è§’åº¦
 	
-	int32_t totalAngle;//ÀÛ¼Æ×ª¹ýµÄ±àÂëÆ÷Öµ
+	int32_t totalAngle;//ç´¯è®¡è½¬è¿‡çš„ç¼–ç å™¨å€¼
 	
-	float  targetValue;//Ä¿±êÖµ(Êä³öÖáÅ¤¾Ø¾Ø/ËÙ¶È/½Ç¶È(µ¥Î»¶È))
+	float  targetValue;//ç›®æ ‡å€¼(è¾“å‡ºè½´æ‰­çŸ©çŸ©/é€Ÿåº¦/è§’åº¦(å•ä½åº¦))
 
-	uint16_t stallTime;//¶Â×ªÊ±¼ä
+	uint16_t stallTime;//å µè½¬æ—¶é—´
 	
-	PID speedPID;//ËÙ¶Èpid(µ¥¼¶)
-	CascadePID anglePID;//½Ç¶Èpid£¬´®¼¶
+	PID speedPID;//é€Ÿåº¦pid(å•çº§)
+	CascadePID anglePID;//è§’åº¦pidï¼Œä¸²çº§
 	
 	char* stallName;
 }M2006;
@@ -50,7 +50,7 @@ void M2006_PIDInit(M2006* m2006, ConfItem* dict);
 void M2006_StatAngle(M2006* m2006);
 void M2006_CtrlerCalc(M2006* m2006, float reference);
 
-//Èí¼þ¶¨Ê±Æ÷»Øµ÷º¯Êý
+//è½¯ä»¶å®šæ—¶å™¨å›žè°ƒå‡½æ•°
 void M2006_TimerCallback(void const *argument)
 {
 	M2006* m2006 = pvTimerGetTimerID((TimerHandle_t)argument);
@@ -66,28 +66,28 @@ void M2006_TimerCallback(void const *argument)
 
 Motor* M2006_Init(ConfItem* dict)
 {
-	//·ÖÅä×ÓÀàÄÚ´æ¿Õ¼ä
+	//åˆ†é…å­ç±»å†…å­˜ç©ºé—´
 	M2006* m2006 = MOTOR_MALLOC_PORT(sizeof(M2006));
 	memset(m2006,0,sizeof(M2006));
-	//×ÓÀà¶àÌ¬
+	//å­ç±»å¤šæ€
 	m2006->motor.setTarget = M2006_SetTarget;
 	m2006->motor.changeMode = M2006_ChangeMode;
 	m2006->motor.initTotalAngle = M2006_InitTotalAngle;
 	m2006->motor.getData = M2006_GetData;
 	m2006->motor.stop = M2006_Stop;
-	//µç»ú¼õËÙ±È
-	m2006->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 36);//Èç¹ûÎ´ÅäÖÃµç»ú¼õËÙ±È²ÎÊý£¬ÔòÊ¹ÓÃÔ­×°µç»úÄ¬ÈÏ¼õËÙ±È
-	//³õÊ¼»¯µç»ú°ó¶¨canÐÅÏ¢
+	//ç”µæœºå‡é€Ÿæ¯”
+	m2006->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 36);//å¦‚æžœæœªé…ç½®ç”µæœºå‡é€Ÿæ¯”å‚æ•°ï¼Œåˆ™ä½¿ç”¨åŽŸè£…ç”µæœºé»˜è®¤å‡é€Ÿæ¯”
+	//åˆå§‹åŒ–ç”µæœºç»‘å®šcanä¿¡æ¯
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m2006->canInfo.recvID = id + 0x200;
 	m2006->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
 	m2006->canInfo.bufIndex =  ((id - 1)%4) * 2;
 	m2006->canInfo.canX = Conf_GetValue(dict, "can-x", uint8_t, 0);
-	//ÉèÖÃµç»úÄ¬ÈÏÄ£Ê½ÎªÅ¤¾ØÄ£Ê½
+	//è®¾ç½®ç”µæœºé»˜è®¤æ¨¡å¼ä¸ºæ‰­çŸ©æ¨¡å¼
 	m2006->mode = MOTOR_TORQUE_MODE;
-	//³õÊ¼»¯µç»úpid
+	//åˆå§‹åŒ–ç”µæœºpid
 	M2006_PIDInit(m2006, dict);
-	//¶©ÔÄcanÐÅÏ¢
+	//è®¢é˜…canä¿¡æ¯
 	char name[] = "/can_/recv";
 	name[4] = m2006->canInfo.canX + '0';
 	Bus_RegisterReceiver(m2006, M2006_SoftBusCallback, name);
@@ -95,23 +95,23 @@ Motor* M2006_Init(ConfItem* dict)
 	char* motorName = Conf_GetPtr(dict, "name", char);
 	motorName = motorName ? motorName : "motor";
 	uint8_t len = strlen(motorName);
-	m2006->stallName = MOTOR_MALLOC_PORT(len + 7+ 1); //7Îª"/   /stall"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	m2006->stallName = MOTOR_MALLOC_PORT(len + 7+ 1); //7ä¸º"/   /stall"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(m2006->stallName, "/%s/stall", motorName);
-	//¿ªÆôÈí¼þ¶¨Ê±Æ÷
+	//å¼€å¯è½¯ä»¶å®šæ—¶å™¨
 	osTimerDef(M2006, M2006_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M2006), osTimerPeriodic, m2006), 2);
 
 	return (Motor*)m2006;
 }
-//³õÊ¼»¯pid
+//åˆå§‹åŒ–pid
 void M2006_PIDInit(M2006* m2006, ConfItem* dict)
 {
 	PID_Init(&m2006->speedPID, Conf_GetPtr(dict, "speed-pid", ConfItem));
 	PID_Init(&m2006->anglePID.inner, Conf_GetPtr(dict, "angle-pid/inner", ConfItem));
 	PID_Init(&m2006->anglePID.outer, Conf_GetPtr(dict, "angle-pid/outer", ConfItem));
-	PID_SetMaxOutput(&m2006->anglePID.outer, m2006->anglePID.outer.maxOutput*m2006->reductionRatio);//½«Êä³öÖáËÙ¶ÈÏÞ·ù·Å´óµ½×ª×ÓÉÏ
+	PID_SetMaxOutput(&m2006->anglePID.outer, m2006->anglePID.outer.maxOutput*m2006->reductionRatio);//å°†è¾“å‡ºè½´é€Ÿåº¦é™å¹…æ”¾å¤§åˆ°è½¬å­ä¸Š
 }
-//Èí×ÜÏß»Øµ÷º¯Êý
+//è½¯æ€»çº¿å›žè°ƒå‡½æ•°
 void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	M2006* m2006 = (M2006*)bindData;
@@ -125,7 +125,7 @@ void M2006_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData
 		M2006_Update(m2006, data);
 }
 
-//¿ªÊ¼Í³¼Æµç»úÀÛ¼Æ½Ç¶È
+//å¼€å§‹ç»Ÿè®¡ç”µæœºç´¯è®¡è§’åº¦
 void M2006_InitTotalAngle(Motor *motor, float startAngle)
 {
 	M2006* m2006 = (M2006*)motor;
@@ -134,7 +134,7 @@ void M2006_InitTotalAngle(Motor *motor, float startAngle)
 	m2006->lastAngle=m2006->angle;
 }
 
-//Í³¼Æµç»úÀÛ¼Æ×ª¹ýµÄÈ¦Êý
+//ç»Ÿè®¡ç”µæœºç´¯è®¡è½¬è¿‡çš„åœˆæ•°
 void M2006_StatAngle(M2006* m2006)
 {
 	int32_t dAngle=0;
@@ -144,12 +144,12 @@ void M2006_StatAngle(M2006* m2006)
 		dAngle=-m2006->lastAngle-(8191-m2006->angle);
 	else
 		dAngle=m2006->angle-m2006->lastAngle;
-	//½«½Ç¶ÈÔöÁ¿¼ÓÈë¼ÆÊýÆ÷
+	//å°†è§’åº¦å¢žé‡åŠ å…¥è®¡æ•°å™¨
 	m2006->totalAngle+=dAngle;
-	//¼ÇÂ¼½Ç¶È
+	//è®°å½•è§’åº¦
 	m2006->lastAngle=m2006->angle;
 }
-//¿ØÖÆÆ÷¸ù¾ÝÄ£Ê½¼ÆËãÊä³ö
+//æŽ§åˆ¶å™¨æ ¹æ®æ¨¡å¼è®¡ç®—è¾“å‡º
 void M2006_CtrlerCalc(M2006* m2006, float reference)
 {
 	int16_t output=0;
@@ -170,7 +170,7 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 	}
 	buffer[0] = (output>>8)&0xff;
 	buffer[1] = (output)&0xff;
-	//·¢²¼canÐÅÏ¢
+	//å‘å¸ƒcanä¿¡æ¯
 	Bus_RemoteCall("/can/set-buf",{
 		{"can-x", &m2006->canInfo.canX},
 		{"id", &m2006->canInfo.sendID},
@@ -179,7 +179,7 @@ void M2006_CtrlerCalc(M2006* m2006, float reference)
 		{"data", buffer}
 	});
 }
-//ÉèÖÃµç»úÆÚÍûÖµ
+//è®¾ç½®ç”µæœºæœŸæœ›å€¼
 void M2006_SetTarget(Motor* motor, float targetValue)
 {
 	M2006* m2006 = (M2006*)motor;
@@ -196,11 +196,11 @@ void M2006_SetTarget(Motor* motor, float targetValue)
 		m2006->targetValue = targetValue;
 	}
 }
-//ÇÐ»»µç»úÄ£Ê½
+//åˆ‡æ¢ç”µæœºæ¨¡å¼
 void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M2006* m2006 = (M2006*)motor;
-	if(m2006->mode == MOTOR_STOP_MODE) //¼±Í£Ä£Ê½ÏÂ²»ÔÊÐíÇÐ»»Ä£Ê½
+	if(m2006->mode == MOTOR_STOP_MODE) //æ€¥åœæ¨¡å¼ä¸‹ä¸å…è®¸åˆ‡æ¢æ¨¡å¼
 		return;
 
 	if(m2006->mode == MOTOR_SPEED_MODE)
@@ -215,7 +215,7 @@ void M2006_ChangeMode(Motor* motor, MotorCtrlMode mode)
 	m2006->mode = mode;
 }
 
-//»ñÈ¡µç»úÊý¾Ý
+//èŽ·å–ç”µæœºæ•°æ®
 float M2006_GetData(Motor* motor, const char* data)
 {
 	M2006* m2006 = (M2006*)motor;
@@ -230,7 +230,7 @@ float M2006_GetData(Motor* motor, const char* data)
 	return 0;
 }
 
-//µç»ú¼±Í£º¯Êý
+//ç”µæœºæ€¥åœå‡½æ•°
 void M2006_Stop(Motor* motor)
 {
 	M2006* m2006 = (M2006*)motor;
@@ -238,7 +238,7 @@ void M2006_Stop(Motor* motor)
 	m2006->mode = MOTOR_STOP_MODE;
 }
 
-//¸üÐÂµç»úÊý¾Ý(¿ÉÄÜ½øÐÐÂË²¨)
+//æ›´æ–°ç”µæœºæ•°æ®(å¯èƒ½è¿›è¡Œæ»¤æ³¢)
 void M2006_Update(M2006* m2006,uint8_t* data)
 {
 	m2006->angle = (data[0]<<8 | data[1]);

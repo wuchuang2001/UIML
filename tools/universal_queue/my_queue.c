@@ -1,10 +1,10 @@
-/****************Í¨ÓÃÑ­»·¶ÓÁÐ*****************/
+/****************é€šç”¨å¾ªçŽ¯é˜Ÿåˆ—*****************/
 
 #include "my_queue.h"
 #include <string.h>
 #include <stdlib.h>
 
-//³õÊ¼»¯¶ÓÁÐ
+//åˆå§‹åŒ–é˜Ÿåˆ—
 void Queue_Init(Queue *queue,uint16_t maxSize)
 {
 	queue->data=malloc(maxSize*sizeof(void*));
@@ -13,8 +13,8 @@ void Queue_Init(Queue *queue,uint16_t maxSize)
 	queue->maxSize=maxSize;
 }
 
-//¸½¼ÓÉÏÒ»¸öÊý¾Ý±£´æÇø(Èë¶ÓÊ±»á½«Êý¾Ý¸´ÖÆµ½±£´æÇø¶ÔÓ¦Î»ÖÃ)
-//×¢Òâ±£´æÇø´óÐ¡²»µÃÐ¡ÓÚ¶ÓÁÐ³¤¶È£¬·ñÔò»áÔ½½ç
+//é™„åŠ ä¸Šä¸€ä¸ªæ•°æ®ä¿å­˜åŒº(å…¥é˜Ÿæ—¶ä¼šå°†æ•°æ®å¤åˆ¶åˆ°ä¿å­˜åŒºå¯¹åº”ä½ç½®)
+//æ³¨æ„ä¿å­˜åŒºå¤§å°ä¸å¾—å°äºŽé˜Ÿåˆ—é•¿åº¦ï¼Œå¦åˆ™ä¼šè¶Šç•Œ
 void Queue_AttachBuffer(Queue *queue,void *buffer,uint8_t elemSize)
 {
 	if(!queue->initialized) return;
@@ -22,7 +22,7 @@ void Queue_AttachBuffer(Queue *queue,void *buffer,uint8_t elemSize)
 	queue->bufElemSize=elemSize;
 }
 
-//Ïú»ÙÒ»¸ö¶ÓÁÐ
+//é”€æ¯ä¸€ä¸ªé˜Ÿåˆ—
 void Queue_Destroy(Queue *queue)
 {
 	if(!queue->initialized) return;
@@ -30,28 +30,28 @@ void Queue_Destroy(Queue *queue)
 	memset(queue,0,sizeof(Queue));
 }
 
-//»ñÈ¡¶ÓÁÐ³¤¶È
+//èŽ·å–é˜Ÿåˆ—é•¿åº¦
 uint16_t Queue_Size(Queue *queue)
 {
 	if(!queue->initialized) return 0;
 	return (queue->rear+queue->maxSize-queue->front)%queue->maxSize;
 }
 
-//¶ÓÁÐÊÇ·ñÎªÂú
+//é˜Ÿåˆ—æ˜¯å¦ä¸ºæ»¡
 uint8_t Queue_IsFull(Queue *queue)
 {
 	if(!queue->initialized) return 1;
 	return (queue->front==(queue->rear+1)%queue->maxSize)?1:0;
 }
 
-//¶ÓÁÐÊÇ·ñÎª¿Õ
+//é˜Ÿåˆ—æ˜¯å¦ä¸ºç©º
 uint8_t Queue_IsEmpty(Queue *queue)
 {
 	if(!queue->initialized) return 1;
 	return (queue->front==queue->rear)?1:0;
 }
 
-//»ñÈ¡¶ÓÁÐÖ¸¶¨Î»ÖÃµÄÔªËØ(¶ÓÍ·ÔªËØÎ»ÖÃÎª0)
+//èŽ·å–é˜Ÿåˆ—æŒ‡å®šä½ç½®çš„å…ƒç´ (é˜Ÿå¤´å…ƒç´ ä½ç½®ä¸º0)
 void* Queue_GetElement(Queue *queue,uint16_t position)
 {
 	if(!queue->initialized) return NULL;
@@ -61,7 +61,7 @@ void* Queue_GetElement(Queue *queue,uint16_t position)
 	return queue->data[(queue->front+position)%queue->maxSize];
 }
 
-//»ñÈ¡¶ÓÍ·ÔªËØ(µ«²»³ö¶Ó)
+//èŽ·å–é˜Ÿå¤´å…ƒç´ (ä½†ä¸å‡ºé˜Ÿ)
 void* Queue_Top(Queue *queue)
 {
 	if(!queue->initialized) return NULL;
@@ -71,7 +71,7 @@ void* Queue_Top(Queue *queue)
 	return queue->data[queue->front];
 }
 
-//³ö¶Ó
+//å‡ºé˜Ÿ
 void* Queue_Dequeue(Queue *queue)
 {
 	if(!queue->initialized) return NULL;
@@ -83,19 +83,19 @@ void* Queue_Dequeue(Queue *queue)
 	return res;
 }
 
-//Èë¶Ó
+//å…¥é˜Ÿ
 void Queue_Enqueue(Queue *queue,void* data)
 {
 	if(!queue->initialized) return;
 
 	if(Queue_IsFull(queue)) return;
 	
-	//Èç¹û»º³åÇøÖ¸ÕëÎª¿ÕËµÃ÷Î´¸½¼Ó±£´æÇø£¬Èë¶ÓÔ­Ê¼Ö¸Õë
+	//å¦‚æžœç¼“å†²åŒºæŒ‡é’ˆä¸ºç©ºè¯´æ˜Žæœªé™„åŠ ä¿å­˜åŒºï¼Œå…¥é˜ŸåŽŸå§‹æŒ‡é’ˆ
 	if(queue->buffer == NULL)
 	{
 		queue->data[queue->rear]=data;
 	}
-	else//Èô¼ÓÁË±£´æÇøÔò½«Êý¾Ý¸´ÖÆ¹ýÀ´²¢Èë¶Ó±£´æÇøµÄÖ¸Õë
+	else//è‹¥åŠ äº†ä¿å­˜åŒºåˆ™å°†æ•°æ®å¤åˆ¶è¿‡æ¥å¹¶å…¥é˜Ÿä¿å­˜åŒºçš„æŒ‡é’ˆ
 	{
 		memcpy((uint8_t*)(queue->buffer) + (queue->rear)*(queue->bufElemSize),
 						data,

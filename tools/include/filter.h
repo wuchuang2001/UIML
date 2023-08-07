@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "cmsis_os.h"
+#include <string.h>
 
 #define FILTER_MALLOC_PORT(len) pvPortMalloc(len)
 #define FILTER_FREE_PORT(ptr) vPortFree(ptr)

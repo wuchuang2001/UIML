@@ -1,18 +1,18 @@
 #include "filter.h"
 
 //X-MACRO
-//×ÓÀàÁÐ±í£¬Ã¿Ò»Ïî¸ñÊ½Îª(ÀàÐÍÃû,³õÊ¼»¯º¯ÊýÃû)
+//å­ç±»åˆ—è¡¨ï¼Œæ¯ä¸€é¡¹æ ¼å¼ä¸º(ç±»åž‹å,åˆå§‹åŒ–å‡½æ•°å)
 #define FILTER_CHILD_LIST \
 	FILTER_TYPE("kalman",Kalman_Init) \
 	FILTER_TYPE("mean",Mean_Init) \
 	FILTER_TYPE("low-pass",LowPass_Init)
 
-//ÉùÃ÷×ÓÀà³õÊ¼»¯º¯Êý
+//å£°æ˜Žå­ç±»åˆå§‹åŒ–å‡½æ•°
 #define FILTER_TYPE(name,initFunc) extern Filter* initFunc(ConfItem*);
 FILTER_CHILD_LIST
 #undef FILTER_TYPE
 
-//ÄÚ²¿º¯ÊýÉùÃ÷
+//å†…éƒ¨å‡½æ•°å£°æ˜Ž
 void Filter_InitDefault(Filter* filter);
 float Filter_Cala(Filter *filter, float data);
 
@@ -21,7 +21,7 @@ Filter* Filter_Init(ConfItem* dict)
 	char* filterType = Conf_GetPtr(dict, "type", char);
 
 	Filter *filter = NULL;
-	//ÅÐ¶ÏÊôÓÚÄÄ¸ö×ÓÀà
+	//åˆ¤æ–­å±žäºŽå“ªä¸ªå­ç±»
 	#define FILTER_TYPE(name,initFunc) \
 	if(!strcmp(filterType, name)) \
 		filter = initFunc(dict);
@@ -30,7 +30,7 @@ Filter* Filter_Init(ConfItem* dict)
 	if(!filter)
 		filter = FILTER_MALLOC_PORT(sizeof(Filter));
 	
-	//½«×ÓÀàÎ´¶¨ÒåµÄ·½·¨ÉèÖÃÎª¿Õº¯Êý
+	//å°†å­ç±»æœªå®šä¹‰çš„æ–¹æ³•è®¾ç½®ä¸ºç©ºå‡½æ•°
 	Filter_InitDefault(filter);
 
 	return filter;
@@ -42,5 +42,5 @@ void Filter_InitDefault(Filter* filter)
 		filter->cala = Filter_Cala;
 }
 
-//´¿Ðéº¯Êý
+//çº¯è™šå‡½æ•°
 float Filter_Cala(Filter *filter, float data) {return 0;}

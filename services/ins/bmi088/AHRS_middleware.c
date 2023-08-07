@@ -1,11 +1,11 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       AHRS_MiddleWare.c/h
-  * @brief      ×ËÌ¬½âËãÖĞ¼ä²ã£¬Îª×ËÌ¬½âËãÌá¹©Ïà¹Øº¯Êı
+  * @brief      å§¿æ€è§£ç®—ä¸­é—´å±‚ï¼Œä¸ºå§¿æ€è§£ç®—æä¾›ç›¸å…³å‡½æ•°
   * @note
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É
+  *  V1.0.0     Dec-26-2018     RM              1. å®Œæˆ
   *
   @verbatim
   ==============================================================================
@@ -17,13 +17,14 @@
 
 #include "AHRS_MiddleWare.h"
 #include "AHRS.h"
+#include "stm32f4xx.h"
 #include "arm_math.h"
 #include "main.h"
 /**
- * @brief          ÓÃÓÚ»ñÈ¡µ±Ç°¸ß¶È
+ * @brief          ç”¨äºè·å–å½“å‰é«˜åº¦
  * @author         RM
- * @param[in]      ¸ß¶ÈµÄÖ¸Õë£¬fp32
- * @retval         ·µ»Ø¿Õ
+ * @param[in]      é«˜åº¦çš„æŒ‡é’ˆï¼Œfp32
+ * @retval         è¿”å›ç©º
  */
 
 void AHRS_get_height(fp32* high)
@@ -35,10 +36,10 @@ void AHRS_get_height(fp32* high)
 }
 
 /**
- * @brief          ÓÃÓÚ»ñÈ¡µ±Ç°Î³¶È
+ * @brief          ç”¨äºè·å–å½“å‰çº¬åº¦
  * @author         RM
- * @param[in]      Î³¶ÈµÄÖ¸Õë£¬fp32
- * @retval         ·µ»Ø¿Õ
+ * @param[in]      çº¬åº¦çš„æŒ‡é’ˆï¼Œfp32
+ * @retval         è¿”å›ç©º
  */
 
 void AHRS_get_latitude(fp32* latitude)
@@ -50,10 +51,10 @@ void AHRS_get_latitude(fp32* latitude)
 }
 
 /**
- * @brief          ¿ìËÙ¿ª·½º¯Êı£¬
+ * @brief          å¿«é€Ÿå¼€æ–¹å‡½æ•°ï¼Œ
  * @author         RM
- * @param[in]      ÊäÈëĞèÒª¿ª·½µÄ¸¡µãÊı£¬fp32
- * @retval         ·µ»Ø1/sqrt ¿ª·½ºóµÄµ¹Êı
+ * @param[in]      è¾“å…¥éœ€è¦å¼€æ–¹çš„æµ®ç‚¹æ•°ï¼Œfp32
+ * @retval         è¿”å›1/sqrt å¼€æ–¹åçš„å€’æ•°
  */
 
 fp32 AHRS_invSqrt(fp32 num)
@@ -71,10 +72,10 @@ fp32 AHRS_invSqrt(fp32 num)
 }
 
 /**
- * @brief          sinº¯Êı
+ * @brief          sinå‡½æ•°
  * @author         RM
- * @param[in]      ½Ç¶È µ¥Î» rad
- * @retval         ·µ»Ø¶ÔÓ¦½Ç¶ÈµÄsinÖµ
+ * @param[in]      è§’åº¦ å•ä½ rad
+ * @retval         è¿”å›å¯¹åº”è§’åº¦çš„sinå€¼
  */
 
 fp32 AHRS_sinf(fp32 angle)
@@ -82,10 +83,10 @@ fp32 AHRS_sinf(fp32 angle)
     return sin(angle);
 }
 /**
- * @brief          cosº¯Êı
+ * @brief          coså‡½æ•°
  * @author         RM
- * @param[in]      ½Ç¶È µ¥Î» rad
- * @retval         ·µ»Ø¶ÔÓ¦½Ç¶ÈµÄcosÖµ
+ * @param[in]      è§’åº¦ å•ä½ rad
+ * @retval         è¿”å›å¯¹åº”è§’åº¦çš„coså€¼
  */
 
 fp32 AHRS_cosf(fp32 angle)
@@ -94,10 +95,10 @@ fp32 AHRS_cosf(fp32 angle)
 }
 
 /**
- * @brief          tanº¯Êı
+ * @brief          tanå‡½æ•°
  * @author         RM
- * @param[in]      ½Ç¶È µ¥Î» rad
- * @retval         ·µ»Ø¶ÔÓ¦½Ç¶ÈµÄtanÖµ
+ * @param[in]      è§’åº¦ å•ä½ rad
+ * @retval         è¿”å›å¯¹åº”è§’åº¦çš„tanå€¼
  */
 
 fp32 AHRS_tanf(fp32 angle)
@@ -105,10 +106,10 @@ fp32 AHRS_tanf(fp32 angle)
     return tanf(angle);
 }
 /**
- * @brief          ÓÃÓÚ32Î»¸¡µãÊıµÄ·´Èı½Çº¯Êı asinº¯Êı
+ * @brief          ç”¨äº32ä½æµ®ç‚¹æ•°çš„åä¸‰è§’å‡½æ•° asinå‡½æ•°
  * @author         RM
- * @param[in]      ÊäÈësinÖµ£¬×î´ó1.0f£¬×îĞ¡-1.0f
- * @retval         ·µ»Ø½Ç¶È µ¥Î»»¡¶È
+ * @param[in]      è¾“å…¥sinå€¼ï¼Œæœ€å¤§1.0fï¼Œæœ€å°-1.0f
+ * @retval         è¿”å›è§’åº¦ å•ä½å¼§åº¦
  */
 
 fp32 AHRS_asinf(fp32 sin)
@@ -118,10 +119,10 @@ fp32 AHRS_asinf(fp32 sin)
 }
 
 /**
- * @brief          ·´Èı½Çº¯Êıacosº¯Êı
+ * @brief          åä¸‰è§’å‡½æ•°acoså‡½æ•°
  * @author         RM
- * @param[in]      ÊäÈëcosÖµ£¬×î´ó1.0f£¬×îĞ¡-1.0f
- * @retval         ·µ»Ø¶ÔÓ¦µÄ½Ç¶È µ¥Î»»¡¶È
+ * @param[in]      è¾“å…¥coså€¼ï¼Œæœ€å¤§1.0fï¼Œæœ€å°-1.0f
+ * @retval         è¿”å›å¯¹åº”çš„è§’åº¦ å•ä½å¼§åº¦
  */
 
 fp32 AHRS_acosf(fp32 cos)
@@ -131,11 +132,11 @@ fp32 AHRS_acosf(fp32 cos)
 }
 
 /**
- * @brief          ·´Èı½Çº¯Êıatanº¯Êı
+ * @brief          åä¸‰è§’å‡½æ•°atanå‡½æ•°
  * @author         RM
- * @param[in]      ÊäÈëtanÖµÖĞµÄyÖµ ×î´óÕıÎŞÇî£¬×îĞ¡¸ºÎŞÇî
- * @param[in]      ÊäÈëtanÖµÖĞµÄxÖµ ×î´óÕıÎŞÇî£¬×îĞ¡¸ºÎŞÇî
- * @retval         ·µ»Ø¶ÔÓ¦µÄ½Ç¶È µ¥Î»»¡¶È
+ * @param[in]      è¾“å…¥tanå€¼ä¸­çš„yå€¼ æœ€å¤§æ­£æ— ç©·ï¼Œæœ€å°è´Ÿæ— ç©·
+ * @param[in]      è¾“å…¥tanå€¼ä¸­çš„xå€¼ æœ€å¤§æ­£æ— ç©·ï¼Œæœ€å°è´Ÿæ— ç©·
+ * @retval         è¿”å›å¯¹åº”çš„è§’åº¦ å•ä½å¼§åº¦
  */
 
 fp32 AHRS_atan2f(fp32 y, fp32 x)

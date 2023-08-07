@@ -14,17 +14,17 @@
 typedef struct _PID
 {
 	float kp,ki,kd;
-	float error,lastError;//Îó²î¡¢ÉÏ´ÎÎó²î
-	float integral,maxIntegral;//»ı·Ö¡¢»ı·ÖÏŞ·ù
-	float output,maxOutput;//Êä³ö¡¢Êä³öÏŞ·ù
-	float deadzone;//ËÀÇø
+	float error,lastError;//è¯¯å·®ã€ä¸Šæ¬¡è¯¯å·®
+	float integral,maxIntegral;//ç§¯åˆ†ã€ç§¯åˆ†é™å¹…
+	float output,maxOutput;//è¾“å‡ºã€è¾“å‡ºé™å¹…
+	float deadzone;//æ­»åŒº
 }PID;
 
 typedef struct _CascadePID
 {
-	PID inner;//ÄÚ»·
-	PID outer;//Íâ»·
-	float output;//´®¼¶Êä³ö£¬µÈÓÚinner.output
+	PID inner;//å†…ç¯
+	PID outer;//å¤–ç¯
+	float output;//ä¸²çº§è¾“å‡ºï¼Œç­‰äºinner.output
 }CascadePID;
 
 void PID_Init(PID *pid, ConfItem* conf);

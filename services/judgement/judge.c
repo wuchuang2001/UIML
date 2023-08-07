@@ -3,38 +3,39 @@
 #include "softbus.h"
 #include "cmsis_os.h"
 #include "my_queue.h"
+#include <string.h>
 
 typedef struct _Judge
 {
-	JudgeRecInfo judgeRecInfo; //´Ó²ÃÅĞÏµÍ³½ÓÊÕµ½µÄÊı¾İ
-	bool dataTF; //²ÃÅĞÊı¾İÊÇ·ñ¿ÉÓÃ,¸¨Öúº¯Êıµ÷ÓÃ
-	Queue txQueue; //·¢ËÍ¶ÓÁĞ
+	JudgeRecInfo judgeRecInfo; //ä»è£åˆ¤ç³»ç»Ÿæ¥æ”¶åˆ°çš„æ•°æ®
+	bool dataTF; //è£åˆ¤æ•°æ®æ˜¯å¦å¯ç”¨,è¾…åŠ©å‡½æ•°è°ƒç”¨
+	Queue txQueue; //å‘é€é˜Ÿåˆ—
 	JudgeTxFrame *queueBuf;
 	uint8_t uartX;	 
-	uint16_t taskInterval; //ÈÎÎñÖ´ĞĞ¼ä¸ô
+	uint16_t taskInterval; //ä»»åŠ¡æ‰§è¡Œé—´éš”
 }Judge;
 
 
 void Judge_Init(Judge *judge,ConfItem* dict);
 void Judge_Recv_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bindData);
-bool Judge_UiDrawTextCallback(const char* topic, SoftBusFrame* frame, void* bindData); //»­ÎÄ±¾
-bool Judge_UiDrawLineCallback(const char* topic, SoftBusFrame* frame, void* bindData); //»­Ö±Ïß
-bool Judge_UiDrawRectCallback(const char* topic, SoftBusFrame* frame, void* bindData); //»­¾ØĞÎ
-bool Judge_UiDrawCircleCallback(const char* topic, SoftBusFrame* frame, void* bindData); //»­Ô²
-bool Judge_UiDrawOvalCallback(const char* topic, SoftBusFrame* frame, void* bindData); //»­ÍÖÔ²
-bool Judge_UiDrawArcCallback(const char* topic, SoftBusFrame* frame, void* bindData);//»­Ô²»¡
+bool Judge_UiDrawTextCallback(const char* topic, SoftBusFrame* frame, void* bindData); //ç”»æ–‡æœ¬
+bool Judge_UiDrawLineCallback(const char* topic, SoftBusFrame* frame, void* bindData); //ç”»ç›´çº¿
+bool Judge_UiDrawRectCallback(const char* topic, SoftBusFrame* frame, void* bindData); //ç”»çŸ©å½¢
+bool Judge_UiDrawCircleCallback(const char* topic, SoftBusFrame* frame, void* bindData); //ç”»åœ†
+bool Judge_UiDrawOvalCallback(const char* topic, SoftBusFrame* frame, void* bindData); //ç”»æ¤­åœ†
+bool Judge_UiDrawArcCallback(const char* topic, SoftBusFrame* frame, void* bindData);//ç”»åœ†å¼§
 bool Judge_UiDrawFloatCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 bool Judge_UiDrawIntCallback(const char* topic, SoftBusFrame* frame, void* bindData);
 bool JUDGE_Read_Data(Judge *judge,uint8_t *ReadFromUsart);
 void Judge_publishData(Judge * judge);
 void Judge_TimerCallback(void const *argument);
 
-Judge judge={0}; //´óÄÚ´æ ²»ÊÊºÏ×÷ÎªÈÎÎñµÄ¾Ö²¿±äÁ¿
+Judge judge={0}; //å¤§å†…å­˜ ä¸é€‚åˆä½œä¸ºä»»åŠ¡çš„å±€éƒ¨å˜é‡
 JudgeTxFrame debug;
 
 void Judge_TaskCallback(void const * argument)
 {
-	//½øÈëÁÙ½çÇø
+	//è¿›å…¥ä¸´ç•ŒåŒº
 	portENTER_CRITICAL();
 	Judge_Init(&judge, (ConfItem*)argument);
 	portEXIT_CRITICAL();
@@ -43,10 +44,10 @@ void Judge_TaskCallback(void const * argument)
 	{
 		if(!Queue_IsEmpty(&judge.txQueue))
 		{
-			//È¡¶ÓÍ·µÄÏûÏ¢·¢ËÍ
+			//å–é˜Ÿå¤´çš„æ¶ˆæ¯å‘é€
 			JudgeTxFrame *txframe=(JudgeTxFrame*)Queue_Dequeue(&judge.txQueue);
 			
-			//·¢ËÍui
+			//å‘é€ui
 			Bus_RemoteCall("/uart/trans/dma",{{"uart-x",&judge.uartX},
 			                                  {"data",(uint8_t *)txframe->data},
 			                                  {"trans-size",&txframe->frameLength}});
@@ -55,15 +56,15 @@ void Judge_TaskCallback(void const * argument)
 	}		
 }
 
-//³õÊ¼»¯
+//åˆå§‹åŒ–
 void Judge_Init(Judge* judge,ConfItem* dict)
 {
-	//³õÊ¼»¯·¢ËÍ¶ÓÁĞ
-	uint16_t maxTxQueueLen = Conf_GetValue(dict, "max-tx-queue-length", uint16_t, 20); //×î´ó·¢ËÍ¶ÓÁĞ
+	//åˆå§‹åŒ–å‘é€é˜Ÿåˆ—
+	uint16_t maxTxQueueLen = Conf_GetValue(dict, "max-tx-queue-length", uint16_t, 20); //æœ€å¤§å‘é€é˜Ÿåˆ—
 	judge->queueBuf=(JudgeTxFrame*)pvPortMalloc(maxTxQueueLen*sizeof(JudgeTxFrame));
 	Queue_Init(&judge->txQueue,maxTxQueueLen);
 	Queue_AttachBuffer(&judge->txQueue,judge->queueBuf,sizeof(JudgeTxFrame));
-	judge->taskInterval = Conf_GetValue(dict, "task-interval", uint16_t, 150);  //ÈÎÎñÖ´ĞĞ¼ä¸ô
+	judge->taskInterval = Conf_GetValue(dict, "task-interval", uint16_t, 150);  //ä»»åŠ¡æ‰§è¡Œé—´éš”
 	char name[] = "/uart_/recv";
 	judge->uartX = Conf_GetValue(dict, "uart-x", uint8_t, 0);
 	name[5] = judge->uartX + '0';
@@ -77,16 +78,16 @@ void Judge_Init(Judge* judge,ConfItem* dict)
 	Bus_RegisterRemoteFunc(judge, Judge_UiDrawArcCallback, "/judge/send/ui/arc");
 	Bus_RegisterRemoteFunc(judge, Judge_UiDrawFloatCallback, "/judge/send/ui/float");
 	Bus_RegisterRemoteFunc(judge, Judge_UiDrawIntCallback, "/judge/send/ui/int");
-	//¿ªÆôÈí¼ş¶¨Ê±Æ÷ ¶¨Ê±¹ã²¥½ÓÊÕµ½µÄÊı¾İ
+	//å¼€å¯è½¯ä»¶å®šæ—¶å™¨ å®šæ—¶å¹¿æ’­æ¥æ”¶åˆ°çš„æ•°æ®
 	osTimerDef(judge, Judge_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(judge), osTimerPeriodic, judge), 20);
 }
 
-//ÏµÍ³¶¨Ê±Æ÷»Øµ÷
+//ç³»ç»Ÿå®šæ—¶å™¨å›è°ƒ
 void Judge_TimerCallback(void const *argument)
 {
 	Judge *judge =(Judge*)argument;
-	Judge_publishData(judge);  //¹ã²¥½ÓÊÕµ½µÄÊı¾İ
+	Judge_publishData(judge);  //å¹¿æ’­æ¥æ”¶åˆ°çš„æ•°æ®
 }
 
 
@@ -100,9 +101,9 @@ void Judge_Recv_SoftBusCallback(const char* topic, SoftBusFrame* frame, void* bi
 
 
 /*
-uiµÄÍ¼ĞÎÃû£¨name£©ÔÚ²Ù×÷ÖĞ£¬×÷Îª¿Í»§¶ËµÄÎ¨Ò»Ë÷Òı£¬ÓĞÇÒÖ»ÓĞ3¸ö×Ö·û
-¸÷ÈÎÎñ¹ã²¥uiµÄÆµÂÊÓ¦Ğ¡ÓÚ5hz£¬Ó¦½öÔÚÊı¾İ¸üĞÂÊ±¹ã²¥
-Á¢¼´Êı¶ÔÓ¦µÄÍ¼ĞÎ²Ù×÷
+uiçš„å›¾å½¢åï¼ˆnameï¼‰åœ¨æ“ä½œä¸­ï¼Œä½œä¸ºå®¢æˆ·ç«¯çš„å”¯ä¸€ç´¢å¼•ï¼Œæœ‰ä¸”åªæœ‰3ä¸ªå­—ç¬¦
+å„ä»»åŠ¡å¹¿æ’­uiçš„é¢‘ç‡åº”å°äº5hzï¼Œåº”ä»…åœ¨æ•°æ®æ›´æ–°æ—¶å¹¿æ’­
+ç«‹å³æ•°å¯¹åº”çš„å›¾å½¢æ“ä½œ
 typedef enum _GraphOperation      
 {
 	Operation_Null=0,
@@ -110,12 +111,12 @@ typedef enum _GraphOperation
 	Operation_Change,
 	Operation_Delete
 }GraphOperation;
-***Ìí¼ÓUIÊ±±ØĞëÏÈOperation_Add£¬²ÅÄÜOperation_Change¡¢Operation_Delete
+***æ·»åŠ UIæ—¶å¿…é¡»å…ˆOperation_Addï¼Œæ‰èƒ½Operation_Changeã€Operation_Delete
 
-Á¢¼´Êı¶ÔÓ¦µÄÍ¼ĞÎÑÕÉ«
+ç«‹å³æ•°å¯¹åº”çš„å›¾å½¢é¢œè‰²
 typedef enum _GraphColor
 {
-	Color_Self=0,//¼º·½Ö÷É«
+	Color_Self=0,//å·±æ–¹ä¸»è‰²
 	Color_Yellow,
 	Color_Green,
 	Color_Orange,
@@ -127,10 +128,10 @@ typedef enum _GraphColor
 }GraphColor;
 
 */
-bool Judge_UiDrawTextCallback(const char* topic, SoftBusFrame* frame, void* bindData) //»­ÎÄ±¾
+bool Judge_UiDrawTextCallback(const char* topic, SoftBusFrame* frame, void* bindData) //ç”»æ–‡æœ¬
 {
 	Judge *judge = (Judge*)bindData;
-	//                              Ãû×Ö    ÎÄ±¾   ÑÕÉ«    ¿í¶È    Í¼²ã         ×ø±ê        ×ÖÌå´óĞ¡ ³¤¶È ²Ù×÷·½Ê½
+	//                              åå­—    æ–‡æœ¬   é¢œè‰²    å®½åº¦    å›¾å±‚         åæ ‡        å­—ä½“å¤§å° é•¿åº¦ æ“ä½œæ–¹å¼
 	if(!Bus_CheckMapKeys(frame,{"name","text","color","width","layer","start-x","start-y","size","len","opera"}))
 		return false;
 	graphic_data_struct_t text;
@@ -153,10 +154,10 @@ bool Judge_UiDrawTextCallback(const char* topic, SoftBusFrame* frame, void* bind
 	return true;
 }
 
-bool Judge_UiDrawLineCallback(const char* topic, SoftBusFrame* frame, void* bindData) //»­Ö±Ïß
+bool Judge_UiDrawLineCallback(const char* topic, SoftBusFrame* frame, void* bindData) //ç”»ç›´çº¿
 {
 	Judge *judge = (Judge*)bindData;
-	//                              Ãû×Ö     ÑÕÉ«    ¿í¶È    Í¼²ã         ¿ªÊ¼×ø±ê        ½áÊø×ø±ê     ²Ù×÷·½Ê½    
+	//                              åå­—     é¢œè‰²    å®½åº¦    å›¾å±‚         å¼€å§‹åæ ‡        ç»“æŸåæ ‡     æ“ä½œæ–¹å¼    
 	if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start-x","start-y","end-x","end-y","opera"}))
 		return false;
 	graphic_data_struct_t line;
@@ -170,17 +171,17 @@ bool Judge_UiDrawLineCallback(const char* topic, SoftBusFrame* frame, void* bind
 	line.start_y = *(int16_t*)Bus_GetMapValue(frame,"start-y");
 	line.end_x = *(int16_t*)Bus_GetMapValue(frame,"end-x");
 	line.end_y = *(int16_t*)Bus_GetMapValue(frame,"end-y");  
-	JudgeTxFrame txframe = JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id, //·¢ËÍÕßID
-	                                           0x100+judge->judgeRecInfo.GameRobotStat.robot_id, //½ÓÊÕÕßID£¨¿Í»§¶Ë£©
+	JudgeTxFrame txframe = JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id, //å‘é€è€…ID
+	                                           0x100+judge->judgeRecInfo.GameRobotStat.robot_id, //æ¥æ”¶è€…IDï¼ˆå®¢æˆ·ç«¯ï¼‰
 	                                           &line);
 	Queue_Enqueue(&judge->txQueue,&txframe);
 	return true;
 }
 
-bool Judge_UiDrawRectCallback(const char* topic, SoftBusFrame* frame, void* bindData) //»­¾ØĞÎ
+bool Judge_UiDrawRectCallback(const char* topic, SoftBusFrame* frame, void* bindData) //ç”»çŸ©å½¢
 {
 	Judge *judge = (Judge*)bindData;
-	//                              Ãû×Ö     ÑÕÉ«    ¿í¶È    Í¼²ã         ¿ªÊ¼×ø±ê        ¶Ô½Ç×ø±ê     ²Ù×÷·½Ê½    
+	//                              åå­—     é¢œè‰²    å®½åº¦    å›¾å±‚         å¼€å§‹åæ ‡        å¯¹è§’åæ ‡     æ“ä½œæ–¹å¼    
 	if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","start-x","start-y","end-x","end-y","opera"}))
 		return false;
 	graphic_data_struct_t rect;
@@ -194,17 +195,17 @@ bool Judge_UiDrawRectCallback(const char* topic, SoftBusFrame* frame, void* bind
 	rect.start_y=*(int16_t*)Bus_GetMapValue(frame,"start-y");
 	rect.end_x=*(int16_t*)Bus_GetMapValue(frame,"end-x");
 	rect.end_y=*(int16_t*)Bus_GetMapValue(frame,"end-y");
-	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//·¢ËÍÕßID
-	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//½ÓÊÕÕßID£¨¿Í»§¶Ë£©
+	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//å‘é€è€…ID
+	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//æ¥æ”¶è€…IDï¼ˆå®¢æˆ·ç«¯ï¼‰
 	                                            &rect);    
 	Queue_Enqueue(&judge->txQueue,&txframe);
 	return true;
 }
 
-bool Judge_UiDrawCircleCallback(const char* topic, SoftBusFrame* frame, void* bindData) //»­Ô²
+bool Judge_UiDrawCircleCallback(const char* topic, SoftBusFrame* frame, void* bindData) //ç”»åœ†
 {
 	Judge *judge = (Judge*)bindData;
-	//                              Ãû×Ö     ÑÕÉ«    ¿í¶È    Í¼²ã         ÖĞĞÄ×ø±ê     °ë¾¶   ²Ù×÷·½Ê½ 
+	//                              åå­—     é¢œè‰²    å®½åº¦    å›¾å±‚         ä¸­å¿ƒåæ ‡     åŠå¾„   æ“ä½œæ–¹å¼ 
 	if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent-x","cent-y","radius","opera"}))
 		return false;
 	graphic_data_struct_t circle;
@@ -217,17 +218,17 @@ bool Judge_UiDrawCircleCallback(const char* topic, SoftBusFrame* frame, void* bi
 	circle.start_x=*(int16_t*)Bus_GetMapValue(frame,"cent-x");
 	circle.start_y=*(int16_t*)Bus_GetMapValue(frame,"cent-y");
 	circle.radius=*(uint16_t*)Bus_GetMapValue(frame,"radius");   
-	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//·¢ËÍÕßID
-	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//½ÓÊÕÕßID£¨¿Í»§¶Ë£©
+	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//å‘é€è€…ID
+	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//æ¥æ”¶è€…IDï¼ˆå®¢æˆ·ç«¯ï¼‰
 	                                            &circle);    
 	Queue_Enqueue(&judge->txQueue,&txframe); 
 	return true;
 }
 
-bool Judge_UiDrawOvalCallback(const char* topic, SoftBusFrame* frame, void* bindData) //»­ÍÖÔ²
+bool Judge_UiDrawOvalCallback(const char* topic, SoftBusFrame* frame, void* bindData) //ç”»æ¤­åœ†
 {
 	Judge *judge = (Judge*)bindData;
-	//                           Ãû×Ö     ÑÕÉ«    ¿í¶È    Í¼²ã         ÖĞĞÄ×ø±ê           xy°ëÖá³¤            ²Ù×÷·½Ê½ 
+	//                           åå­—     é¢œè‰²    å®½åº¦    å›¾å±‚         ä¸­å¿ƒåæ ‡           xyåŠè½´é•¿            æ“ä½œæ–¹å¼ 
 	if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent-x","cent-y","semiaxis-x","semiaxis-y","opera"}))
 		return false;
 	graphic_data_struct_t oval;
@@ -241,17 +242,17 @@ bool Judge_UiDrawOvalCallback(const char* topic, SoftBusFrame* frame, void* bind
 	oval.start_y=*(int16_t*)Bus_GetMapValue(frame,"cent-y");
 	oval.end_x=*(int16_t*)Bus_GetMapValue(frame,"semiaxis-x");
 	oval.end_y=*(int16_t*)Bus_GetMapValue(frame,"semiaxis-y");  
-	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//·¢ËÍÕßID
-	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//½ÓÊÕÕßID£¨¿Í»§¶Ë£©
+	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//å‘é€è€…ID
+	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//æ¥æ”¶è€…IDï¼ˆå®¢æˆ·ç«¯ï¼‰
 	                                            &oval);    
 	Queue_Enqueue(&judge->txQueue,&txframe);
 	return true;
 }
 
-bool Judge_UiDrawArcCallback(const char* topic, SoftBusFrame* frame, void* bindData) //»­Ô²»¡
+bool Judge_UiDrawArcCallback(const char* topic, SoftBusFrame* frame, void* bindData) //ç”»åœ†å¼§
 {
 	Judge *judge = (Judge*)bindData;
-	//                           Ãû×Ö     ÑÕÉ«    ¿í¶È    Í¼²ã         ÖĞĞÄ×ø±ê           xy°ëÖá³¤                  ÆğÊ¼¡¢ÖÕÖ¹½Ç¶È       ²Ù×÷·½Ê½
+	//                           åå­—     é¢œè‰²    å®½åº¦    å›¾å±‚         ä¸­å¿ƒåæ ‡           xyåŠè½´é•¿                  èµ·å§‹ã€ç»ˆæ­¢è§’åº¦       æ“ä½œæ–¹å¼
 	if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","cent-x","cent-y","semiaxis-x","semiaxis-y","start-angle","end-angle","opera"}))
 		return false;
 	graphic_data_struct_t arc;
@@ -267,8 +268,8 @@ bool Judge_UiDrawArcCallback(const char* topic, SoftBusFrame* frame, void* bindD
 	arc.end_y=*(int16_t*)Bus_GetMapValue(frame,"semiaxis-y");
 	arc.start_angle=*(int16_t*)Bus_GetMapValue(frame,"start-angle");
 	arc.end_angle=*(int16_t*)Bus_GetMapValue(frame,"end-angle");    
-	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//·¢ËÍÕßID
-	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//½ÓÊÕÕßID£¨¿Í»§¶Ë£©
+	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//å‘é€è€…ID
+	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//æ¥æ”¶è€…IDï¼ˆå®¢æˆ·ç«¯ï¼‰
 	                                            &arc);    
 	Queue_Enqueue(&judge->txQueue,&txframe);
 	return true;
@@ -277,7 +278,7 @@ bool Judge_UiDrawArcCallback(const char* topic, SoftBusFrame* frame, void* bindD
 bool Judge_UiDrawFloatCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	Judge *judge = (Judge*)bindData;
-	//                           Ãû×Ö     ÑÕÉ«    ¿í¶È    Í¼²ã    Öµ          ×ø±ê            ´óĞ¡ ÓĞĞ§Î»Êı ²Ù×÷·½Ê½
+	//                           åå­—     é¢œè‰²    å®½åº¦    å›¾å±‚    å€¼          åæ ‡            å¤§å° æœ‰æ•ˆä½æ•° æ“ä½œæ–¹å¼
 	if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","value","start-x","start-y","size","digit","opera"}))
 		return false;
 	graphic_data_struct_t float_num;
@@ -295,8 +296,8 @@ bool Judge_UiDrawFloatCallback(const char* topic, SoftBusFrame* frame, void* bin
 	float_num.radius=((int32_t)(value*1000))&0x3FF;
 	float_num.end_x=((int32_t)(value*1000)>>10)&0x7FF;
 	float_num.end_y=((int32_t)(value*1000)>>21)&0x7FF;    
-	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//·¢ËÍÕßID
-	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//½ÓÊÕÕßID£¨¿Í»§¶Ë£©
+	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//å‘é€è€…ID
+	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//æ¥æ”¶è€…IDï¼ˆå®¢æˆ·ç«¯ï¼‰
 	                                            &float_num);    
 	Queue_Enqueue(&judge->txQueue,&txframe);
 	return true;
@@ -305,7 +306,7 @@ bool Judge_UiDrawFloatCallback(const char* topic, SoftBusFrame* frame, void* bin
 bool Judge_UiDrawIntCallback(const char* topic, SoftBusFrame* frame, void* bindData)
 {
 	Judge *judge = (Judge*)bindData;
-	//                           Ãû×Ö     ÑÕÉ«    ¿í¶È    Í¼²ã    Öµ          ×ø±ê           ´óĞ¡   ²Ù×÷·½Ê½
+	//                           åå­—     é¢œè‰²    å®½åº¦    å›¾å±‚    å€¼          åæ ‡           å¤§å°   æ“ä½œæ–¹å¼
 	if(!Bus_CheckMapKeys(frame,{"name","color","width","layer","value","start-x","start-y","size","opera"}))
 		return false;
 	graphic_data_struct_t int_num;
@@ -322,33 +323,33 @@ bool Judge_UiDrawIntCallback(const char* topic, SoftBusFrame* frame, void* bindD
 	int_num.radius= value&0x3FF;
 	int_num.end_x=( value>>10)&0x7FF;
 	int_num.end_y=( value>>21)&0x7FF;    
-	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//·¢ËÍÕßID
-	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//½ÓÊÕÕßID£¨¿Í»§¶Ë£©
+	JudgeTxFrame txframe =  JUDGE_PackGraphData(judge->judgeRecInfo.GameRobotStat.robot_id,//å‘é€è€…ID
+	                                            0x100+judge->judgeRecInfo.GameRobotStat.robot_id,//æ¥æ”¶è€…IDï¼ˆå®¢æˆ·ç«¯ï¼‰
 	                                            &int_num);    
 	Queue_Enqueue(&judge->txQueue,&txframe);
 	return true;
 }
 
-//¹ã²¥½ÓÊÕµ½µÄÊı¾İ
+//å¹¿æ’­æ¥æ”¶åˆ°çš„æ•°æ®
 void Judge_publishData(Judge* judge)
 {
 	// if(!judge->dataTF)
 	// 	return;
-	//×¼±¸´ø·¢²¼µÄÊı¾İ
+	//å‡†å¤‡å¸¦å‘å¸ƒçš„æ•°æ®
 	uint8_t robot_id = judge->judgeRecInfo.GameRobotStat.robot_id; 
-	uint8_t robot_color = robot_id<10?RobotColor_Blue:RobotColor_Red;//»úÆ÷ÈËÑÕÉ«
-	uint16_t chassis_power_limit = judge->judgeRecInfo.GameRobotStat.chassis_power_limit; //µ×ÅÌ¹¦ÂÊÏŞÖÆ	
-	bool isShooterPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_shooter_output; //µç¹Ü·¢Éä»ú¹¹ÊÇ·ñ¶Ïµç
-	bool isChassisPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_chassis_output; //µç¹Üµ×ÅÌÊÇ·ñ¶Ïµç
-	float chassis_power = judge->judgeRecInfo.PowerHeatData.chassis_power;	 //µ×ÅÌ¹¦ÂÊ
-	uint16_t chassis_power_buffer = judge->judgeRecInfo.PowerHeatData.chassis_power_buffer; //µ×ÅÌ»º³å
-	float bullet_speed = judge->judgeRecInfo.ShootData.bullet_speed; //·¢Éäµ¯ÍèËÙ¶È
-	//Êı¾İ·¢²¼
-	if(robot_id == 1|| robot_id == 101)   //Ó¢ĞÛ
+	uint8_t robot_color = robot_id<10?RobotColor_Blue:RobotColor_Red;//æœºå™¨äººé¢œè‰²
+	uint16_t chassis_power_limit = judge->judgeRecInfo.GameRobotStat.chassis_power_limit; //åº•ç›˜åŠŸç‡é™åˆ¶	
+	bool isShooterPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_shooter_output; //ç”µç®¡å‘å°„æœºæ„æ˜¯å¦æ–­ç”µ
+	bool isChassisPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_chassis_output; //ç”µç®¡åº•ç›˜æ˜¯å¦æ–­ç”µ
+	float chassis_power = judge->judgeRecInfo.PowerHeatData.chassis_power;	 //åº•ç›˜åŠŸç‡
+	uint16_t chassis_power_buffer = judge->judgeRecInfo.PowerHeatData.chassis_power_buffer; //åº•ç›˜ç¼“å†²
+	float bullet_speed = judge->judgeRecInfo.ShootData.bullet_speed; //å‘å°„å¼¹ä¸¸é€Ÿåº¦
+	//æ•°æ®å‘å¸ƒ
+	if(robot_id == 1|| robot_id == 101)   //è‹±é›„
 	{
-		uint16_t shooter_id1_42mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_42mm_speed_limit; //42mmµ¯ËÙÉÏÏŞ	
-		uint16_t shooter_id1_42mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_42mm_cooling_heat;	//42mmÇ¹¿ÚÈÈÁ¿
-		uint16_t bullet_remaining_num_42mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_42mm; //42mmÊ£Óàµ¯ÍèÊıÁ¿
+		uint16_t shooter_id1_42mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_42mm_speed_limit; //42mmå¼¹é€Ÿä¸Šé™	
+		uint16_t shooter_id1_42mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_42mm_cooling_heat;	//42mmæªå£çƒ­é‡
+		uint16_t bullet_remaining_num_42mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_42mm; //42mmå‰©ä½™å¼¹ä¸¸æ•°é‡
 		Bus_BroadcastSend("/judge/recv/robot-state",{{"color",&robot_color},
 		                                             {"42mm-speed-limit",&shooter_id1_42mm_speed_limit},
 		                                             {"chassis-power-limit",&chassis_power_limit},
@@ -362,12 +363,12 @@ void Judge_publishData(Judge* judge)
 		Bus_BroadcastSend("/judge/recv/shoot",{{"bullet-speed",&bullet_speed}});
 		Bus_BroadcastSend("/judge/recv/bullet",{ {"42mm-bullet-remain",&bullet_remaining_num_42mm}});
 	}
-	else //·ÇÓ¢ĞÛµ¥Î»
+	else //éè‹±é›„å•ä½
 	{
-		uint16_t shooter_id1_17mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_17mm_speed_limit;	//17mmµ¯ËÙÉÏÏŞ	
-		uint16_t shooter_id1_17mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_17mm_cooling_heat; //17mmÇ¹¿ÚÈÈÁ¿
-		uint16_t bullet_remaining_num_17mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_17mm; //17mmÊ£Óàµ¯ÍèÊıÁ¿
-		bool isGimbalPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_gimbal_output; //µç¹ÜÔÆÌ¨ÊÇ·ñ¶Ïµç
+		uint16_t shooter_id1_17mm_speed_limit = judge->judgeRecInfo.GameRobotStat.shooter_id1_17mm_speed_limit;	//17mmå¼¹é€Ÿä¸Šé™	
+		uint16_t shooter_id1_17mm_cooling_heat = judge->judgeRecInfo.PowerHeatData.shooter_id1_17mm_cooling_heat; //17mmæªå£çƒ­é‡
+		uint16_t bullet_remaining_num_17mm = judge->judgeRecInfo.BulletRemaining.bullet_remaining_num_17mm; //17mmå‰©ä½™å¼¹ä¸¸æ•°é‡
+		bool isGimbalPowerOutput = judge->judgeRecInfo.GameRobotStat.mains_power_gimbal_output; //ç”µç®¡äº‘å°æ˜¯å¦æ–­ç”µ
 		Bus_BroadcastSend("/judge/recv/robot-state",{{"color",&robot_color},
 		                                            {"17mm-speed-limit",&shooter_id1_17mm_speed_limit},
 		                                            {"chassis-power-limit",&chassis_power_limit},

@@ -4,8 +4,8 @@
 #include "pid.h"
 #include <stdio.h>
 
-//¸÷ÖÖµç»ú±àÂëÖµÓë½Ç¶ÈµÄ»»Ëã
-#define DCMOTOR_DGR2CODE(dgr,rdcr,encode) ((int32_t)((dgr)*encode/360.0f*(rdcr))) //¼õËÙ±È*±àÂëÆ÷Ò»È¦Öµ/360
+//å„ç§ç”µæœºç¼–ç å€¼ä¸è§’åº¦çš„æ¢ç®—
+#define DCMOTOR_DGR2CODE(dgr,rdcr,encode) ((int32_t)((dgr)*encode/360.0f*(rdcr))) //å‡é€Ÿæ¯”*ç¼–ç å™¨ä¸€åœˆå€¼/360
 #define DCMOTOR_CODE2DGR(code,rdcr,encode) ((float)((code)/(encode/360.0f*(rdcr))))
 
 typedef struct
@@ -23,16 +23,16 @@ typedef struct _DCmotor
 
 	MotorCtrlMode mode;
 	
-	uint32_t angle,lastAngle;//¼ÇÂ¼ÉÏÒ»´ÎµÃµ½µÄ½Ç¶È
+	uint32_t angle,lastAngle;//è®°å½•ä¸Šä¸€æ¬¡å¾—åˆ°çš„è§’åº¦
 	
 	int16_t speed;
 	
-	int32_t totalAngle;//ÀÛ¼Æ×ª¹ıµÄ±àÂëÆ÷Öµ
+	int32_t totalAngle;//ç´¯è®¡è½¬è¿‡çš„ç¼–ç å™¨å€¼
 	
-	float  targetValue;//Ä¿±êÖµ(Êä³öÖá/ËÙ¶È/½Ç¶È(µ¥Î»¶È))
+	float  targetValue;//ç›®æ ‡å€¼(è¾“å‡ºè½´/é€Ÿåº¦/è§’åº¦(å•ä½åº¦))
 	
-	PID speedPID;//ËÙ¶Èpid(µ¥¼¶)
-	CascadePID anglePID;//½Ç¶Èpid£¬´®¼¶
+	PID speedPID;//é€Ÿåº¦pid(å•çº§)
+	CascadePID anglePID;//è§’åº¦pidï¼Œä¸²çº§
 	
 }DcMotor;
 
@@ -45,7 +45,7 @@ void DcMotor_ChangeMode(Motor* motor, MotorCtrlMode mode);
 void DcMotor_StatAngle(DcMotor* dcMotor);
 void DcMotor_CtrlerCalc(DcMotor* dcMotor, float reference);
 
-//Èí¼ş¶¨Ê±Æ÷»Øµ÷º¯Êı
+//è½¯ä»¶å®šæ—¶å™¨å›è°ƒå‡½æ•°
 void DcMotor_TimerCallback(void const *argument)
 {
 	DcMotor* dcMotor = pvTimerGetTimerID((TimerHandle_t)argument); 
@@ -55,40 +55,40 @@ void DcMotor_TimerCallback(void const *argument)
 
 Motor* DcMotor_Init(ConfItem* dict)
 {
-	//·ÖÅä×ÓÀàÄÚ´æ¿Õ¼ä
+	//åˆ†é…å­ç±»å†…å­˜ç©ºé—´
 	DcMotor* dcMotor = MOTOR_MALLOC_PORT(sizeof(DcMotor));
 	memset(dcMotor,0,sizeof(DcMotor));
-	//×ÓÀà¶àÌ¬
+	//å­ç±»å¤šæ€
 	dcMotor->motor.setTarget = DcMotor_SetTarget;
 	dcMotor->motor.changeMode = DcMotor_ChangeMode;
 	dcMotor->motor.initTotalAngle = DcMotor_InitTotalAngle;
-	//µç»ú¼õËÙ±È
-	dcMotor->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 19.0f);//µç»ú¼õËÙ±È²ÎÊı
-	dcMotor->circleEncode = Conf_GetValue(dict, "max-encode", float, 48.0f); //±¶Æµºó±àÂëÆ÷×ªÒ»È¦µÄ×î´óÖµ
-	//³õÊ¼»¯µç»ú°ó¶¨timĞÅÏ¢
+	//ç”µæœºå‡é€Ÿæ¯”
+	dcMotor->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 19.0f);//ç”µæœºå‡é€Ÿæ¯”å‚æ•°
+	dcMotor->circleEncode = Conf_GetValue(dict, "max-encode", float, 48.0f); //å€é¢‘åç¼–ç å™¨è½¬ä¸€åœˆçš„æœ€å¤§å€¼
+	//åˆå§‹åŒ–ç”µæœºç»‘å®štimä¿¡æ¯
 	DcMotor_TimInit(dcMotor, dict);
-	//ÉèÖÃµç»úÄ¬ÈÏÄ£Ê½ÎªËÙ¶ÈÄ£Ê½
+	//è®¾ç½®ç”µæœºé»˜è®¤æ¨¡å¼ä¸ºé€Ÿåº¦æ¨¡å¼
 	dcMotor->mode = MOTOR_TORQUE_MODE;
-	//³õÊ¼»¯µç»úpid
+	//åˆå§‹åŒ–ç”µæœºpid
 	DcMotor_PIDInit(dcMotor, dict);
 	
-	//¿ªÆôÈí¼ş¶¨Ê±Æ÷
+	//å¼€å¯è½¯ä»¶å®šæ—¶å™¨
 	osTimerDef(DCMOTOR, DcMotor_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(DCMOTOR), osTimerPeriodic,dcMotor), 2);
 
 	return (Motor*)dcMotor;
 }
 
-//³õÊ¼»¯pid
+//åˆå§‹åŒ–pid
 void DcMotor_PIDInit(DcMotor* dcMotor, ConfItem* dict)
 {
 	PID_Init(&dcMotor->speedPID, Conf_GetPtr(dict, "speed-pid", ConfItem));
 	PID_Init(&dcMotor->anglePID.inner, Conf_GetPtr(dict, "angle-pid/inner", ConfItem));
 	PID_Init(&dcMotor->anglePID.outer, Conf_GetPtr(dict, "angle-pid/outer", ConfItem));
-	PID_SetMaxOutput(&dcMotor->anglePID.outer, dcMotor->anglePID.outer.maxOutput*dcMotor->reductionRatio);//½«Êä³öÖáËÙ¶ÈÏŞ·ù·Å´óµ½×ª×ÓÉÏ
+	PID_SetMaxOutput(&dcMotor->anglePID.outer, dcMotor->anglePID.outer.maxOutput*dcMotor->reductionRatio);//å°†è¾“å‡ºè½´é€Ÿåº¦é™å¹…æ”¾å¤§åˆ°è½¬å­ä¸Š
 }
 
-//³õÊ¼»¯tim
+//åˆå§‹åŒ–tim
 void DcMotor_TimInit(DcMotor* dcMotor, ConfItem* dict)
 {
 	dcMotor->posRotateTim.timX = Conf_GetValue(dict,"pos-rotate-tim/tim-x",uint8_t,0);
@@ -98,7 +98,7 @@ void DcMotor_TimInit(DcMotor* dcMotor, ConfItem* dict)
 	dcMotor->encodeTim.channelX = Conf_GetValue(dict,"encode-tim/tim-x",uint8_t,0);
 }
 
-//¿ªÊ¼Í³¼Æµç»úÀÛ¼Æ½Ç¶È
+//å¼€å§‹ç»Ÿè®¡ç”µæœºç´¯è®¡è§’åº¦
 void DcMotor_InitTotalAngle(Motor *motor, float startAngle)
 {
 	DcMotor* dcMotor = (DcMotor*)motor;
@@ -107,7 +107,7 @@ void DcMotor_InitTotalAngle(Motor *motor, float startAngle)
 	dcMotor->lastAngle=dcMotor->angle;
 }
 
-//Í³¼Æµç»úÀÛ¼Æ×ª¹ıµÄÈ¦Êı
+//ç»Ÿè®¡ç”µæœºç´¯è®¡è½¬è¿‡çš„åœˆæ•°
 void DcMotor_StatAngle(DcMotor* dcMotor)
 {
 	int32_t dAngle=0;
@@ -121,15 +121,15 @@ void DcMotor_StatAngle(DcMotor* dcMotor)
 		dAngle = -dcMotor->lastAngle - (autoReload - dcMotor->angle);
 	else
 		dAngle = dcMotor->angle - dcMotor->lastAngle;
-	//½«½Ç¶ÈÔöÁ¿¼ÓÈë¼ÆÊıÆ÷
+	//å°†è§’åº¦å¢é‡åŠ å…¥è®¡æ•°å™¨
 	dcMotor->totalAngle += dAngle;
-	//¼ÆËãËÙ¶È
+	//è®¡ç®—é€Ÿåº¦
 	dcMotor->speed = (float)dAngle/(dcMotor->circleEncode*dcMotor->reductionRatio)*500*60;//rpm  
-	//¼ÇÂ¼½Ç¶È
+	//è®°å½•è§’åº¦
 	dcMotor->lastAngle=dcMotor->angle;
 }
 
-//¿ØÖÆÆ÷¸ù¾İÄ£Ê½¼ÆËãÊä³ö
+//æ§åˆ¶å™¨æ ¹æ®æ¨¡å¼è®¡ç®—è¾“å‡º
 void DcMotor_CtrlerCalc(DcMotor* dcMotor, float reference)
 {
 	float output=0;
@@ -162,7 +162,7 @@ void DcMotor_CtrlerCalc(DcMotor* dcMotor, float reference)
 
 }
 
-//ÉèÖÃµç»úÆÚÍûÖµ
+//è®¾ç½®ç”µæœºæœŸæœ›å€¼
 void DcMotor_SetTarget(Motor* motor, float targetValue)
 {
 	DcMotor* dcMotor = (DcMotor*)motor;
@@ -180,7 +180,7 @@ void DcMotor_SetTarget(Motor* motor, float targetValue)
 	}
 }
 
-//ÇĞ»»µç»úÄ£Ê½
+//åˆ‡æ¢ç”µæœºæ¨¡å¼
 void DcMotor_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	DcMotor* dcMotor = (DcMotor*)motor;

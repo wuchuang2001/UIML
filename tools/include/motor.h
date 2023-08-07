@@ -2,10 +2,13 @@
 #define _MOTOR_H_
 #include "config.h"
 #include "cmsis_os.h"
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #define MOTOR_MALLOC_PORT(len) pvPortMalloc(len)
 #define MOTOR_FREE_PORT(ptr) vPortFree(ptr)
-//模式
+//妯″紡
 typedef enum
 {
 	MOTOR_TORQUE_MODE,
@@ -13,7 +16,7 @@ typedef enum
 	MOTOR_ANGLE_MODE,
 	MOTOR_STOP_MODE
 }MotorCtrlMode;
-//父类，包含所有子类的方法
+//鐖剁被锛屽寘鍚墍鏈夊瓙绫荤殑鏂规硶
 typedef struct _Motor
 {
 	void (*changeMode)(struct _Motor* motor, MotorCtrlMode mode);

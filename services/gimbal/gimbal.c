@@ -10,21 +10,21 @@
 
 typedef struct _Gimbal
 {
-	//yaw¡¢pitchµç»ú
+	//yawã€pitchç”µæœº
 	Motor* motors[2];
 
-	uint16_t zeroAngle[2];	//Áãµã
-	float relativeAngle;	//ÔÆÌ¨Æ«Àë½Ç¶È
+	uint16_t zeroAngle[2];	//é›¶ç‚¹
+	float relativeAngle;	//äº‘å°åç¦»è§’åº¦
 	struct 
 	{
-		// float eulerAngle[3];	//Å·À­½Ç
+		// float eulerAngle[3];	//æ¬§æ‹‰è§’
 		float lastEulerAngle[3];
 		float totalEulerAngle[3];
 		PID pid[2];
 	}imu;
-	float angle[2];	//ÔÆÌ¨½Ç¶È
+	float angle[2];	//äº‘å°è§’åº¦
 	uint16_t taskInterval;	
-	//Èí×ÜÏß¹ã²¥¡¢Ô¶³Ìº¯Êıname
+	//è½¯æ€»çº¿å¹¿æ’­ã€è¿œç¨‹å‡½æ•°name
 	char* yawRelAngleName;	
 	char* imuEulerAngleName;
 	char* settingName;
@@ -38,72 +38,77 @@ void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindD
 bool Gimbal_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
+static Gimbal* GlobalGimbal;
+
 void Gimbal_TaskCallback(void const * argument)
 {
-	//½øÈëÁÙ½çÇø
+	//è¿›å…¥ä¸´ç•ŒåŒº
 	portENTER_CRITICAL();
 	Gimbal gimbal={0};
 	Gimbal_Init(&gimbal, (ConfItem*)argument);
 	portEXIT_CRITICAL();
 	osDelay(2000);
-	Gimbal_TotalAngleInit(&gimbal); //¼ÆËãÔÆÌ¨Áãµã
-	//¼ÆËãºÃÔÆÌ¨Áãµãºó£¬¸ü¸Äµç»úÄ£Ê½£¬imu·´À¡×ö½Ç¶ÈÍâ»·µç»úËÙ¶È·´À¡×öÄÚ»·
+	Gimbal_TotalAngleInit(&gimbal); //è®¡ç®—äº‘å°é›¶ç‚¹
+	//è®¡ç®—å¥½äº‘å°é›¶ç‚¹åï¼Œæ›´æ”¹ç”µæœºæ¨¡å¼ï¼Œimuåé¦ˆåšè§’åº¦å¤–ç¯ç”µæœºé€Ÿåº¦åé¦ˆåšå†…ç¯
 	gimbal.motors[0]->changeMode(gimbal.motors[0], MOTOR_SPEED_MODE);
 	gimbal.motors[1]->changeMode(gimbal.motors[1], MOTOR_SPEED_MODE);
+
+	GlobalGimbal = &gimbal;
+
 	while(1)
 	{
-		//¼ÆËã½Ç¶È´®¼¶pid
-		PID_SingleCalc(&gimbal.imu.pid[0], gimbal.angle[0], gimbal.imu.totalEulerAngle[0]);
+		//è®¡ç®—è§’åº¦ä¸²çº§pid
+		PID_SingleCalc(&gimbal.imu.pid[0], gimbal.angle[0], gimbal.relativeAngle/*gimbal.imu.totalEulerAngle[0]*/);
 		PID_SingleCalc(&gimbal.imu.pid[1], gimbal.angle[1], gimbal.imu.totalEulerAngle[1]);
 		gimbal.motors[0]->setTarget(gimbal.motors[0], gimbal.imu.pid[0].output);
 		gimbal.motors[1]->setTarget(gimbal.motors[1], gimbal.imu.pid[1].output);
-		//½âËãÔÆÌ¨¾àÀëÁãµãµÄ½Ç¶È
+		//è§£ç®—äº‘å°è·ç¦»é›¶ç‚¹çš„è§’åº¦
 		gimbal.relativeAngle = gimbal.motors[0]->getData(gimbal.motors[0], "totalAngle");
-		int16_t turns = (int32_t)gimbal.relativeAngle / 360; //×ªÊı
-		turns = turns < 0 ? turns - 1 : turns; //Èç¹ûÊÇ¸ºÊı¶à¼õÒ»È¦Ê¹Æ«Àë½Ç±ä³ÉÕıÊı
-		gimbal.relativeAngle -= turns*360; //0-360¶È
-		Bus_BroadcastSend(gimbal.yawRelAngleName, {{"angle", &gimbal.relativeAngle}}); //¹ã²¥ÔÆÌ¨Æ«Àë½Ç
+		int16_t turns = (int32_t)gimbal.relativeAngle / 360; //è½¬æ•°
+		turns = turns < 0 ? turns - 1 : turns; //å¦‚æœæ˜¯è´Ÿæ•°å¤šå‡ä¸€åœˆä½¿åç¦»è§’å˜æˆæ­£æ•°
+		gimbal.relativeAngle -= turns*360; //0-360åº¦
+		Bus_BroadcastSend(gimbal.yawRelAngleName, {{"angle", &gimbal.relativeAngle}}); //å¹¿æ’­äº‘å°åç¦»è§’
 		osDelay(gimbal.taskInterval);
 	}
 }
 
 void Gimbal_Init(Gimbal* gimbal, ConfItem* dict)
 {
-	//ÈÎÎñ¼ä¸ô
+	//ä»»åŠ¡é—´éš”
 	gimbal->taskInterval = Conf_GetValue(dict, "task-interval", uint16_t, 2);
 
-	//ÔÆÌ¨Áãµã
+	//äº‘å°é›¶ç‚¹
 	gimbal->zeroAngle[0] = Conf_GetValue(dict, "zero-yaw", uint16_t, 0);
 	gimbal->zeroAngle[1] = Conf_GetValue(dict, "zero-pitch", uint16_t, 0);
 
-	//ÔÆÌ¨µç»ú³õÊ¼»¯
+	//äº‘å°ç”µæœºåˆå§‹åŒ–
 	gimbal->motors[0] = Motor_Init(Conf_GetPtr(dict, "motor-yaw", ConfItem));
 	gimbal->motors[1] = Motor_Init(Conf_GetPtr(dict, "motor-pitch", ConfItem));
 
 	PID_Init(&gimbal->imu.pid[0], Conf_GetPtr(dict, "yaw-imu-pid", ConfItem));
 	PID_Init(&gimbal->imu.pid[1], Conf_GetPtr(dict, "pitch-imu-pid", ConfItem));
-	//¹ã²¥¡¢Ô¶³Ìº¯ÊınameÖØÓ³Éä
+	//å¹¿æ’­ã€è¿œç¨‹å‡½æ•°nameé‡æ˜ å°„
 	char* temp = Conf_GetPtr(dict, "name", char);
 	temp = temp ? temp : "gimbal";
 	uint8_t len = strlen(temp);
-	gimbal->settingName = pvPortMalloc(len + 9+ 1); //9Îª"/   /setting"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	gimbal->settingName = pvPortMalloc(len + 9+ 1); //9ä¸º"/   /setting"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(gimbal->settingName, "/%s/setting", temp);
 
-	gimbal->yawRelAngleName = pvPortMalloc(len + 20+ 1); //20Îª"/   /yaw/relative-angle"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	gimbal->yawRelAngleName = pvPortMalloc(len + 20+ 1); //20ä¸º"/   /yaw/relative-angle"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(gimbal->yawRelAngleName, "/%s/yaw/relative-angle", temp);
 
 	temp = Conf_GetPtr(dict, "ins-name", char);
 	temp = temp ? temp : "ins";
 	len = strlen(temp);
-	gimbal->imuEulerAngleName = pvPortMalloc(len + 13+ 1); //13Îª"/   /euler-angle"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	gimbal->imuEulerAngleName = pvPortMalloc(len + 13+ 1); //13ä¸º"/   /euler-angle"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(gimbal->imuEulerAngleName, "/%s/euler-angle", temp);
 
-	//²»ÔÚÕâÀïÉèÖÃµç»úÄ£Ê½£¬ÒòÎªÔÚÎ´ÉèÖÃºÃÁãµãÇ°£¬pid»áÇıÊ¹µç»ú´ïµ½±àÂëÆ÷µÄÁãµã»òÕßimuµÄ³õÊ¼»¯Áãµã
+	//ä¸åœ¨è¿™é‡Œè®¾ç½®ç”µæœºæ¨¡å¼ï¼Œå› ä¸ºåœ¨æœªè®¾ç½®å¥½é›¶ç‚¹å‰ï¼Œpidä¼šé©±ä½¿ç”µæœºè¾¾åˆ°ç¼–ç å™¨çš„é›¶ç‚¹æˆ–è€…imuçš„åˆå§‹åŒ–é›¶ç‚¹
 
-	//×¢²á¹ã²¥¡¢Ô¶³Ìº¯Êı»Øµ÷º¯Êı
+	//æ³¨å†Œå¹¿æ’­ã€è¿œç¨‹å‡½æ•°å›è°ƒå‡½æ•°
 	Bus_RegisterReceiver(gimbal, Gimbal_BroadcastCallback, gimbal->imuEulerAngleName);
 	Bus_RegisterRemoteFunc(gimbal, Gimbal_SettingCallback, gimbal->settingName);
-	Bus_RegisterReceiver(gimbal, Gimbal_StopCallback, "/system/stop"); //¼±Í£
+	Bus_RegisterReceiver(gimbal, Gimbal_StopCallback, "/system/stop"); //æ€¥åœ
 }
 
 void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindData)
@@ -117,7 +122,7 @@ void Gimbal_BroadcastCallback(const char* name, SoftBusFrame* frame, void* bindD
 		float yaw = *(float*)Bus_GetMapValue(frame, "yaw");
 		float pitch = *(float*)Bus_GetMapValue(frame, "pitch");
 		float roll = *(float*)Bus_GetMapValue(frame, "roll");
-		Gimbal_StatAngle(gimbal, yaw, pitch, roll); //Í³¼ÆÔÆÌ¨½Ç¶È
+		Gimbal_StatAngle(gimbal, yaw, pitch, roll); //ç»Ÿè®¡äº‘å°è§’åº¦
 	}
 }
 bool Gimbal_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData)
@@ -135,7 +140,7 @@ bool Gimbal_SettingCallback(const char* name, SoftBusFrame* frame, void* bindDat
 	return true;
 }
 
-void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData) //¼±Í£
+void Gimbal_StopCallback(const char* name, SoftBusFrame* frame, void* bindData) //æ€¥åœ
 {
 	Gimbal* gimbal = (Gimbal*)bindData;
 	for(uint8_t i = 0; i<2; i++)
@@ -156,9 +161,9 @@ void Gimbal_StatAngle(Gimbal* gimbal, float yaw, float pitch, float roll)
 			dAngle = -gimbal->imu.lastEulerAngle[i] - (360 - eulerAngle[i]);
 		else
 			dAngle = eulerAngle[i] - gimbal->imu.lastEulerAngle[i];
-		//½«½Ç¶ÈÔöÁ¿¼ÓÈë¼ÆÊıÆ÷
+		//å°†è§’åº¦å¢é‡åŠ å…¥è®¡æ•°å™¨
 		gimbal->imu.totalEulerAngle[i] += dAngle;
-		//¼ÇÂ¼½Ç¶È
+		//è®°å½•è§’åº¦
 		gimbal->imu.lastEulerAngle[i] = eulerAngle[i];
 	}
 }
@@ -169,12 +174,12 @@ void Gimbal_TotalAngleInit(Gimbal* gimbal)
 	{
 		float angle = 0;
 		angle = gimbal->motors[i]->getData(gimbal->motors[i], "angle");
-		angle = angle - (float)gimbal->zeroAngle[i]*360/8191;  //¼ÆËã¾àÀëÁãµãµÄ½Ç¶È  
-		if(angle < -180)  //½«½Ç¶È×ª»¯µ½-180~180¶È£¬ÕâÑù¿ÉÒÔÊ¹ÔÆÌ¨ÒÔ×î½ü¾àÀëĞı×ªÖÁÁãµã
+		angle = angle - (float)gimbal->zeroAngle[i]*360/8191;  //è®¡ç®—è·ç¦»é›¶ç‚¹çš„è§’åº¦  
+		if(angle < -180)  //å°†è§’åº¦è½¬åŒ–åˆ°-180~180åº¦ï¼Œè¿™æ ·å¯ä»¥ä½¿äº‘å°ä»¥æœ€è¿‘è·ç¦»æ—‹è½¬è‡³é›¶ç‚¹
 			angle += 360;
 		else if(angle > 180)
 			angle -= 360;
 		gimbal->imu.totalEulerAngle[i] = angle;
-		gimbal->motors[i]->initTotalAngle(gimbal->motors[i], angle); //ÉèÖÃµç»úµÄÆğÊ¼½Ç¶È
+		gimbal->motors[i]->initTotalAngle(gimbal->motors[i], angle); //è®¾ç½®ç”µæœºçš„èµ·å§‹è§’åº¦
 	}	
 }

@@ -5,12 +5,12 @@
 #define ABS(x) ((x)>=0?(x):-(x))
 #endif
 
-//Ğ±ÆÂ½á¹¹Ìå
+//æ–œå¡ç»“æ„ä½“
 typedef struct{
-	float target; //Ä¿±êÖµ
-	float step; //²½½øÖµ
-	float value; //µ±Ç°Öµ
-	float deadzone; //ËÀÇø£¬Èô²îÖµĞ¡ÓÚ¸ÃÖµÔò²»½øĞĞÔö¼õ
+	float target; //ç›®æ ‡å€¼
+	float step; //æ­¥è¿›å€¼
+	float value; //å½“å‰å€¼
+	float deadzone; //æ­»åŒºï¼Œè‹¥å·®å€¼å°äºè¯¥å€¼åˆ™ä¸è¿›è¡Œå¢å‡
 }Slope;
 
 void Slope_Init(Slope *slope,float step,float deadzone);

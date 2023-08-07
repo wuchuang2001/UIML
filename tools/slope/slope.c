@@ -1,6 +1,6 @@
 #include "slope.h"
 
-//³õÊ¼»¯Ğ±ÆÂ²ÎÊı
+//åˆå§‹åŒ–æ–œå¡å‚æ•°
 void Slope_Init(Slope *slope,float step,float deadzone)
 {
 	slope->target=0;
@@ -9,27 +9,27 @@ void Slope_Init(Slope *slope,float step,float deadzone)
 	slope->deadzone=deadzone;
 }
 
-//Éè¶¨Ğ±ÆÂÄ¿±ê
+//è®¾å®šæ–œå¡ç›®æ ‡
 void Slope_SetTarget(Slope *slope,float target)
 {
 	slope->target=target;
 }
 
-//Éè¶¨Ğ±ÆÂ²½³¤
+//è®¾å®šæ–œå¡æ­¥é•¿
 void Slope_SetStep(Slope *slope,float step)
 {
 	slope->step=step;
 }
 
-//¼ÆËãÏÂÒ»¸öĞ±ÆÂÖµ£¬¸üĞÂslope->value²¢·µ»Ø¸ÃÖµ
+//è®¡ç®—ä¸‹ä¸€ä¸ªæ–œå¡å€¼ï¼Œæ›´æ–°slope->valueå¹¶è¿”å›è¯¥å€¼
 float Slope_NextVal(Slope *slope)
 {
-	float error=slope->value-slope->target;//µ±Ç°ÖµÓëÄ¿±êÖµµÄ²îÖµ
+	float error=slope->value-slope->target;//å½“å‰å€¼ä¸ç›®æ ‡å€¼çš„å·®å€¼
 	
-	if(ABS(error)<slope->deadzone)//ÈôÎó²îÔÚËÀÇøÄÚÔòµ±Ç°Öµ²»·¢Éú±ä»¯
+	if(ABS(error)<slope->deadzone)//è‹¥è¯¯å·®åœ¨æ­»åŒºå†…åˆ™å½“å‰å€¼ä¸å‘ç”Ÿå˜åŒ–
 		return slope->value;
 	
-	if(ABS(error)<slope->step)//ÈôÎó²î²»×ã²½³¤Ôòµ±Ç°ÖµÖ±½ÓÉèÎªÄ¿±êÖµ
+	if(ABS(error)<slope->step)//è‹¥è¯¯å·®ä¸è¶³æ­¥é•¿åˆ™å½“å‰å€¼ç›´æ¥è®¾ä¸ºç›®æ ‡å€¼
 		slope->value=slope->target;
 	else if(error<0)
 		slope->value+=slope->step;
@@ -38,7 +38,7 @@ float Slope_NextVal(Slope *slope)
 	return slope->value;
 }
 
-//»ñÈ¡Ğ±ÆÂµ±Ç°Öµ
+//è·å–æ–œå¡å½“å‰å€¼
 float Slope_GetVal(Slope *slope)
 {
 	return slope->value;

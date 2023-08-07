@@ -2,21 +2,24 @@
 #include "BMI088reg.h"
 #include "softbus.h"
 #include "cmsis_os.h"
+#include "spi.h"
+#include "stm32f4xx_hal_spi.h"
+#include <string.h>
 
-#define spiWriteAddr(addr) ((addr)&0x7f)
-#define spiReadAddr(addr) ((addr)|0x80)
+#define spiWriteAddr(addr) ((addr) & (~0x80))
+#define spiReadAddr(addr) ((addr) | 0x80)
 
 #define BMI088_ACCEL_SEN BMI088_ACCEL_6G_SEN;
 #define BMI088_GYRO_SEN  BMI088_GYRO_2000_SEN;
 
-//¼ÓËÙ¶È¼Æ¡¢ÍÓÂİÒÇÈí¸´Î»ÃüÁî(Ö»Ğ´2¸ö×Ö½ÚÄ¿Ç°²â³öbug£¬µ«´«3¸ö×Ö½Ú¾ÍÃ»ÎÊÌâÁË£¬Ä¿Ç°Ã»ÕÒµ½Ô­ÒòÔİÇÒ´«3¸ö×Ö½Ú)
+//åŠ é€Ÿåº¦è®¡ã€é™€èºä»ªè½¯å¤ä½å‘½ä»¤(åªå†™2ä¸ªå­—èŠ‚ç›®å‰æµ‹å‡ºbugï¼Œä½†ä¼ 3ä¸ªå­—èŠ‚å°±æ²¡é—®é¢˜äº†ï¼Œç›®å‰æ²¡æ‰¾åˆ°åŸå› æš‚ä¸”ä¼ 3ä¸ªå­—èŠ‚)
 uint8_t accSoftResetCmd[] = {spiWriteAddr(BMI088_ACC_SOFTRESET), BMI088_ACC_SOFTRESET_VALUE, 0};
 uint8_t gyroSoftResetCmd[] = {spiWriteAddr(BMI088_ACC_SOFTRESET), BMI088_ACC_SOFTRESET_VALUE, 0};
-//¼ÓËÙ¶È¼Æ¡¢ÍÓÂİÒÇ¶ÁidÃüÁî
+//åŠ é€Ÿåº¦è®¡ã€é™€èºä»ªè¯»idå‘½ä»¤
 uint8_t accIdCmd[] = {spiReadAddr(BMI088_ACC_CHIP_ID), 0, 0};
 uint8_t gyroIdCmd[] = {spiReadAddr(BMI088_GYRO_CHIP_ID), 0};
 
-//¼ÓËÙ¶È¼ÆÅäÖÃÃüÁî
+//åŠ é€Ÿåº¦è®¡é…ç½®å‘½ä»¤
 uint8_t accPwrCtrlCmd[]={spiWriteAddr(BMI088_ACC_PWR_CTRL), BMI088_ACC_ENABLE_ACC_ON};
 uint8_t accPwrConfCmd[]={spiWriteAddr(BMI088_ACC_PWR_CONF), BMI088_ACC_PWR_ACTIVE_MODE};
 uint8_t accConfCmd[]={spiWriteAddr(BMI088_ACC_CONF),  BMI088_ACC_NORMAL| BMI088_ACC_800_HZ | BMI088_ACC_CONF_MUST_Set};
@@ -24,7 +27,7 @@ uint8_t accRangeCmd[]={spiWriteAddr(BMI088_ACC_RANGE), BMI088_ACC_RANGE_6G};
 uint8_t accIOConfCmd[]={spiWriteAddr(BMI088_INT1_IO_CTRL), BMI088_ACC_INT1_IO_ENABLE | BMI088_ACC_INT1_GPIO_PP | BMI088_ACC_INT1_GPIO_LOW};
 uint8_t accIOMapCmd[]={spiWriteAddr(BMI088_INT_MAP_DATA), BMI088_ACC_INT1_DRDY_INTERRUPT};
 
-//ÍÓÂİÒÇÅäÖÃÃüÁî
+//é™€èºä»ªé…ç½®å‘½ä»¤
 uint8_t gyroRangeCmd[]={spiWriteAddr(BMI088_GYRO_RANGE), BMI088_GYRO_2000};
 uint8_t gyroBandWidthCmd[]={spiWriteAddr(BMI088_GYRO_BANDWIDTH), BMI088_GYRO_1000_116_HZ | BMI088_GYRO_BANDWIDTH_MUST_Set};
 uint8_t gyroPwrConfCmd[]={spiWriteAddr(BMI088_GYRO_LPM1), BMI088_GYRO_NORMAL_MODE};
@@ -32,7 +35,7 @@ uint8_t gyroPwrCtrlCmd[]={spiWriteAddr(BMI088_GYRO_CTRL), BMI088_DRDY_ON};
 uint8_t gyroIOConfCmd[]={spiWriteAddr(BMI088_GYRO_INT3_INT4_IO_CONF), BMI088_GYRO_INT3_GPIO_PP | BMI088_GYRO_INT3_GPIO_LOW};
 uint8_t gyroIOMapCmd[]={spiWriteAddr(BMI088_GYRO_INT3_INT4_IO_MAP), BMI088_GYRO_DRDY_IO_INT3};
 
-//¼ÓËÙ¶È¼ÆÍÓÂİÒÇ»ñÈ¡Êı¾İÃüÁî
+//åŠ é€Ÿåº¦è®¡é™€èºä»ªè·å–æ•°æ®å‘½ä»¤
 uint8_t accGetDataCmd[8]={spiReadAddr(BMI088_ACCEL_XOUT_L)};
 uint8_t gyroGetDataCmd[7]={spiReadAddr(BMI088_GYRO_X_L)};
 uint8_t tmpGetDataCmd[4]={spiReadAddr(BMI088_TEMP_M)};
@@ -46,21 +49,21 @@ bool BMI088_AccelInit(uint8_t spiX)
 	                              {"len", IM_PTR(uint16_t, 3)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //¶Á¼ÓËÙ¶È¼Æid
+	                              {"is-block", IM_PTR(bool, true)}}); //è¯»åŠ é€Ÿåº¦è®¡id
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", accPwrConfCmd}, 
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //ÅäÖÃ½øÈë»î¶¯Ä£Ê½
+	                              {"is-block", IM_PTR(bool, true)}}); //é…ç½®è¿›å…¥æ´»åŠ¨æ¨¡å¼
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", accPwrCtrlCmd}, 
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //´ò¿ª¼ÓËÙ¶È¼ÆµçÔ´
+	                              {"is-block", IM_PTR(bool, true)}}); //æ‰“å¼€åŠ é€Ÿåº¦è®¡ç”µæº
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", accIdCmd}, 
@@ -68,17 +71,17 @@ bool BMI088_AccelInit(uint8_t spiX)
 	                              {"len", IM_PTR(uint16_t, 3)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //¶Á¼ÓËÙ¶È¼Æid
+	                              {"is-block", IM_PTR(bool, true)}}); //è¯»åŠ é€Ÿåº¦è®¡id
 	osDelay(1);
 
-	if(accId[2] != BMI088_ACC_CHIP_ID_VALUE) //Èç¹û¼ÓËÙ¶È¼Æid²»¶Ô
+	if(accId[2] != BMI088_ACC_CHIP_ID_VALUE) //å¦‚æœåŠ é€Ÿåº¦è®¡idä¸å¯¹
 	{
 		Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 		                              {"tx-data", accSoftResetCmd}, 
 		                              {"len", IM_PTR(uint16_t, 3)}, 
 		                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 		                              {"cs-name", "acc"}, 
-		                              {"is-block", IM_PTR(bool, true)}}); //Èí¸´Î»
+		                              {"is-block", IM_PTR(bool, true)}}); //è½¯å¤ä½
 		osDelay(50);
 		return true;
 	}
@@ -88,28 +91,28 @@ bool BMI088_AccelInit(uint8_t spiX)
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //ÅäÖÃ¼ÓËÙ¶È¼ÆÊä³öËÙÂÊ800Hz, NormalÊä³öÄ£Ê½
+	                              {"is-block", IM_PTR(bool, true)}}); //é…ç½®åŠ é€Ÿåº¦è®¡è¾“å‡ºé€Ÿç‡800Hz, Normalè¾“å‡ºæ¨¡å¼
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", accRangeCmd}, 
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //ÅäÖÃ¼ÓËÙ¶È¼ÆÁ¿³Ì+-3g
+	                              {"is-block", IM_PTR(bool, true)}}); //é…ç½®åŠ é€Ÿåº¦è®¡é‡ç¨‹+-3g
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", accPwrConfCmd}, 
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //ÅäÖÃ½øÈëÕı³£Ä£Ê½
+	                              {"is-block", IM_PTR(bool, true)}}); //é…ç½®è¿›å…¥æ­£å¸¸æ¨¡å¼
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", accPwrCtrlCmd}, 
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}});  //´ò¿ª¼ÓËÙ¶È¼ÆµçÔ´
+	                              {"is-block", IM_PTR(bool, true)}});  //æ‰“å¼€åŠ é€Ÿåº¦è®¡ç”µæº
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", accIOConfCmd}, 
@@ -136,7 +139,7 @@ bool BMI088_GyroInit(uint8_t spiX)
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "gyro"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //¶ÁÍÓÂİÒÇid
+	                              {"is-block", IM_PTR(bool, true)}}); //è¯»é™€èºä»ªid
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", gyroIdCmd}, 
@@ -144,17 +147,17 @@ bool BMI088_GyroInit(uint8_t spiX)
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "gyro"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //¶ÁÍÓÂİÒÇid
+	                              {"is-block", IM_PTR(bool, true)}}); //è¯»é™€èºä»ªid
 	osDelay(1);
 
-	if(gyroId[1] != BMI088_GYRO_CHIP_ID_VALUE) //Èç¹ûÍÓÂİÒÇid²»¶Ô
+	if(gyroId[1] != BMI088_GYRO_CHIP_ID_VALUE) //å¦‚æœé™€èºä»ªidä¸å¯¹
 	{
 		Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 		                              {"tx-data", gyroSoftResetCmd}, 
 		                              {"len", IM_PTR(uint16_t, 3)}, 
 		                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 		                              {"cs-name", "gyro"}, 
-		                              {"is-block", IM_PTR(bool, true)}}); //Èí¸´Î»
+		                              {"is-block", IM_PTR(bool, true)}}); //è½¯å¤ä½
 		osDelay(50);
 		return true;
 	}
@@ -164,21 +167,21 @@ bool BMI088_GyroInit(uint8_t spiX)
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "gyro"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //ÅäÖÃÍÓÂİÒÇÊä³öËÙÂÊ1000Hz, ´ø¿í116Hz
+	                              {"is-block", IM_PTR(bool, true)}}); //é…ç½®é™€èºä»ªè¾“å‡ºé€Ÿç‡1000Hz, å¸¦å®½116Hz
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", gyroRangeCmd}, 
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "gyro"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //ÅäÖÃÍÓÂİÒÇÊä³ö·¶Î§+-2000¡ã/s
+	                              {"is-block", IM_PTR(bool, true)}}); //é…ç½®é™€èºä»ªè¾“å‡ºèŒƒå›´+-2000Â°/s
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", gyroPwrConfCmd},
 	                              {"len", IM_PTR(uint16_t, 2)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "gyro"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //ÅäÖÃ½øÈë»î¶¯Ä£Ê½
+	                              {"is-block", IM_PTR(bool, true)}}); //é…ç½®è¿›å…¥æ´»åŠ¨æ¨¡å¼
 	osDelay(1);
 	Bus_RemoteCall("/spi/block", {{"spi-x", &spiX}, 
 	                              {"tx-data", gyroIOConfCmd}, 
@@ -208,7 +211,7 @@ void BMI088_ReadData(uint8_t spiX, float gyro[3], float accel[3], float *tempera
 	                              {"len", IM_PTR(uint16_t, 8)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //»ñÈ¡¼ÓËÙ¶È¼ÆÊı¾İ
+	                              {"is-block", IM_PTR(bool, true)}}); //è·å–åŠ é€Ÿåº¦è®¡æ•°æ®
 	temp = (int16_t)((buf[3]) << 8) | buf[2];
 	accel[0] = temp * BMI088_ACCEL_SEN;
 	temp = (int16_t)((buf[5]) << 8) | buf[4];
@@ -222,7 +225,7 @@ void BMI088_ReadData(uint8_t spiX, float gyro[3], float accel[3], float *tempera
 	                              {"len", IM_PTR(uint16_t, 7)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "gyro"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //»ñÈ¡ÍÓÂİÒÇÊı¾İ
+	                              {"is-block", IM_PTR(bool, true)}}); //è·å–é™€èºä»ªæ•°æ®
 	// if(buf[0] == BMI088_GYRO_CHIP_ID_VALUE)
 	// {
 	temp = (int16_t)((buf[2]) << 8) | buf[1];
@@ -239,7 +242,7 @@ void BMI088_ReadData(uint8_t spiX, float gyro[3], float accel[3], float *tempera
 	                              {"len", IM_PTR(uint16_t, 4)}, 
 	                              {"timeout", IM_PTR(uint32_t, 1000)}, 
 	                              {"cs-name", "acc"}, 
-	                              {"is-block", IM_PTR(bool, true)}}); //»ñÈ¡ÎÂ¶ÈÊı¾İ
+	                              {"is-block", IM_PTR(bool, true)}}); //è·å–æ¸©åº¦æ•°æ®
 	temp = (int16_t)((buf[2] << 3) | (buf[3] >> 5));
 
 	if (temp > 1023)

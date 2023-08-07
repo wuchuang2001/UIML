@@ -3,8 +3,8 @@
 #include "pid.h"
 #include "config.h"
 
-//¸÷ÖÖµç»ú±àÂëÖµÓë½Ç¶ÈµÄ»»Ëã
-#define M6020_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //¼õËÙ±È*8191/360
+//å„ç§ç”µæœºç¼–ç å€¼ä¸Žè§’åº¦çš„æ¢ç®—
+#define M6020_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //å‡é€Ÿæ¯”*8191/360
 #define M6020_CODE2DGR(code,rdcr) ((float)((code)/(22.7528f*(rdcr))))
 
 typedef struct _M6020
@@ -22,14 +22,14 @@ typedef struct _M6020
 	
 	int16_t angle,speed;
 	
-	int16_t lastAngle;//¼ÇÂ¼ÉÏÒ»´ÎµÃµ½µÄ½Ç¶È
+	int16_t lastAngle;//è®°å½•ä¸Šä¸€æ¬¡å¾—åˆ°çš„è§’åº¦
 	
-	int32_t totalAngle;//ÀÛ¼Æ×ª¹ýµÄ±àÂëÆ÷Öµ	
+	int32_t totalAngle;//ç´¯è®¡è½¬è¿‡çš„ç¼–ç å™¨å€¼	
 	
-	float  targetValue;//Ä¿±êÖµ(Êä³öÖáÅ¤¾Ø¾Ø/ËÙ¶È/½Ç¶È(µ¥Î»¶È))
+	float  targetValue;//ç›®æ ‡å€¼(è¾“å‡ºè½´æ‰­çŸ©çŸ©/é€Ÿåº¦/è§’åº¦(å•ä½åº¦))
 	
-	PID speedPID;//ËÙ¶Èpid(µ¥¼¶)
-	CascadePID anglePID;//½Ç¶Èpid£¬´®¼¶
+	PID speedPID;//é€Ÿåº¦pid(å•çº§)
+	CascadePID anglePID;//è§’åº¦pidï¼Œä¸²çº§
 }M6020;
 
 Motor* M6020_Init(ConfItem* dict);
@@ -46,7 +46,7 @@ void M6020_PIDInit(M6020* m6020, ConfItem* dict);
 void M6020_StatAngle(M6020* m6020);
 void M6020_CtrlerCalc(M6020* m6020, float reference);
 
-//Èí¼þ¶¨Ê±Æ÷»Øµ÷º¯Êý
+//è½¯ä»¶å®šæ—¶å™¨å›žè°ƒå‡½æ•°
 void M6020_TimerCallback(void const *argument)
 {
 	M6020* m6020 = pvTimerGetTimerID((TimerHandle_t)argument); 
@@ -56,46 +56,46 @@ void M6020_TimerCallback(void const *argument)
 
 Motor* M6020_Init(ConfItem* dict)
 {
-	//·ÖÅä×ÓÀàÄÚ´æ¿Õ¼ä
+	//åˆ†é…å­ç±»å†…å­˜ç©ºé—´
 	M6020* m6020 = MOTOR_MALLOC_PORT(sizeof(M6020));
 	memset(m6020,0,sizeof(M6020));
-	//×ÓÀà¶àÌ¬
+	//å­ç±»å¤šæ€
 	m6020->motor.setTarget = M6020_SetTarget;
 	m6020->motor.changeMode = M6020_ChangeMode;
 	m6020->motor.initTotalAngle = M6020_InitTotalAngle;
 	m6020->motor.getData = M6020_GetData;
 	m6020->motor.stop = M6020_Stop;
-	//µç»ú¼õËÙ±È
-	m6020->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 1);//Èç¹ûÎ´ÅäÖÃµç»ú¼õËÙ±È²ÎÊý£¬ÔòÊ¹ÓÃÔ­×°µç»úÄ¬ÈÏ¼õËÙ±È
-	//³õÊ¼»¯µç»ú°ó¶¨canÐÅÏ¢
+	//ç”µæœºå‡é€Ÿæ¯”
+	m6020->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 1);//å¦‚æžœæœªé…ç½®ç”µæœºå‡é€Ÿæ¯”å‚æ•°ï¼Œåˆ™ä½¿ç”¨åŽŸè£…ç”µæœºé»˜è®¤å‡é€Ÿæ¯”
+	//åˆå§‹åŒ–ç”µæœºç»‘å®šcanä¿¡æ¯
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m6020->canInfo.recvID = id + 0x204;
 	m6020->canInfo.sendID = (id <= 4) ? 0x1FF : 0x2FF;
 	m6020->canInfo.bufIndex =  ((id - 1)%4) * 2;
 	m6020->canInfo.canX = Conf_GetValue(dict, "can-x", uint8_t, 0);
-	//ÉèÖÃµç»úÄ¬ÈÏÄ£Ê½ÎªÅ¤¾ØÄ£Ê½
+	//è®¾ç½®ç”µæœºé»˜è®¤æ¨¡å¼ä¸ºæ‰­çŸ©æ¨¡å¼
 	m6020->mode = MOTOR_TORQUE_MODE;
-	//³õÊ¼»¯µç»úpid
+	//åˆå§‹åŒ–ç”µæœºpid
 	M6020_PIDInit(m6020, dict);
-	//¶©ÔÄcanÐÅÏ¢
+	//è®¢é˜…canä¿¡æ¯
 	char name[] = "/can_/recv";
 	name[4] = m6020->canInfo.canX + '0';
 	Bus_RegisterReceiver(m6020, M6020_SoftBusCallback, name);
-	//¿ªÆôÈí¼þ¶¨Ê±Æ÷
+	//å¼€å¯è½¯ä»¶å®šæ—¶å™¨
 	osTimerDef(M6020, M6020_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M6020), osTimerPeriodic, m6020), 2);
 
 	return (Motor*)m6020;
 }
-//³õÊ¼»¯pid
+//åˆå§‹åŒ–pid
 void M6020_PIDInit(M6020* m6020, ConfItem* dict)
 {
 	PID_Init(&m6020->speedPID, Conf_GetPtr(dict, "speed-pid", ConfItem));
 	PID_Init(&m6020->anglePID.inner, Conf_GetPtr(dict, "angle-pid/inner", ConfItem));
 	PID_Init(&m6020->anglePID.outer, Conf_GetPtr(dict, "angle-pid/outer", ConfItem));
-	PID_SetMaxOutput(&m6020->anglePID.outer, m6020->anglePID.outer.maxOutput*m6020->reductionRatio);//½«Êä³öÖáËÙ¶ÈÏÞ·ù·Å´óµ½×ª×ÓÉÏ
+	PID_SetMaxOutput(&m6020->anglePID.outer, m6020->anglePID.outer.maxOutput*m6020->reductionRatio);//å°†è¾“å‡ºè½´é€Ÿåº¦é™å¹…æ”¾å¤§åˆ°è½¬å­ä¸Š
 }
-//Èí×ÜÏß»Øµ÷º¯Êý
+//è½¯æ€»çº¿å›žè°ƒå‡½æ•°
 void M6020_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	M6020* m6020 = (M6020*)bindData;
@@ -109,7 +109,7 @@ void M6020_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData
 		M6020_Update(m6020, data);
 }
 
-//µç»ú¼±Í£»Øµ÷º¯Êý
+//ç”µæœºæ€¥åœå›žè°ƒå‡½æ•°
 void M6020_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	M6020* m6020 = (M6020*)bindData;
@@ -117,7 +117,7 @@ void M6020_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 	m6020->mode = MOTOR_STOP_MODE;
 }
 
-//¿ªÊ¼Í³¼Æµç»úÀÛ¼Æ½Ç¶È
+//å¼€å§‹ç»Ÿè®¡ç”µæœºç´¯è®¡è§’åº¦
 void M6020_InitTotalAngle(Motor *motor, float startAngle)
 {
 	M6020* m6020 = (M6020*)motor;
@@ -126,7 +126,7 @@ void M6020_InitTotalAngle(Motor *motor, float startAngle)
 	m6020->lastAngle=m6020->angle;
 }
 
-//Í³¼Æµç»úÀÛ¼Æ×ª¹ýµÄÈ¦Êý
+//ç»Ÿè®¡ç”µæœºç´¯è®¡è½¬è¿‡çš„åœˆæ•°
 void M6020_StatAngle(M6020* m6020)
 {
 	int32_t dAngle=0;
@@ -136,12 +136,12 @@ void M6020_StatAngle(M6020* m6020)
 		dAngle=-m6020->lastAngle-(8191-m6020->angle);
 	else
 		dAngle=m6020->angle-m6020->lastAngle;
-	//½«½Ç¶ÈÔöÁ¿¼ÓÈë¼ÆÊýÆ÷
+	//å°†è§’åº¦å¢žé‡åŠ å…¥è®¡æ•°å™¨
 	m6020->totalAngle+=dAngle;
-	//¼ÇÂ¼½Ç¶È
+	//è®°å½•è§’åº¦
 	m6020->lastAngle=m6020->angle;
 }
-//¿ØÖÆÆ÷¸ù¾ÝÄ£Ê½¼ÆËãÊä³ö
+//æŽ§åˆ¶å™¨æ ¹æ®æ¨¡å¼è®¡ç®—è¾“å‡º
 void M6020_CtrlerCalc(M6020* m6020, float reference)
 {
 	int16_t output=0;
@@ -170,7 +170,7 @@ void M6020_CtrlerCalc(M6020* m6020, float reference)
 		{"data", buffer}
 	});
 }
-//ÉèÖÃµç»úÆÚÍûÖµ
+//è®¾ç½®ç”µæœºæœŸæœ›å€¼
 void M6020_SetTarget(Motor* motor, float targetValue)
 {
 	M6020* m6020 = (M6020*)motor;
@@ -187,11 +187,11 @@ void M6020_SetTarget(Motor* motor, float targetValue)
 		m6020->targetValue = targetValue;
 	}
 }
-//ÇÐ»»µç»úÄ£Ê½
+//åˆ‡æ¢ç”µæœºæ¨¡å¼
 void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M6020* m6020 = (M6020*)motor;
-	if(m6020->mode == MOTOR_STOP_MODE) //¼±Í£Ä£Ê½ÏÂ²»ÔÊÐíÇÐ»»Ä£Ê½
+	if(m6020->mode == MOTOR_STOP_MODE) //æ€¥åœæ¨¡å¼ä¸‹ä¸å…è®¸åˆ‡æ¢æ¨¡å¼
 		return;
 	
 	if(m6020->mode == MOTOR_SPEED_MODE)
@@ -206,7 +206,7 @@ void M6020_ChangeMode(Motor* motor, MotorCtrlMode mode)
 	m6020->mode = mode;
 }
 
-//»ñÈ¡µç»úÊý¾Ý
+//èŽ·å–ç”µæœºæ•°æ®
 float M6020_GetData(Motor* motor, const char* data)
 {
 	M6020* m6020 = (M6020*)motor;
@@ -222,7 +222,7 @@ float M6020_GetData(Motor* motor, const char* data)
 	return 0;
 }
 
-//µç»ú¼±Í£º¯Êý
+//ç”µæœºæ€¥åœå‡½æ•°
 void M6020_Stop(Motor* motor)
 {
 	M6020* m6020 = (M6020*)motor;
@@ -230,7 +230,7 @@ void M6020_Stop(Motor* motor)
 	m6020->mode = MOTOR_STOP_MODE;
 }
 
-//¸üÐÂµç»úÊý¾Ý(¿ÉÄÜ½øÐÐÂË²¨)
+//æ›´æ–°ç”µæœºæ•°æ®(å¯èƒ½è¿›è¡Œæ»¤æ³¢)
 void M6020_Update(M6020* m6020,uint8_t* data)
 {
 	m6020->angle = (data[0]<<8 | data[1]);

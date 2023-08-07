@@ -2,11 +2,11 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       AHRS_MiddleWare.c/h
-  * @brief      ×ËÌ¬½âËãÖĞ¼ä²ã£¬Îª×ËÌ¬½âËãÌá¹©Ïà¹Øº¯Êı
+  * @brief      å§¿æ€è§£ç®—ä¸­é—´å±‚ï¼Œä¸ºå§¿æ€è§£ç®—æä¾›ç›¸å…³å‡½æ•°
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É
+  *  V1.0.0     Dec-26-2018     RM              1. å®Œæˆ
   *
   @verbatim
   ==============================================================================
@@ -19,37 +19,37 @@
 #ifndef AHRS_MIDDLEWARE_H
 #define AHRS_MIDDLEWARE_H
 
-//ÖØĞÂ¶ÔÓ¦µÄÊı¾İÀàĞÍ
-typedef signed char int8_t;
-typedef signed short int int16_t;
-typedef signed int int32_t;
-typedef signed long long int64_t;
+// //é‡æ–°å¯¹åº”çš„æ•°æ®ç±»å‹
+// typedef signed char int8_t;
+// typedef signed short int int16_t;
+// typedef signed int int32_t;
+// typedef signed long long int64_t;
 
-/* exact-width unsigned integer types */
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
+// /* exact-width unsigned integer types */
+// typedef unsigned char uint8_t;
+// typedef unsigned short int uint16_t;
+// typedef unsigned int uint32_t;
+// typedef unsigned long long uint64_t;
 typedef unsigned char bool_t;
 typedef float fp32;
 typedef double fp64;
 
-//¶¨Òå NULL
+//å®šä¹‰ NULL
 #ifndef NULL
 #define NULL 0
 #endif
 
-//¶¨ÒåPI Öµ
+//å®šä¹‰PI å€¼
 #ifndef PI
 #define PI 3.14159265358979f
 #endif
 
-//¶¨Òå ½Ç¶È(¶È)×ª»»µ½ »¡¶ÈµÄ±ÈÀı
+//å®šä¹‰ è§’åº¦(åº¦)è½¬æ¢åˆ° å¼§åº¦çš„æ¯”ä¾‹
 #ifndef ANGLE_TO_RAD
 #define ANGLE_TO_RAD 0.01745329251994329576923690768489f
 #endif
 
-//¶¨Òå »¡¶È ×ª»»µ½ ½Ç¶ÈµÄ±ÈÀı
+//å®šä¹‰ å¼§åº¦ è½¬æ¢åˆ° è§’åº¦çš„æ¯”ä¾‹
 #ifndef RAD_TO_ANGLE
 #define RAD_TO_ANGLE 57.295779513082320876798154814105f
 #endif

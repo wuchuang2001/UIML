@@ -1,6 +1,8 @@
 #include "config.h"
 #include "softbus.h"
 #include "cmsis_os.h"
+#include <string.h>
+#include <stdlib.h>
 
 #define KEY_NUM 18
 //X-MACRO
@@ -24,7 +26,7 @@
 	MOUSE_KEY(left) \
 	MOUSE_KEY(right)
 
-//Ö÷¼ü
+//ä¸»é”®
 char* keyType[] = {
 	#define KEY(x) #x,
 	#define MOUSE_KEY(x) #x,
@@ -34,66 +36,66 @@ char* keyType[] = {
 };
 
 
-//Ò£¿ØÊı¾İ½á¹¹Ìå
+//é¥æ§æ•°æ®ç»“æ„ä½“
 typedef struct {
-	//Ò¡¸ËÊı¾İ È¡Öµ[-660,660] 
+	//æ‘‡æ†æ•°æ® å–å€¼[-660,660] 
 	int16_t ch1;
 	int16_t ch2;
 	int16_t ch3;
 	int16_t ch4;
-	//×óÓÒ²¦Âë¿ª¹Ø ÉÏ1/ÖĞ3/ÏÂ2 
+	//å·¦å³æ‹¨ç å¼€å…³ ä¸Š1/ä¸­3/ä¸‹2 
 	uint8_t left;
 	uint8_t right;
-	//Êó±êĞÅÏ¢ 
+	//é¼ æ ‡ä¿¡æ¯ 
 	struct {
-		//ÒÆ¶¯ËÙ¶È 
+		//ç§»åŠ¨é€Ÿåº¦ 
 		int16_t x;
 		int16_t y;
 		int16_t z;
-		//×óÓÒ¼ü 
+		//å·¦å³é”® 
 		uint8_t l;
 		uint8_t r;
 	} mouse;
-	//¼üÅÌĞÅÏ¢ 
+	//é”®ç›˜ä¿¡æ¯ 
 	union {
-		uint16_t key_code;//°´¼ü±àÂë 
+		uint16_t key_code;//æŒ‰é”®ç¼–ç  
 		struct {
 			#define KEY(x) uint16_t x : 1;
 			#define MOUSE_KEY(x)
 			KEY_TPYE
 			#undef KEY
 			#undef MOUSE_KEY
-		} bit;//¸÷¸öÎ»´ú±í¶ÔÓ¦µÄ¼üÎ» 
+		} bit;//å„ä¸ªä½ä»£è¡¨å¯¹åº”çš„é”®ä½ 
 	} kb;
-	//²¦ÂÖÊı¾İ È¡Öµ[-660,660]
+	//æ‹¨è½®æ•°æ® å–å€¼[-660,660]
 	int16_t wheel;
 }RC_TypeDef;
 
-//°´¼ü½á¹¹Ìå£¬ÓÃÓÚ¼ÆËã¼üÅÌ/Êó±êµÄ°´¼üÊÂ¼ş
+//æŒ‰é”®ç»“æ„ä½“ï¼Œç”¨äºè®¡ç®—é”®ç›˜/é¼ æ ‡çš„æŒ‰é”®äº‹ä»¶
 typedef struct{
-	//ĞèÒªÅäÖÃµÄ²ÎÊı
-	uint16_t clickDelayTime;//°´ÏÂ¶à¾Ã²ÅËãµ¥»÷Ò»´Î
-	uint16_t longPressTime;//°´ÏÂ¶à¾Ã²ÅËã³¤°´
+	//éœ€è¦é…ç½®çš„å‚æ•°
+	uint16_t clickDelayTime;//æŒ‰ä¸‹å¤šä¹…æ‰ç®—å•å‡»ä¸€æ¬¡
+	uint16_t longPressTime;//æŒ‰ä¸‹å¤šä¹…æ‰ç®—é•¿æŒ‰
 	
-	//ÓÃÀ´Ê¹ÓÃµÄ²ÎÊı£¬½öÔÚ¶ÔÓ¦Ìõ¼şÓĞĞ§µÄÒ»Ë²¼äÎª1
+	//ç”¨æ¥ä½¿ç”¨çš„å‚æ•°ï¼Œä»…åœ¨å¯¹åº”æ¡ä»¶æœ‰æ•ˆçš„ä¸€ç¬é—´ä¸º1
 	uint8_t isClicked;
 	uint8_t isLongPressed;
 	uint8_t isUp;
 	uint8_t isPressing;
 	
-	//ÖĞ¼ä±äÁ¿
-	uint8_t lastState;//1/0Îª°´ÏÂ/ËÉ¿ª
+	//ä¸­é—´å˜é‡
+	uint8_t lastState;//1/0ä¸ºæŒ‰ä¸‹/æ¾å¼€
 	uint32_t startPressTime;
 }Key;
 typedef struct 
 {
-	RC_TypeDef rcInfo;//Ò£¿ØÆ÷Êı¾İ
-	Key keyList[KEY_NUM];//°´¼üÁĞ±í(°üº¬ËùÓĞ¿ÉÓÃ¼üÅÌ°´¼üºÍÊó±ê×óÓÒ¼ü)
+	RC_TypeDef rcInfo;//é¥æ§å™¨æ•°æ®
+	Key keyList[KEY_NUM];//æŒ‰é”®åˆ—è¡¨(åŒ…å«æ‰€æœ‰å¯ç”¨é”®ç›˜æŒ‰é”®å’Œé¼ æ ‡å·¦å³é”®)
 	uint8_t uartX;
 }RC;
 
-//ÄÚ²¿º¯Êı
-//³õÊ¼»¯ÅĞ¶¨Ê±¼ä
+//å†…éƒ¨å‡½æ•°
+//åˆå§‹åŒ–åˆ¤å®šæ—¶é—´
 void RC_InitKeys(RC* rc);
 void RC_InitKeyJudgeTime(RC* rc, uint32_t key,uint16_t clickDelay,uint16_t longPressDelay);
 void RC_PublishData(RC *rc);
@@ -101,9 +103,11 @@ void RC_UpdateKeys(RC* rc);
 void RC_ParseData(RC* rc, uint8_t* buff);
 void RC_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
+static RC* GlobalRC; // è°ƒè¯•ç”¨
+
 void RC_TaskCallback(void const * argument)
 {
-	//½øÈëÁÙ½çÇø
+	//è¿›å…¥ä¸´ç•ŒåŒº
 	portENTER_CRITICAL();
 	RC rc={0};
 	rc.uartX = Conf_GetValue((ConfItem*)argument, "uart-x", uint8_t, 0);
@@ -112,6 +116,8 @@ void RC_TaskCallback(void const * argument)
 	name[5] = rc.uartX + '0';
 	Bus_RegisterReceiver(&rc, RC_SoftBusCallback, name);
 	portEXIT_CRITICAL();
+
+	GlobalRC = &rc;
 	
 	osDelay(2000);
 	while(1)
@@ -121,14 +127,14 @@ void RC_TaskCallback(void const * argument)
 	}
 }
 
-//³õÊ¼»¯ËùÓĞ°´¼üµÄÅĞ¶¨Ê±¼ä
+//åˆå§‹åŒ–æ‰€æœ‰æŒ‰é”®çš„åˆ¤å®šæ—¶é—´
 void RC_InitKeys(RC* rc)
 {
-	//³õÊ¼»¯È«²¿°´¼ü(0x3ffff)
+	//åˆå§‹åŒ–å…¨éƒ¨æŒ‰é”®(0x3ffff)
 	RC_InitKeyJudgeTime(rc,0x3ffff,50,500);
 }
 
-//³õÊ¼»¯Ò»¸ö°´¼üµÄÅĞ¶¨Ê±¼ä(¼üÎ»ID£¬µ¥»÷ÅĞ¶¨Ê±¼ä£¬³¤°´ÅĞ¶¨Ê±¼ä)
+//åˆå§‹åŒ–ä¸€ä¸ªæŒ‰é”®çš„åˆ¤å®šæ—¶é—´(é”®ä½IDï¼Œå•å‡»åˆ¤å®šæ—¶é—´ï¼Œé•¿æŒ‰åˆ¤å®šæ—¶é—´)
 void RC_InitKeyJudgeTime(RC* rc, uint32_t key,uint16_t clickDelay,uint16_t longPressDelay)
 {
 	for(uint8_t i=0;i<18;i++)
@@ -142,15 +148,15 @@ void RC_InitKeyJudgeTime(RC* rc, uint32_t key,uint16_t clickDelay,uint16_t longP
 }
 
 
-//ÈôÓĞÊı¾İ¸üĞÂÔò·¢²¼rcÊı¾İ
+//è‹¥æœ‰æ•°æ®æ›´æ–°åˆ™å‘å¸ƒrcæ•°æ®
 void RC_PublishData(RC *rc)
 {
 	static RC_TypeDef lastData={0};
 
-	if(lastData.ch1 != rc->rcInfo.ch1 || lastData.ch2 != rc->rcInfo.ch2)
+	if(abs(lastData.ch1) > 5 || abs(lastData.ch2) > 5)
 		Bus_BroadcastSend("/rc/right-stick",{{"x",&rc->rcInfo.ch1},{"y",&rc->rcInfo.ch2}}); 
 	
-	if(lastData.ch3 != rc->rcInfo.ch3 || lastData.ch4 != rc->rcInfo.ch4)
+	if(abs(lastData.ch3) > 5 || abs(lastData.ch4) > 5)
 		Bus_BroadcastSend("/rc/left-stick",{{"x",&rc->rcInfo.ch3},{"y",&rc->rcInfo.ch4}});
 
 	if(lastData.mouse.x != rc->rcInfo.mouse.x || lastData.mouse.y != rc->rcInfo.mouse.y)
@@ -165,31 +171,31 @@ void RC_PublishData(RC *rc)
 	if(lastData.wheel != rc->rcInfo.wheel)
 		Bus_BroadcastSend("/rc/wheel",{{"value",&rc->rcInfo.wheel}});
 	
-	//¸üĞÂ°´¼ü×´Ì¬²¢·¢²¼
+	//æ›´æ–°æŒ‰é”®çŠ¶æ€å¹¶å‘å¸ƒ
 	RC_UpdateKeys(rc);
 
 	lastData =rc->rcInfo;
 }
-//¸üĞÂ°´¼ü×´Ì¬£¬ĞèÒª¶¨Ê±µ÷ÓÃ£¬½¨Òé¼ä¸ôÎª14ms
+//æ›´æ–°æŒ‰é”®çŠ¶æ€ï¼Œéœ€è¦å®šæ—¶è°ƒç”¨ï¼Œå»ºè®®é—´éš”ä¸º14ms
 void RC_UpdateKeys(RC* rc)
 {
 	static uint32_t lastUpdateTime;
-	uint32_t presentTime=osKernelSysTick();//»ñÈ¡ÏµÍ³Ê±¼ä´Á
+	uint32_t presentTime=osKernelSysTick();//è·å–ç³»ç»Ÿæ—¶é—´æˆ³
 	
-	//¼ì²é×éºÏ¼ü
+	//æ£€æŸ¥ç»„åˆé”®
 	char* combineKey="none";
 	if(rc->rcInfo.kb.bit.Ctrl) combineKey="ctrl";
 	else if(rc->rcInfo.kb.bit.Shift) combineKey="shift";
 	
 	for(uint8_t key=0;key<18;key++)
 	{
-		//¶ÁÈ¡°´¼ü×´Ì¬
+		//è¯»å–æŒ‰é”®çŠ¶æ€
 		uint8_t thisState=0;
 		if(key==4||key==5) continue;
 		char name[22] = "/rc/key/";
 		if(key<16) 
 		{
-			thisState=(rc->rcInfo.kb.key_code&(0x01<<key))?1:0;//È¡³ö¼üÅÌ¶ÔÓ¦Î»
+			thisState=(rc->rcInfo.kb.key_code&(0x01<<key))?1:0;//å–å‡ºé”®ç›˜å¯¹åº”ä½
 		}
 		else if(key==16) 
 		{
@@ -200,42 +206,42 @@ void RC_UpdateKeys(RC* rc)
 			 thisState=rc->rcInfo.mouse.r;
 		}
 		
-		uint16_t lastPressTime=lastUpdateTime-rc->keyList[key].startPressTime;//ÉÏ´Î¸üĞÂÊ±°´ÏÂµÄÊ±¼ä
-		uint16_t pressTime=presentTime-rc->keyList[key].startPressTime;//µ±Ç°°´ÏÂµÄÊ±¼ä
+		uint16_t lastPressTime=lastUpdateTime-rc->keyList[key].startPressTime;//ä¸Šæ¬¡æ›´æ–°æ—¶æŒ‰ä¸‹çš„æ—¶é—´
+		uint16_t pressTime=presentTime-rc->keyList[key].startPressTime;//å½“å‰æŒ‰ä¸‹çš„æ—¶é—´
 		
-		//°´¼ü×´Ì¬ÅĞ¶¨
-		/*******°´ÏÂµÄÒ»Ë²¼ä********/
+		//æŒ‰é”®çŠ¶æ€åˆ¤å®š
+		/*******æŒ‰ä¸‹çš„ä¸€ç¬é—´********/
 		if(!rc->keyList[key].lastState && thisState)
 		{
-			rc->keyList[key].startPressTime=presentTime;//¼ÇÂ¼°´ÏÂÊ±¼ä
+			rc->keyList[key].startPressTime=presentTime;//è®°å½•æŒ‰ä¸‹æ—¶é—´
 			rc->keyList[key].isPressing=1;
-			//·¢²¼topic
+			//å‘å¸ƒtopic
 			memcpy(name+8, "on-down", 8);
 			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
 		}
-		/*******ËÉ¿ªµÄÒ»Ë²¼ä********/
+		/*******æ¾å¼€çš„ä¸€ç¬é—´********/
 		else if(rc->keyList[key].lastState && !thisState)
 		{
 			rc->keyList[key].isLongPressed=0;
 			rc->keyList[key].isPressing=0;
 			
-			//°´¼üÌ§Æğ
+			//æŒ‰é”®æŠ¬èµ·
 			rc->keyList[key].isUp=1;
-			//·¢²¼topic
+			//å‘å¸ƒtopic
 			memcpy(name+8, "on-up", 6);
 			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
 				
-			//µ¥»÷ÅĞ¶¨
+			//å•å‡»åˆ¤å®š
 			if(pressTime>rc->keyList[key].clickDelayTime && pressTime<rc->keyList[key].longPressTime)
 			{
 				rc->keyList[key].isClicked=1;
-				//·¢²¼topic
+				//å‘å¸ƒtopic
 				memcpy(name+8, "on-click", 9);
 				Bus_BroadcastSend(name, {
 					{"key", keyType[key]},
@@ -243,22 +249,22 @@ void RC_UpdateKeys(RC* rc)
 				});
 			}
 		}
-		/*******°´¼ü³ÖĞø°´ÏÂ********/
+		/*******æŒ‰é”®æŒç»­æŒ‰ä¸‹********/
 		else if(rc->keyList[key].lastState && thisState)
 		{
-			//Ö´ĞĞÒ»Ö±°´ÏÂµÄÊÂ¼ş»Øµ÷
-			//·¢²¼topic
+			//æ‰§è¡Œä¸€ç›´æŒ‰ä¸‹çš„äº‹ä»¶å›è°ƒ
+			//å‘å¸ƒtopic
 			memcpy(name+8, "on-pressing", 12);
 			Bus_BroadcastSend(name, {
 				{"key", keyType[key]},
 				{"combine-key", combineKey}
 			});
 			
-			//³¤°´ÅĞ¶¨
+			//é•¿æŒ‰åˆ¤å®š
 			if(lastPressTime<=rc->keyList[key].longPressTime && pressTime>rc->keyList[key].longPressTime)
 			{
 				rc->keyList[key].isLongPressed=1;
-				//·¢²¼topic
+				//å‘å¸ƒtopic
 				memcpy(name+8, "on-long-press", 14);
 				Bus_BroadcastSend(name, {
 					{"key", keyType[key]},
@@ -267,7 +273,7 @@ void RC_UpdateKeys(RC* rc)
 			}
 			else rc->keyList[key].isLongPressed=0;
 		}
-		/*******°´¼ü³ÖĞøËÉ¿ª********/
+		/*******æŒ‰é”®æŒç»­æ¾å¼€********/
 		else
 		{
 			rc->keyList[key].isClicked=0;
@@ -275,10 +281,10 @@ void RC_UpdateKeys(RC* rc)
 			rc->keyList[key].isUp=0;
 		}
 		
-		rc->keyList[key].lastState=thisState;//¼ÇÂ¼°´¼ü×´Ì¬
+		rc->keyList[key].lastState=thisState;//è®°å½•æŒ‰é”®çŠ¶æ€
 	}
 	
-	lastUpdateTime=presentTime;//¼ÇÂ¼¸üĞÂÊÂ¼ş
+	lastUpdateTime=presentTime;//è®°å½•æ›´æ–°äº‹ä»¶
 }
 
 
@@ -287,11 +293,12 @@ void RC_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 	RC* rc = (RC*)bindData;
 	
 	uint8_t* data = (uint8_t*)Bus_GetListValue(frame, 0);
-	if(data)
+	uint16_t* len = (uint16_t*)Bus_GetListValue(frame, 1);
+	if(data && len)
 		RC_ParseData(rc, data);
 }
 
-//½âÎö´®¿ÚÊı¾İ 
+//è§£æä¸²å£æ•°æ® 
 void RC_ParseData(RC* rc, uint8_t* buff)
 {
 	rc->rcInfo.ch1 = (buff[0] | buff[1] << 8) & 0x07FF;

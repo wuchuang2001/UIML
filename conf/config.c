@@ -1,13 +1,16 @@
+
+#include "stddef.h"
+#include "string.h"
 #include "config.h"
 #include "sys_conf.h"
 #include "cmsis_os.h"
 
-//ÉùÃ÷·şÎñÄ£¿é»Øµ÷º¯Êı
+//å£°æ˜æœåŠ¡æ¨¡å—å›è°ƒå‡½æ•°
 #define SERVICE(service,callback,priority,stackSize) extern void callback(void const *);
 SERVICE_LIST
 #undef SERVICE
 
-//·şÎñÁĞ±íÃ¶¾Ù
+//æœåŠ¡åˆ—è¡¨æšä¸¾
 typedef enum
 {
 	#define SERVICE(service,callback,priority,stackSize) service,
@@ -16,10 +19,10 @@ typedef enum
 	serviceNum
 }Module;
 
-//·şÎñÈÎÎñ¾ä±ú
+//æœåŠ¡ä»»åŠ¡å¥æŸ„
 osThreadId serviceTaskHandle[serviceNum];
 
-//È¡³ö¸ø¶¨ÅäÖÃ±íÖĞ¸ø¶¨ÅäÖÃÏîµÄÖµ£¬Ã»ÕÒµ½Ôò·µ»ØNULL
+//å–å‡ºç»™å®šé…ç½®è¡¨ä¸­ç»™å®šé…ç½®é¡¹çš„å€¼ï¼Œæ²¡æ‰¾åˆ°åˆ™è¿”å›NULL
 void* _Conf_GetValue(ConfItem* dict, const char* name)
 {
 	if(!dict)
@@ -50,15 +53,15 @@ void* _Conf_GetValue(ConfItem* dict, const char* name)
 	return NULL;
 }
 
-//FreeRTOSÄ¬ÈÏÈÎÎñ
+//FreeRTOSé»˜è®¤ä»»åŠ¡
 void StartDefaultTask(void const * argument)
 {
-	//´´½¨ËùÓĞ·şÎñÈÎÎñ£¬½«ÅäÖÃ±í·Ö±ğ×÷Îª²ÎÊı´«Èë
+	//åˆ›å»ºæ‰€æœ‰æœåŠ¡ä»»åŠ¡ï¼Œå°†é…ç½®è¡¨åˆ†åˆ«ä½œä¸ºå‚æ•°ä¼ å…¥
 	#define SERVICE(service,callback,priority,stackSize) \
 		osThreadDef(service, callback, priority, 0, stackSize); \
 		serviceTaskHandle[service] = osThreadCreate(osThread(service), Conf_GetPtr(systemConfig,#service,void));
 	SERVICE_LIST
 	#undef SERVICE
-	//Ïú»Ù×Ô¼º
+	//é”€æ¯è‡ªå·±
 	vTaskDelete(NULL);
 }

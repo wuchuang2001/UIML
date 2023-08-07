@@ -1,6 +1,6 @@
 #include "filter.h"
 
-//¾ùÖµÂË²¨½á¹¹Ìå
+//å‡å€¼æ»¤æ³¢ç»“æ„ä½“
 typedef struct
 {
 	Filter filter;
@@ -14,10 +14,10 @@ typedef struct
 float Mean_Cala(Filter* filter, float data);
 
 /**
-  * @brief  ³õÊ¼»¯Ò»¸ö¾ùÖµÂË²¨Æ÷
-  * @param  ÂË²¨Æ÷½á¹¹Ìå
-  * @param  ĞèÒª¹ØÁªµ½ÂË²¨Æ÷½á¹¹ÌåµÄÊı×é
-  * @param  ÂË²¨Æ÷»º´æÇø´óĞ¡£¨ÂË²¨Æ÷ÄÚ²¿ÓÃÓÚ´æ´¢Êı¾İµÄÊı×éµÄ´óĞ¡£©
+  * @brief  åˆå§‹åŒ–ä¸€ä¸ªå‡å€¼æ»¤æ³¢å™¨
+  * @param  æ»¤æ³¢å™¨ç»“æ„ä½“
+  * @param  éœ€è¦å…³è”åˆ°æ»¤æ³¢å™¨ç»“æ„ä½“çš„æ•°ç»„
+  * @param  æ»¤æ³¢å™¨ç¼“å­˜åŒºå¤§å°ï¼ˆæ»¤æ³¢å™¨å†…éƒ¨ç”¨äºå­˜å‚¨æ•°æ®çš„æ•°ç»„çš„å¤§å°ï¼‰
   * @retval None
   */
 Filter* Mean_Init(ConfItem* dict)
@@ -36,9 +36,9 @@ Filter* Mean_Init(ConfItem* dict)
 }
 
 /**
-  * @brief  ¾ùÖµÂË²¨º¯Êı
-  * @param  ÂË²¨Æ÷½á¹¹Ìå£¬ĞèÒªÂË²¨µÄÊı¾İ
-  * @retval ÂË²¨Êä³öÁ¿
+  * @brief  å‡å€¼æ»¤æ³¢å‡½æ•°
+  * @param  æ»¤æ³¢å™¨ç»“æ„ä½“ï¼Œéœ€è¦æ»¤æ³¢çš„æ•°æ®
+  * @retval æ»¤æ³¢è¾“å‡ºé‡
   * @attention None
   */
 float Mean_Cala(Filter* filter, float data)

@@ -5,6 +5,7 @@
 #include "gpio.h"
 #include "spi.h"
 #include <stdio.h>
+#include <string.h>
 
 typedef struct 
 {
@@ -13,10 +14,10 @@ typedef struct
 	uint16_t pin;
 }CSInfo;
 
-//SPI¾ä±úĞÅÏ¢
+//SPIå¥æŸ„ä¿¡æ¯
 typedef struct {
 	SPI_HandleTypeDef* hspi;
-	uint8_t number; //SPIXÖĞµÄX
+	uint8_t number; //SPIXä¸­çš„X
 
 	osSemaphoreId lock;
 	CSInfo* csList;
@@ -30,7 +31,7 @@ typedef struct {
 	SoftBusReceiverHandle fastHandle;
 }SPIInfo;
 
-//SPI·şÎñÊı¾İ
+//SPIæœåŠ¡æ•°æ®
 typedef struct {
 	SPIInfo* spiList;
 	uint8_t spiNum;
@@ -39,7 +40,7 @@ typedef struct {
 
 SPIService spiService = {0};
 
-//º¯ÊıÉùÃ÷
+//å‡½æ•°å£°æ˜
 void BSP_SPI_Init(ConfItem* dict);
 void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict);
 void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict);
@@ -51,25 +52,25 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
 		SPIInfo* spiInfo = &spiService.spiList[num];
-		if(hspi == spiInfo->hspi) //ÕÒµ½ÖĞ¶Ï»Øµ÷º¯ÊıÖĞ¶ÔÓ¦spiÁĞ±íµÄspi
+		if(hspi == spiInfo->hspi) //æ‰¾åˆ°ä¸­æ–­å›è°ƒå‡½æ•°ä¸­å¯¹åº”spiåˆ—è¡¨çš„spi
 		{
-			Bus_FastBroadcastSend(spiInfo->fastHandle, {spiService.spiList->recvBuffer.data, &spiService.spiList->recvBuffer.dataLen}); //·¢ËÍÊı¾İ
-			//½«Æ¬Ñ¡È«²¿À­¸ß
+			Bus_FastBroadcastSend(spiInfo->fastHandle, {spiService.spiList->recvBuffer.data, &spiService.spiList->recvBuffer.dataLen}); //å‘é€æ•°æ®
+			//å°†ç‰‡é€‰å…¨éƒ¨æ‹‰é«˜
 			for(uint8_t i = 0; i < spiService.spiList[num].csNum; i++)
 			{
 				HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_SET);
 			}
-			//½âËø
+			//è§£é”
 			osSemaphoreRelease(spiService.spiList[num].lock);
 			break;
 		}
 	}
 }
 
-//SPIÈÎÎñ»Øµ÷º¯Êı
+//SPIä»»åŠ¡å›è°ƒå‡½æ•°
 void BSP_SPI_TaskCallback(void const * argument)
 {
-	//½øÈëÁÙ½çÇø
+	//è¿›å…¥ä¸´ç•ŒåŒº
 	portENTER_CRITICAL();
 	BSP_SPI_Init((ConfItem*)argument);
 	portEXIT_CRITICAL();
@@ -78,7 +79,7 @@ void BSP_SPI_TaskCallback(void const * argument)
 }
 void BSP_SPI_Init(ConfItem* dict)
 {
-	//¼ÆËãÓÃ»§ÅäÖÃµÄspiÊıÁ¿
+	//è®¡ç®—ç”¨æˆ·é…ç½®çš„spiæ•°é‡
 	spiService.spiNum = 0;
 	for(uint8_t num = 0; ; num++)
 	{
@@ -90,7 +91,7 @@ void BSP_SPI_Init(ConfItem* dict)
 			break;
 	}
 	
-	//³õÊ¼»¯¸÷spiĞÅÏ¢
+	//åˆå§‹åŒ–å„spiä¿¡æ¯
 	spiService.spiList = pvPortMalloc(spiService.spiNum * sizeof(SPIInfo));
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
@@ -99,12 +100,12 @@ void BSP_SPI_Init(ConfItem* dict)
 		BSP_SPI_InitInfo(&spiService.spiList[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
 
-	//×¢²áÔ¶³Ì·şÎñ
+	//æ³¨å†Œè¿œç¨‹æœåŠ¡
 	Bus_RegisterRemoteFunc(NULL, BSP_SPI_BlockCallback, "/spi/block");
 	Bus_RegisterRemoteFunc(NULL,BSP_SPI_DMACallback, "/spi/trans/dma");
 	spiService.initFinished = 1;
 }
-//³õÊ¼»¯spiĞÅÏ¢
+//åˆå§‹åŒ–spiä¿¡æ¯
 void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 {
 	info->hspi = Conf_GetPtr(dict, "hspi", SPI_HandleTypeDef);
@@ -115,15 +116,15 @@ void BSP_SPI_InitInfo(SPIInfo* info, ConfItem* dict)
 	info->fastHandle=Bus_CreateReceiverHandle(name);
 	osSemaphoreDef(lock);
 	info->lock = osSemaphoreCreate(osSemaphore(lock), 1);
-	//³õÊ¼»¯Æ¬Ñ¡Òı½Å
+	//åˆå§‹åŒ–ç‰‡é€‰å¼•è„š
 	BSP_SPI_InitCS(info, Conf_GetPtr(dict, "cs", ConfItem));
-	//³õÊ¼»¯»º³åÇø
+	//åˆå§‹åŒ–ç¼“å†²åŒº
 	info->recvBuffer.maxBufSize = Conf_GetValue(dict, "max-recv-size", uint16_t, 1);
 	info->recvBuffer.data = pvPortMalloc(info->recvBuffer.maxBufSize);
     memset(info->recvBuffer.data,0,info->recvBuffer.maxBufSize);
 }
 
-//³õÊ¼»¯Æ¬Ñ¡Òı½Å
+//åˆå§‹åŒ–ç‰‡é€‰å¼•è„š
 void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict)
 {
 	for(uint8_t num = 0; ; num++)
@@ -135,13 +136,13 @@ void BSP_SPI_InitCS(SPIInfo* info, ConfItem* dict)
 		else
 			break;
 	}
-	//³õÊ¼»¯¸÷spiĞÅÏ¢
+	//åˆå§‹åŒ–å„spiä¿¡æ¯
 	info->csList = pvPortMalloc(info->csNum * sizeof(CSInfo));
 	for(uint8_t num = 0; num < info->csNum; num++)
 	{
 		char confName[11] = {0};
 		sprintf(confName, "%d/pin", num);
-    	//ÖØĞÂÓ³ÉäÖÁGPIO_PIN=2^pin
+    	//é‡æ–°æ˜ å°„è‡³GPIO_PIN=2^pin
 		info->csList[num].pin =1<<Conf_GetValue(dict, confName, uint8_t, 0);
 		sprintf(confName, "%d/name", num);
 		info->csList[num].name = Conf_GetPtr(dict, confName, char);
@@ -158,27 +159,27 @@ bool BSP_SPI_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "tx-data");
 	uint8_t* rxData = NULL;
 	if(Bus_IsMapKeyExist(frame, "rx-data"))
-		rxData = (uint8_t*)Bus_GetMapValue(frame, "rx-data"); //²»¼ì²é¸ÃÏîÊÇÒòÎªÈôÎªnullÔòÖ¸Ïòspi»º³åÇø
+		rxData = (uint8_t*)Bus_GetMapValue(frame, "rx-data"); //ä¸æ£€æŸ¥è¯¥é¡¹æ˜¯å› ä¸ºè‹¥ä¸ºnullåˆ™æŒ‡å‘spiç¼“å†²åŒº
 	uint16_t len = *(uint16_t*)Bus_GetMapValue(frame, "len");
 	char* csName = (char*)Bus_GetMapValue(frame, "cs-name");
 	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "is-block"))? osWaitForever: 0;
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
-		if(spiX == spiService.spiList[num].number) //ÕÒµ½¶ÔÓ¦µÄspi
+		if(spiX == spiService.spiList[num].number) //æ‰¾åˆ°å¯¹åº”çš„spi
 		{
-			if(rxData == NULL) //ÈôÎ´Ö¸¶¨½ÓÊÕ»º³åÇøÔòÖ¸Ïòspi»º³åÇø
+			if(rxData == NULL) //è‹¥æœªæŒ‡å®šæ¥æ”¶ç¼“å†²åŒºåˆ™æŒ‡å‘spiç¼“å†²åŒº
 				rxData = spiService.spiList[num].recvBuffer.data;
-			if(len > spiService.spiList[num].recvBuffer.maxBufSize) //Èô½ÓÊÕ³¤¶È´óÓÚ»º³åÇø³¤¶È£¬Ôò·µ»Ø´íÎó
+			if(len > spiService.spiList[num].recvBuffer.maxBufSize) //è‹¥æ¥æ”¶é•¿åº¦å¤§äºç¼“å†²åŒºé•¿åº¦ï¼Œåˆ™è¿”å›é”™è¯¯
 				return false;
 			for (uint8_t i = 0; i < spiService.spiList[num].csNum; i++)
 			{
-				if(!strcmp(csName, spiService.spiList[num].csList[i].name)) //ÕÒµ½¶ÔÓ¦µÄÆ¬Ñ¡Òı½Å
+				if(!strcmp(csName, spiService.spiList[num].csList[i].name)) //æ‰¾åˆ°å¯¹åº”çš„ç‰‡é€‰å¼•è„š
 				{
-					//ÉÏËø
+					//ä¸Šé”
 					if(osSemaphoreWait(spiService.spiList[num].lock, waitTime) != osOK)
 						return false;
-					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_RESET); //À­µÍÆ¬Ñ¡,¿ªÊ¼Í¨ĞÅ
-					HAL_SPI_TransmitReceive_DMA(spiService.spiList[num].hspi, txData, rxData, len); //¿ªÊ¼´«Êä
+					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_RESET); //æ‹‰ä½ç‰‡é€‰,å¼€å§‹é€šä¿¡
+					HAL_SPI_TransmitReceive_DMA(spiService.spiList[num].hspi, txData, rxData, len); //å¼€å§‹ä¼ è¾“
 					return true;
 				}
 			}
@@ -196,31 +197,31 @@ bool BSP_SPI_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData
 	uint8_t* txData = (uint8_t*)Bus_GetMapValue(frame, "tx-data");
 	uint8_t* rxData = NULL;
 	if(Bus_IsMapKeyExist(frame, "rx-data"))
-		rxData = (uint8_t*)Bus_GetMapValue(frame, "rx-data"); //²»¼ì²é¸ÃÏîÊÇÒòÎªÈôÎªnullÔòÖ¸Ïòspi»º³åÇø
+		rxData = (uint8_t*)Bus_GetMapValue(frame, "rx-data"); //ä¸æ£€æŸ¥è¯¥é¡¹æ˜¯å› ä¸ºè‹¥ä¸ºnullåˆ™æŒ‡å‘spiç¼“å†²åŒº
 	uint16_t len = *(uint16_t*)Bus_GetMapValue(frame, "len");
 	uint32_t timeout = *(uint32_t*)Bus_GetMapValue(frame, "timeout");
 	char* csName = (char*)Bus_GetMapValue(frame, "cs-name");
 	uint32_t waitTime = (*(bool*)Bus_GetMapValue(frame, "is-block"))? osWaitForever: 0;
 	for(uint8_t num = 0; num < spiService.spiNum; num++)
 	{
-		if(spiX == spiService.spiList[num].number)	//ÕÒµ½¶ÔÓ¦µÄspi
+		if(spiX == spiService.spiList[num].number)	//æ‰¾åˆ°å¯¹åº”çš„spi
 		{
-			if(rxData == NULL) //ÈôÎ´Ö¸¶¨½ÓÊÕ»º³åÇøÔòÖ¸Ïòspi»º³åÇø
+			if(rxData == NULL) //è‹¥æœªæŒ‡å®šæ¥æ”¶ç¼“å†²åŒºåˆ™æŒ‡å‘spiç¼“å†²åŒº
 				rxData = spiService.spiList[num].recvBuffer.data;
-			if(len > spiService.spiList[num].recvBuffer.maxBufSize) //Èô½ÓÊÕ³¤¶È´óÓÚ»º³åÇø³¤¶È£¬Ôò·µ»Ø´íÎó
+			if(len > spiService.spiList[num].recvBuffer.maxBufSize) //è‹¥æ¥æ”¶é•¿åº¦å¤§äºç¼“å†²åŒºé•¿åº¦ï¼Œåˆ™è¿”å›é”™è¯¯
 				return false;
 			spiService.spiList[num].recvBuffer.dataLen = len;
-			for (uint8_t i = 0; i < spiService.spiList[num].csNum; i++) //ÕÒµ½¶ÔÓ¦µÄÆ¬Ñ¡Òı½Å
+			for (uint8_t i = 0; i < spiService.spiList[num].csNum; i++) //æ‰¾åˆ°å¯¹åº”çš„ç‰‡é€‰å¼•è„š
 			{
 				if(!strcmp(csName, spiService.spiList[num].csList[i].name))
 				{
-					//ÉÏËø
+					//ä¸Šé”
 					if(osSemaphoreWait(spiService.spiList[num].lock, waitTime) != osOK)
 						return false;
-					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_RESET); //À­µÍÆ¬Ñ¡,¿ªÊ¼Í¨ĞÅ
-					HAL_SPI_TransmitReceive(spiService.spiList[num].hspi, txData, rxData, len, timeout); //¿ªÊ¼´«Êä
-					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_SET); //À­¸ßÆ¬Ñ¡,½áÊøÍ¨ĞÅ
-					//½âËø
+					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_RESET); //æ‹‰ä½ç‰‡é€‰,å¼€å§‹é€šä¿¡
+					HAL_SPI_TransmitReceive(spiService.spiList[num].hspi, txData, rxData, len, timeout); //å¼€å§‹ä¼ è¾“
+					HAL_GPIO_WritePin(spiService.spiList[num].csList[i].gpioX, spiService.spiList[num].csList[i].pin, GPIO_PIN_SET); //æ‹‰é«˜ç‰‡é€‰,ç»“æŸé€šä¿¡
+					//è§£é”
 					osSemaphoreRelease(spiService.spiList[num].lock);
 					return true;
 				}

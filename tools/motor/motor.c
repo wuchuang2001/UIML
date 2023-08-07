@@ -1,7 +1,7 @@
 #include "motor.h"
 
 //X-MACRO
-//×ÓÀàÁÐ±í£¬Ã¿Ò»Ïî¸ñÊ½Îª(ÀàÐÍÃû,³õÊ¼»¯º¯ÊýÃû)
+//å­ç±»åˆ—è¡¨ï¼Œæ¯ä¸€é¡¹æ ¼å¼ä¸º(ç±»åž‹å,åˆå§‹åŒ–å‡½æ•°å)
 #define MOTOR_CHILD_LIST \
 	MOTOR_TYPE("M3508",M3508_Init) \
 	MOTOR_TYPE("M2006",M2006_Init) \
@@ -9,7 +9,7 @@
 	MOTOR_TYPE("Servo",Servo_Init) \
 	MOTOR_TYPE("DcMotor",DcMotor_Init) 
 
-//ÄÚ²¿º¯ÊýÉùÃ÷
+//å†…éƒ¨å‡½æ•°å£°æ˜Ž
 void Motor_SetTarget(Motor* motor, float targetValue);
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode ctrlerType);
 void Motor_InitTotalAngle(Motor* motor, float angle);
@@ -17,7 +17,7 @@ float Motor_GetData(Motor* motor, const char* data);
 void Motor_Stop(Motor* motor);
 void Motor_InitDefault(Motor* motor);
 
-//ÉùÃ÷×ÓÀà³õÊ¼»¯º¯Êý
+//å£°æ˜Žå­ç±»åˆå§‹åŒ–å‡½æ•°
 #define MOTOR_TYPE(name,initFunc) __weak Motor* initFunc(ConfItem* dict) {return NULL;}
 MOTOR_CHILD_LIST
 #undef MOTOR_TYPE
@@ -27,7 +27,7 @@ Motor* Motor_Init(ConfItem* dict)
 	char* motorType = Conf_GetPtr(dict, "type", char);
 
 	Motor *motor = NULL;
-	//ÅÐ¶ÏÊôÓÚÄÄ¸ö×ÓÀà
+	//åˆ¤æ–­å±žäºŽå“ªä¸ªå­ç±»
 	#define MOTOR_TYPE(name,initFunc) \
 	if(!strcmp(motorType, name)) \
 		motor = initFunc(dict);
@@ -36,7 +36,7 @@ Motor* Motor_Init(ConfItem* dict)
 	if(!motor)
 		motor = MOTOR_MALLOC_PORT(sizeof(Motor));
 	
-	//½«×ÓÀàÎ´¶¨ÒåµÄ·½·¨ÉèÖÃÎª¿Õº¯Êý
+	//å°†å­ç±»æœªå®šä¹‰çš„æ–¹æ³•è®¾ç½®ä¸ºç©ºå‡½æ•°
 	Motor_InitDefault(motor);
 
 	return motor;
@@ -56,7 +56,7 @@ void Motor_InitDefault(Motor* motor)
 		motor->stop = Motor_Stop;
 }
 
-//´¿Ðéº¯Êý
+//çº¯è™šå‡½æ•°
 void Motor_SetTarget(Motor* motor, float targetValue) { }
 
 void Motor_ChangeCtrler(Motor* motor, MotorCtrlMode mode) { }

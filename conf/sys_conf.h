@@ -1,6 +1,6 @@
 /*
 	sys_conf.h
-	ÏµÍ³ÅäÖÃÎÄ¼ş
+	ç³»ç»Ÿé…ç½®æ–‡ä»¶
 */
 
 #ifndef _SYSCONF_H_
@@ -8,8 +8,8 @@
 
 #include "config.h"
 
-/****************** ÍâÉèÅäÖÃ ******************/
-//¿ÉÊ¹ÓÃConfiguration WizardÅäÖÃ
+/****************** å¤–è®¾é…ç½® ******************/
+//å¯ä½¿ç”¨Configuration Wizardé…ç½®
 
 //<<< Use Configuration Wizard in Context Menu >>>
 //<h>BSP Config
@@ -46,9 +46,9 @@
 #endif
 // <<< end of configuration section >>>
 
-/****************** ·şÎñÁĞ±íÅäÖÃ (X-MACRO) ******************/
+/****************** æœåŠ¡åˆ—è¡¨é…ç½® (X-MACRO) ******************/
 
-//Ã¿Ïî¸ñÊ½(·şÎñÃû,·şÎñÈÎÎñº¯Êı,ÈÎÎñÓÅÏÈ¼¶,ÈÎÎñÕ»´óĞ¡)
+//æ¯é¡¹æ ¼å¼(æœåŠ¡å,æœåŠ¡ä»»åŠ¡å‡½æ•°,ä»»åŠ¡ä¼˜å…ˆçº§,ä»»åŠ¡æ ˆå¤§å°)
 #define SERVICE_LIST \
 	SERVICE(can, BSP_CAN_TaskCallback, osPriorityRealtime,128) \
 	SERVICE(uart, BSP_UART_TaskCallback, osPriorityNormal,128) \
@@ -64,13 +64,13 @@
 //SERVICE(exti, BSP_EXTI_TaskCallback, osPriorityNormal,256) 
 
 
-/****************** ¸÷·şÎñÅäÖÃ±í ******************/
+/****************** å„æœåŠ¡é…ç½®è¡¨ ******************/
 
 ConfItem* systemConfig = CF_DICT{
 	
-	//ÓÃ»§Âß¼­·şÎñÅäÖÃ
+	//ç”¨æˆ·é€»è¾‘æœåŠ¡é…ç½®
 	{"sys",CF_DICT{
-		//µ×ÅÌ¸úËæPIDÅäÖÃ
+		//åº•ç›˜è·ŸéšPIDé…ç½®
 		{"rotate-pid",CF_DICT{
 			{"p", IM_PTR(float, 1.5)},
 			{"i", IM_PTR(float, 0)},
@@ -82,11 +82,11 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 	}},
 	
-	//µ×ÅÌ·şÎñÅäÖÃ
+	//åº•ç›˜æœåŠ¡é…ç½®
 	{"chassis", CF_DICT{
-		//ÈÎÎñÑ­»·ÖÜÆÚ
+		//ä»»åŠ¡å¾ªç¯å‘¨æœŸ
 		{"task-interval", IM_PTR(uint16_t, 2)},
-		//µ×ÅÌ³ß´çĞÅÏ¢
+		//åº•ç›˜å°ºå¯¸ä¿¡æ¯
 		{"info", CF_DICT{
 			{"wheelbase", IM_PTR(float, 100)},
 			{"wheeltrack", IM_PTR(float, 100)},
@@ -95,7 +95,7 @@ ConfItem* systemConfig = CF_DICT{
 			{"offset-y", IM_PTR(float, 0)},
 			CF_DICT_END
 		}},
-		//µ×ÅÌÒÆ¶¯ËÙ¶È/¼ÓËÙ¶ÈÅäÖÃ
+		//åº•ç›˜ç§»åŠ¨é€Ÿåº¦/åŠ é€Ÿåº¦é…ç½®
 		{"move", CF_DICT{
 			{"max-vx", IM_PTR(float, 2000)},
 			{"max-vy", IM_PTR(float, 2000)},
@@ -104,7 +104,7 @@ ConfItem* systemConfig = CF_DICT{
 			{"y-acc", IM_PTR(float, 1000)},
 			CF_DICT_END
 		}},
-		//×óÇ°µç»úÅäÖÃ
+		//å·¦å‰ç”µæœºé…ç½®
 		{"motor-fl", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 1)},
@@ -119,7 +119,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},
-		//ÓÒÇ°µç»úÅäÖÃ
+		//å³å‰ç”µæœºé…ç½®
 		{"motor-fr", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 2)},
@@ -134,7 +134,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},
-		//×óºóµç»úÅäÖÃ
+		//å·¦åç”µæœºé…ç½®
 		{"motor-bl", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 3)},
@@ -149,7 +149,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},
-		//ÓÒºóµç»úÅäÖÃ
+		//å³åç”µæœºé…ç½®
 		{"motor-br", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 4)},
@@ -167,14 +167,14 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 	}},
 	
-	//ÔÆÌ¨·şÎñÅäÖÃ
+	//äº‘å°æœåŠ¡é…ç½®
 	{"gimbal", CF_DICT{
-		//yaw pitch »úĞµÁãµã
+		//yaw pitch æœºæ¢°é›¶ç‚¹
 		{"zero-yaw",IM_PTR(uint16_t,4010)},
 		{"zero-pitch",IM_PTR(uint16_t,5300)},
-		//ÈÎÎñÑ­»·ÖÜÆÚ
+		//ä»»åŠ¡å¾ªç¯å‘¨æœŸ
 		{"task-interval", IM_PTR(uint16_t, 10)},
-		//ÍÓÂİÒÇpid²ÎÊıÉèÖÃ£¬×÷Îª½Ç¶ÈÍâ»·
+		//é™€èºä»ªpidå‚æ•°è®¾ç½®ï¼Œä½œä¸ºè§’åº¦å¤–ç¯
 		{"yaw-imu-pid",CF_DICT{
 			{"p", IM_PTR(float, -90)},
 			{"i", IM_PTR(float, 0)},
@@ -183,12 +183,12 @@ ConfItem* systemConfig = CF_DICT{
 			{"max-out", IM_PTR(float, 1000)},
 			CF_DICT_END
 		}},
-		//ÔÆÌ¨µç»úÅäÖÃ
+		//äº‘å°ç”µæœºé…ç½®
 		{"motor-yaw", CF_DICT{
 			{"type", "M6020"},
 			{"id", IM_PTR(uint16_t, 1)},
 			{"can-x", IM_PTR(uint8_t, 1)},
-			//ÄÚ»·²ÎÊıÉèÖÃ
+			//å†…ç¯å‚æ•°è®¾ç½®
 			{"speed-pid", CF_DICT{						
 				{"p", IM_PTR(float, 15)},
 				{"i", IM_PTR(float, 0)},
@@ -199,7 +199,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},	
-		//ÍÓÂİÒÇpid²ÎÊıÉèÖÃ£¬×÷Îª½Ç¶ÈÍâ»·
+		//é™€èºä»ªpidå‚æ•°è®¾ç½®ï¼Œä½œä¸ºè§’åº¦å¤–ç¯
 		{"pitch-imu-pid",CF_DICT{
 			{"p", IM_PTR(float, 63)},
 			{"i", IM_PTR(float, 0)},
@@ -212,7 +212,7 @@ ConfItem* systemConfig = CF_DICT{
 			{"type", "M6020"},
 			{"id", IM_PTR(uint16_t, 4)},
 			{"can-x", IM_PTR(uint8_t, 2)},
-			//ÄÚ»·²ÎÊıÉèÖÃ
+			//å†…ç¯å‚æ•°è®¾ç½®
 			{"speed-pid", CF_DICT{
 				{"p", IM_PTR(float, 15)},
 				{"i", IM_PTR(float, 0)},
@@ -226,13 +226,13 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END		
 	}},
 	
-	//·¢Éä·şÎñÅäÖÃ
+	//å‘å°„æœåŠ¡é…ç½®
 	{"shooter", CF_DICT{
-		//ÈÎÎñÑ­»·ÖÜÆÚ
+		//ä»»åŠ¡å¾ªç¯å‘¨æœŸ
 		{"task-interval", IM_PTR(uint16_t, 10)},
-		//²¦Ò»·¢µ¯ÍèµÄ½Ç¶È
+		//æ‹¨ä¸€å‘å¼¹ä¸¸çš„è§’åº¦
 		{"trigger-angle",IM_PTR(float,45)},
-		//·¢Éä»ú¹¹µç»úÅäÖÃ
+		//å‘å°„æœºæ„ç”µæœºé…ç½®
 		{"fric-motor-left", CF_DICT{
 			{"type", "M3508"},
 			{"id", IM_PTR(uint16_t, 2)},
@@ -292,9 +292,9 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END		
 	}},
 	
-	//CAN·şÎñÅäÖÃ
+	//CANæœåŠ¡é…ç½®
 	{"can", CF_DICT{
-		//CAN¿ØÖÆÆ÷ĞÅÏ¢
+		//CANæ§åˆ¶å™¨ä¿¡æ¯
 		{"cans", CF_DICT{
 			{"0", CF_DICT{
 				{"hcan", &hcan1},
@@ -308,7 +308,7 @@ ConfItem* systemConfig = CF_DICT{
 			}},
 			CF_DICT_END
 		}},
-		//¶¨Ê±Ö¡ÅäÖÃ
+		//å®šæ—¶å¸§é…ç½®
 		{"repeat-buffers", CF_DICT{
 			{"0", CF_DICT{
 				{"can-x", IM_PTR(uint8_t, 1)},
@@ -339,13 +339,13 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 	}},
 	
-	//Ò£¿Ø·şÎñÅäÖÃ
+	//é¥æ§æœåŠ¡é…ç½®
 	{"rc",CF_DICT{
 		{"uart-x",IM_PTR(uint8_t, 3)},
 		CF_DICT_END
 	}},
 	
-	//²ÃÅĞÏµÍ³·şÎñÅäÖÃ
+	//è£åˆ¤ç³»ç»ŸæœåŠ¡é…ç½®
 	{"judge",CF_DICT{
 		{"max-tx-queue-length",IM_PTR(uint16_t,20)},
 		{"task-interval",IM_PTR(uint16_t,150)},
@@ -353,7 +353,7 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 	}},
 	
-	//´®¿Ú·şÎñÅäÖÃ
+	//ä¸²å£æœåŠ¡é…ç½®
 	{"uart",CF_DICT{
 		{"uarts",CF_DICT{
 			{"0",CF_DICT{
@@ -373,12 +373,12 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 	}},
 	
-	//¹ßµ¼·şÎñÅäÖÃ
+	//æƒ¯å¯¼æœåŠ¡é…ç½®
 	{"ins",CF_DICT{
 		{"spi-x",IM_PTR(uint8_t,1)},
 		{"tim-x",IM_PTR(uint8_t,10)},
 		{"channel-x",IM_PTR(uint8_t,1)},
-		//ÎÂ¶È¿ØÖÆPIDÅäÖÃ
+		//æ¸©åº¦æ§åˆ¶PIDé…ç½®
 		{"tmp-pid", CF_DICT{
 			{"p", IM_PTR(float, 0.15)},
 			{"i", IM_PTR(float, 0.01)},
@@ -390,7 +390,7 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 	}},
 	
-	//SPIÇı¶¯·şÎñÅäÖÃ
+	//SPIé©±åŠ¨æœåŠ¡é…ç½®
 	{"spi",CF_DICT{
 		{"spis",CF_DICT{
 			{"0",CF_DICT{
@@ -419,7 +419,7 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 	}},
 
-	//¶¨Ê±Æ÷·şÎñÅäÖÃ
+	//å®šæ—¶å™¨æœåŠ¡é…ç½®
 	{"tim",CF_DICT{
 		{"tims",CF_DICT{
 			{"0",CF_DICT{
@@ -433,7 +433,7 @@ ConfItem* systemConfig = CF_DICT{
 		CF_DICT_END
 	}},
 
-	//Íâ²¿ÖĞ¶Ï·şÎñÅäÖÃ
+	//å¤–éƒ¨ä¸­æ–­æœåŠ¡é…ç½®
 	// {"exti",CF_DICT{
 	// 	{"extis",CF_DICT{
 	// 		{"0",CF_DICT{

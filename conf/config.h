@@ -1,53 +1,67 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-//ÅäÖÃÏîÀàĞÍ
+//å¼±ç¬¦å·ï¼Œå®šä¹‰æ¥è‡ªSTM32 HALåº“
+#if defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050) /* ARM Compiler V6 */
+  #ifndef __weak
+    #define __weak  __attribute__((weak))
+  #endif
+  #ifndef __packed
+    #define __packed  __attribute__((packed))
+  #endif
+#elif defined ( __GNUC__ ) && !defined (__CC_ARM) /* GNU Compiler */
+  #ifndef __weak
+    #define __weak   __attribute__((weak))
+  #endif /* __weak */
+  #ifndef __packed
+    #define __packed __attribute__((__packed__))
+  #endif /* __packed */
+#endif /* __GNUC__ */
+
+//é…ç½®é¡¹ç±»å‹
 typedef struct {
-	char *name; //ÅäÖÃÃû
-	void *value; //ÅäÖÃÖµ
+	char *name; //é…ç½®å
+	void *value; //é…ç½®å€¼
 } ConfItem;
 
-//¸øÓÃ»§ÅäÖÃÎÄ¼şÓÃµÄºê·â×°
+//ç»™ç”¨æˆ·é…ç½®æ–‡ä»¶ç”¨çš„å®å°è£…
 #define CF_DICT (ConfItem[])
 #define CF_DICT_END {NULL,NULL}
 
 #ifndef IM_PTR
-#define IM_PTR(type,...) (&(type){__VA_ARGS__}) //È¡Á¢¼´ÊıµÄµØÖ·
+#define IM_PTR(type,...) (&(type){__VA_ARGS__}) //å–ç«‹å³æ•°çš„åœ°å€
 #endif
 
-//»ñÈ¡ÅäÖÃÖµ£¬²»Ó¦Ö±½Óµ÷ÓÃ£¬Ó¦Ê¹ÓÃÏÂ·½µÄ·â×°ºê
+//è·å–é…ç½®å€¼ï¼Œä¸åº”ç›´æ¥è°ƒç”¨ï¼Œåº”ä½¿ç”¨ä¸‹æ–¹çš„å°è£…å®
 void* _Conf_GetValue(ConfItem* dict, const char* name);
 
 /*
-	@brief ÅĞ¶Ï×ÖµäÖĞÅäÖÃÃûÊÇ·ñ´æÔÚ
-	@param dict:Ä¿±ê×Öµä
-	@param name:Òª²éÕÒµÄÅäÖÃÃû£¬¿ÉÍ¨¹ı'/'·Ö¸ôÒÔ²éÕÒÄÚ²ã×Öµä
-	@retval 0:²»´æÔÚ 1:´æÔÚ
+	@brief åˆ¤æ–­å­—å…¸ä¸­é…ç½®åæ˜¯å¦å­˜åœ¨
+	@param dict:ç›®æ ‡å­—å…¸
+	@param name:è¦æŸ¥æ‰¾çš„é…ç½®åï¼Œå¯é€šè¿‡'/'åˆ†éš”ä»¥æŸ¥æ‰¾å†…å±‚å­—å…¸
+	@retval 0:ä¸å­˜åœ¨ 1:å­˜åœ¨
 */
 #define Conf_ItemExist(dict,name) (_Conf_GetValue((dict),(name))!=NULL)
 
 /*
-	@brief »ñÈ¡ÅäÖÃÖµÖ¸Õë
-	@param dict:Ä¿±ê×Öµä
-	@param name:Òª²éÕÒµÄÅäÖÃÃû£¬¿ÉÍ¨¹ı'/'·Ö¸ôÒÔ²éÕÒÄÚ²ã×Öµä
-	@param type:ÅäÖÃÖµµÄÀàĞÍ
-	@retval Ö¸ÏòÅäÖÃÖµµÄ(type*)ĞÍÖ¸Õë£¬ÈôÅäÖÃÃû²»´æÔÚÔò·µ»ØNULL
+	@brief è·å–é…ç½®å€¼æŒ‡é’ˆ
+	@param dict:ç›®æ ‡å­—å…¸
+	@param name:è¦æŸ¥æ‰¾çš„é…ç½®åï¼Œå¯é€šè¿‡'/'åˆ†éš”ä»¥æŸ¥æ‰¾å†…å±‚å­—å…¸
+	@param type:é…ç½®å€¼çš„ç±»å‹
+	@retval æŒ‡å‘é…ç½®å€¼çš„(type*)å‹æŒ‡é’ˆï¼Œè‹¥é…ç½®åä¸å­˜åœ¨åˆ™è¿”å›NULL
 */
 #define Conf_GetPtr(dict,name,type) ((type*)_Conf_GetValue((dict),(name)))
 
 /*
-	@brief »ñÈ¡ÅäÖÃÖµ
-	@param dict:Ä¿±ê×Öµä
-	@param name:Òª²éÕÒµÄÅäÖÃÃû£¬¿ÉÍ¨¹ı'/'·Ö¸ôÒÔ²éÕÒÄÚ²ã×Öµä
-	@param type:ÅäÖÃÖµµÄÀàĞÍ
-	@param def:Ä¬ÈÏÖµ
-	@retval typeĞÍÅäÖÃÖµÊı¾İ£¬ÈôÅäÖÃÃû²»´æÔÚÔò·µ»Ødef
+	@brief è·å–é…ç½®å€¼
+	@param dict:ç›®æ ‡å­—å…¸
+	@param name:è¦æŸ¥æ‰¾çš„é…ç½®åï¼Œå¯é€šè¿‡'/'åˆ†éš”ä»¥æŸ¥æ‰¾å†…å±‚å­—å…¸
+	@param type:é…ç½®å€¼çš„ç±»å‹
+	@param def:é»˜è®¤å€¼
+	@retval typeå‹é…ç½®å€¼æ•°æ®ï¼Œè‹¥é…ç½®åä¸å­˜åœ¨åˆ™è¿”å›def
 */
 #define Conf_GetValue(dict,name,type,def) (_Conf_GetValue((dict),(name))?(*(type*)(_Conf_GetValue((dict),(name)))):(def))
 

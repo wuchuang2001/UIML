@@ -1,14 +1,14 @@
 #include "vector.h"
 
-//ÒıÓÃ±ê×¼¿âº¯ÊıÓÃÓÚÄÚ´æ²Ù×÷£¬¿ÉÍ¨¹ıĞŞ¸Äºê¶¨Òå½øĞĞÒÆÖ²
-#include <stdlib.h>
+//å¼•ç”¨æ ‡å‡†åº“å‡½æ•°ç”¨äºå†…å­˜æ“ä½œï¼Œå¯é€šè¿‡ä¿®æ”¹å®å®šä¹‰è¿›è¡Œç§»æ¤
+#include <stddef.h>
 #include <string.h>
 #include "cmsis_os.h"
 #define VECTOR_MALLOC_PORT(len) pvPortMalloc(len)
 #define VECTOR_FREE_PORT(ptr) vPortFree(ptr)
 #define VECTOR_MEMCPY_PORT(dst,src,len) memcpy(dst,src,len)
 
-//³õÊ¼»¯, ³É¹¦·µ»Ø0Ê§°Ü·µ»Ø-1
+//åˆå§‹åŒ–, æˆåŠŸè¿”å›0å¤±è´¥è¿”å›-1
 int _Vector_Init(Vector *vector, int _elementSize)
 {
 	vector->elementSize=_elementSize;
@@ -20,7 +20,7 @@ int _Vector_Init(Vector *vector, int _elementSize)
 	return 0;
 }
 
-//´´½¨²¢³õÊ¼»¯Ò»¸övector
+//åˆ›å»ºå¹¶åˆå§‹åŒ–ä¸€ä¸ªvector
 Vector _Vector_Create(int _elementSize)
 {
 	Vector vector;
@@ -28,19 +28,19 @@ Vector _Vector_Create(int _elementSize)
 	return vector;
 }
 
-//Ïú»ÙÒ»¸övector
+//é”€æ¯ä¸€ä¸ªvector
 void _Vector_Destroy(Vector *vector)
 {
 	if(vector->data)
 		VECTOR_FREE_PORT(vector->data);
 }
 
-//²åÈëÔªËØ, ³É¹¦·µ»Ø0Ê§°Ü·µ»Ø-1
+//æ’å…¥å…ƒç´ , æˆåŠŸè¿”å›0å¤±è´¥è¿”å›-1
 int _Vector_Insert(Vector *vector, uint32_t index, void *element)
 {
 	if(!vector->data || index > vector->size)
 		return -1;
-	if(vector->size+1 > vector->capacity) //ÈôÊ£Óà¿Õ¼ä²»×ã£¬ÖØĞÂ·ÖÅäÁ½±¶¿Õ¼ä²¢¿½±´Êı¾İ
+	if(vector->size+1 > vector->capacity) //è‹¥å‰©ä½™ç©ºé—´ä¸è¶³ï¼Œé‡æ–°åˆ†é…ä¸¤å€ç©ºé—´å¹¶æ‹·è´æ•°æ®
 	{
 		uint8_t *newBuf=VECTOR_MALLOC_PORT(vector->capacity * 2 * vector->elementSize);
 		if(!newBuf)
@@ -50,57 +50,57 @@ int _Vector_Insert(Vector *vector, uint32_t index, void *element)
 		VECTOR_FREE_PORT(vector->data);
 		vector->data=newBuf;
 	}
-	if(vector->size > 0 && index <= vector->size-1) //½«²åÈëµãºóµÄÊı¾İºóÒÆ
+	if(vector->size > 0 && index <= vector->size-1) //å°†æ’å…¥ç‚¹åçš„æ•°æ®åç§»
 	{
 		for(int32_t pos=vector->size-1; pos>=(int32_t)index; pos--)
 			VECTOR_MEMCPY_PORT(vector->data + (pos+1) * vector->elementSize, vector->data + pos * vector->elementSize, vector->elementSize);
 	}
-	VECTOR_MEMCPY_PORT(vector->data + index * vector->elementSize, element, vector->elementSize); //¿½±´ÓÃ»§´«ÈëµÄÖµ
+	VECTOR_MEMCPY_PORT(vector->data + index * vector->elementSize, element, vector->elementSize); //æ‹·è´ç”¨æˆ·ä¼ å…¥çš„å€¼
 	vector->size++;
 	return 0;
 }
 
-//É¾³ıÔªËØ, ³É¹¦·µ»Ø0Ê§°Ü·µ»Ø-1
+//åˆ é™¤å…ƒç´ , æˆåŠŸè¿”å›0å¤±è´¥è¿”å›-1
 int _Vector_Remove(Vector *vector, uint32_t index)
 {
 	if(!vector->data || vector->size==0 || index >= vector->size)
 		return -1;
-	for(uint32_t pos=index; pos<(vector->size-1); pos++) //½«É¾³ıµãºóµÄÊı¾İÇ°ÒÆ
+	for(uint32_t pos=index; pos<(vector->size-1); pos++) //å°†åˆ é™¤ç‚¹åçš„æ•°æ®å‰ç§»
 		VECTOR_MEMCPY_PORT(vector->data + pos * vector->elementSize, vector->data + (pos+1) * vector->elementSize, vector->elementSize);
 	vector->size--;
 	return 0;
 }
 
-//»ñÈ¡Ö¸¶¨Î»ÖÃÉÏµÄÔªËØÖ¸Õë, ÈôÊ§°Ü·µ»ØNULL
+//è·å–æŒ‡å®šä½ç½®ä¸Šçš„å…ƒç´ æŒ‡é’ˆ, è‹¥å¤±è´¥è¿”å›NULL
 void *_Vector_GetByIndex(Vector *vector, uint32_t index)
 {
 	if(index >= vector->size)
 		return NULL;
-	return vector->data + index * vector->elementSize; //¼ÆËãÆ«ÒÆ£¬·µ»ØµØÖ·
+	return vector->data + index * vector->elementSize; //è®¡ç®—åç§»ï¼Œè¿”å›åœ°å€
 }
 
-//ĞŞ¸ÄÖ¸¶¨Î»ÖÃÉÏµÄÔªËØ, ³É¹¦·µ»Ø0Ê§°Ü·µ»Ø-1
+//ä¿®æ”¹æŒ‡å®šä½ç½®ä¸Šçš„å…ƒç´ , æˆåŠŸè¿”å›0å¤±è´¥è¿”å›-1
 int _Vector_SetValue(Vector *vector, uint32_t index, void *element)
 {
 	if(index >= vector->size || !vector->data)
 		return -1;
-	VECTOR_MEMCPY_PORT(vector->data + index * vector->elementSize, element, vector->elementSize); //¿½±´ÓÃ»§´«ÈëµÄÖµµ½Ä¿±êµØÖ·
+	VECTOR_MEMCPY_PORT(vector->data + index * vector->elementSize, element, vector->elementSize); //æ‹·è´ç”¨æˆ·ä¼ å…¥çš„å€¼åˆ°ç›®æ ‡åœ°å€
 	return 0;
 }
 
-//É¾³ı¶àÓàµÄ¿Õ¼ä, ³É¹¦·µ»Ø0Ê§°Ü·µ»Ø-1
+//åˆ é™¤å¤šä½™çš„ç©ºé—´, æˆåŠŸè¿”å›0å¤±è´¥è¿”å›-1
 int _Vector_TrimCapacity(Vector *vector)
 {
 	if(!vector->data)
 		return -1;
 	if(vector->capacity <= vector->size)
 		return 0;
-	int newCapacity=(vector->size ? vector->size : 1); //¼ÆËãĞÂ¿Õ¼ä´óĞ¡
-	uint8_t *newBuf=VECTOR_MALLOC_PORT(newCapacity * vector->elementSize); //·ÖÅäĞÂ¿Õ¼ä
+	int newCapacity=(vector->size ? vector->size : 1); //è®¡ç®—æ–°ç©ºé—´å¤§å°
+	uint8_t *newBuf=VECTOR_MALLOC_PORT(newCapacity * vector->elementSize); //åˆ†é…æ–°ç©ºé—´
 	if(!newBuf)
 		return -1;
 	if(vector->size)
-		VECTOR_MEMCPY_PORT(newBuf, vector->data, vector->size * vector->elementSize); //¿½±´Ô­ÓĞÊı¾İ
+		VECTOR_MEMCPY_PORT(newBuf, vector->data, vector->size * vector->elementSize); //æ‹·è´åŸæœ‰æ•°æ®
 	VECTOR_FREE_PORT(vector->data);
 	vector->data=newBuf;
 	vector->capacity=newCapacity;

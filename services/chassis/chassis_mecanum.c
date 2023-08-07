@@ -3,6 +3,7 @@
 #include "softbus.h"
 #include "motor.h"
 #include "cmsis_os.h"
+#include "stm32f4xx.h"
 #include "arm_math.h"
 
 #ifndef LIMIT
@@ -12,29 +13,29 @@
 
 typedef struct _Chassis
 {
-	//µ×ÅÌ³ß´çĞÅÏ¢
+	//åº•ç›˜å°ºå¯¸ä¿¡æ¯
 	struct Info
 	{
-		float wheelbase;//Öá¾à
-		float wheeltrack;//ÂÖ¾à
-		float wheelRadius;//ÂÖ°ë¾¶
-		float offsetX;//ÖØĞÄÔÚxyÖáÉÏµÄÆ«ÒÆ
+		float wheelbase;//è½´è·
+		float wheeltrack;//è½®è·
+		float wheelRadius;//è½®åŠå¾„
+		float offsetX;//é‡å¿ƒåœ¨xyè½´ä¸Šçš„åç§»
 		float offsetY;
 	}info;
-	//4¸öµç»ú
+	//4ä¸ªç”µæœº
 	Motor* motors[4];
-	//µ×ÅÌÒÆ¶¯ĞÅÏ¢
+	//åº•ç›˜ç§»åŠ¨ä¿¡æ¯
 	struct Move
 	{
-		float vx;//µ±Ç°×óÓÒÆ½ÒÆËÙ¶È mm/s
-		float vy;//µ±Ç°Ç°ºóÒÆ¶¯ËÙ¶È mm/s
-		float vw;//µ±Ç°Ğı×ªËÙ¶È rad/s
+		float vx;//å½“å‰å·¦å³å¹³ç§»é€Ÿåº¦ mm/s
+		float vy;//å½“å‰å‰åç§»åŠ¨é€Ÿåº¦ mm/s
+		float vw;//å½“å‰æ—‹è½¬é€Ÿåº¦ rad/s
 		
-		float maxVx,maxVy,maxVw; //Èı¸ö·ÖÁ¿×î´óËÙ¶È
-		Slope xSlope,ySlope; //Ğ±ÆÂ
+		float maxVx,maxVy,maxVw; //ä¸‰ä¸ªåˆ†é‡æœ€å¤§é€Ÿåº¦
+		Slope xSlope,ySlope; //æ–œå¡
 	}move;
 	
-	float relativeAngle; //Óëµ×ÅÌµÄÆ«Àë½Ç£¬µ¥Î»¶È
+	float relativeAngle; //ä¸åº•ç›˜çš„åç¦»è§’ï¼Œå•ä½åº¦
 	
 	uint16_t taskInterval;
 
@@ -51,23 +52,27 @@ bool Chassis_SetAccCallback(const char* name, SoftBusFrame* frame, void* bindDat
 bool Chassis_SetRelativeAngleCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 
-//µ×ÅÌÈÎÎñ»Øµ÷º¯Êı
+static Chassis* GlobalChassis;
+
+//åº•ç›˜ä»»åŠ¡å›è°ƒå‡½æ•°
 void Chassis_TaskCallback(void const * argument)
 {
-	//½øÈëÁÙ½çÇø
+	//è¿›å…¥ä¸´ç•ŒåŒº
 	portENTER_CRITICAL();
 	Chassis chassis={0};
 	Chassis_Init(&chassis, (ConfItem*)argument);
 	portEXIT_CRITICAL();
+
+	GlobalChassis = &chassis;
 	
 	osDelay(2000);
 	while(1)
 	{		
-		/*************¼ÆËãµ×ÅÌÆ½ÒÆËÙ¶È**************/
+		/*************è®¡ç®—åº•ç›˜å¹³ç§»é€Ÿåº¦**************/
 		
-		Chassis_UpdateSlope(&chassis);//¸üĞÂÔË¶¯Ğ±ÆÂº¯ÊıÊı¾İ
+		Chassis_UpdateSlope(&chassis);//æ›´æ–°è¿åŠ¨æ–œå¡å‡½æ•°æ•°æ®
 
-		//½«ÔÆÌ¨×ø±êÏµÏÂÆ½ÒÆËÙ¶È½âËãµ½µ×ÅÌÆ½ÒÆËÙ¶È(¸ù¾İÔÆÌ¨Æ«Àë½Ç)
+		//å°†äº‘å°åæ ‡ç³»ä¸‹å¹³ç§»é€Ÿåº¦è§£ç®—åˆ°åº•ç›˜å¹³ç§»é€Ÿåº¦(æ ¹æ®äº‘å°åç¦»è§’)
 		float gimbalAngleSin=arm_sin_f32(chassis.relativeAngle*PI/180);
 		float gimbalAngleCos=arm_cos_f32(chassis.relativeAngle*PI/180);
 		chassis.move.vx=Slope_GetVal(&chassis.move.xSlope) * gimbalAngleCos
@@ -76,7 +81,7 @@ void Chassis_TaskCallback(void const * argument)
 									 +Slope_GetVal(&chassis.move.ySlope) * gimbalAngleCos;
 		float vw = chassis.move.vw/180*PI;
 		
-		/*************½âËã¸÷ÂÖ×Ó×ªËÙ**************/
+		/*************è§£ç®—å„è½®å­è½¬é€Ÿ**************/
 		
 		float rotateRatio[4];
 		rotateRatio[0]=(chassis.info.wheelbase+chassis.info.wheeltrack)/2.0f-chassis.info.offsetY+chassis.info.offsetX;
@@ -100,47 +105,47 @@ void Chassis_TaskCallback(void const * argument)
 
 void Chassis_Init(Chassis* chassis, ConfItem* dict)
 {
-	//ÈÎÎñ¼ä¸ô
+	//ä»»åŠ¡é—´éš”
 	chassis->taskInterval = Conf_GetValue(dict, "task-interval", uint16_t, 2);
-	//µ×ÅÌ³ß´çĞÅÏ¢£¨ÓÃÓÚ½âËãÂÖËÙ£©
+	//åº•ç›˜å°ºå¯¸ä¿¡æ¯ï¼ˆç”¨äºè§£ç®—è½®é€Ÿï¼‰
 	chassis->info.wheelbase = Conf_GetValue(dict, "info/wheelbase", float, 0);
 	chassis->info.wheeltrack = Conf_GetValue(dict, "info/wheeltrack", float, 0);
 	chassis->info.wheelRadius = Conf_GetValue(dict, "info/wheel-radius", float, 76);
 	chassis->info.offsetX = Conf_GetValue(dict, "info/offset-x", float, 0);
 	chassis->info.offsetY = Conf_GetValue(dict, "info/offset-y", float, 0);
-	//ÒÆ¶¯²ÎÊı³õÊ¼»¯
+	//ç§»åŠ¨å‚æ•°åˆå§‹åŒ–
 	chassis->move.maxVx = Conf_GetValue(dict, "move/max-vx", float, 2000);
 	chassis->move.maxVy = Conf_GetValue(dict, "move/max-vy", float, 2000);
 	chassis->move.maxVw = Conf_GetValue(dict, "move/max-vw", float, 180);
-	//µ×ÅÌ¼ÓËÙ¶È³õÊ¼»¯
+	//åº•ç›˜åŠ é€Ÿåº¦åˆå§‹åŒ–
 	float xAcc = Conf_GetValue(dict, "move/x-acc", float, 1000);
 	float yAcc = Conf_GetValue(dict, "move/y-acc", float, 1000);
 	Slope_Init(&chassis->move.xSlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, xAcc),0);
 	Slope_Init(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, yAcc),0);
-	//µ×ÅÌµç»ú³õÊ¼»¯
+	//åº•ç›˜ç”µæœºåˆå§‹åŒ–
 	chassis->motors[0] = Motor_Init(Conf_GetPtr(dict, "motor-fl", ConfItem));
 	chassis->motors[1] = Motor_Init(Conf_GetPtr(dict, "motor-fr", ConfItem));
 	chassis->motors[2] = Motor_Init(Conf_GetPtr(dict, "motor-bl", ConfItem));
 	chassis->motors[3] = Motor_Init(Conf_GetPtr(dict, "motor-br", ConfItem));
-	//ÉèÖÃµ×ÅÌµç»úÎªËÙ¶ÈÄ£Ê½
+	//è®¾ç½®åº•ç›˜ç”µæœºä¸ºé€Ÿåº¦æ¨¡å¼
 	for(uint8_t i = 0; i<4; i++)
 	{
 		chassis->motors[i]->changeMode(chassis->motors[i], MOTOR_SPEED_MODE);
 	}
-	//Èí×ÜÏß¹ã²¥¡¢Ô¶³Ìº¯ÊınameÖØÓ³Éä
+	//è½¯æ€»çº¿å¹¿æ’­ã€è¿œç¨‹å‡½æ•°nameé‡æ˜ å°„
 	char* temp = Conf_GetPtr(dict, "name", char);
 	temp = temp ? temp : "chassis";
 	uint8_t len = strlen(temp);
-	chassis->speedName = pvPortMalloc(len + 7+ 1); //7Îª"/   /speed"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	chassis->speedName = pvPortMalloc(len + 7+ 1); //7ä¸º"/   /speed"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(chassis->speedName, "/%s/speed", temp);
 	
-	chassis->accName = pvPortMalloc(len + 5+ 1); //5Îª"/   /acc"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	chassis->accName = pvPortMalloc(len + 5+ 1); //5ä¸º"/   /acc"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(chassis->accName, "/%s/acc", temp);
 	
-	chassis->relAngleName = pvPortMalloc(len + 16+ 1); //16Îª"/   /relative-angle"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	chassis->relAngleName = pvPortMalloc(len + 16+ 1); //16ä¸º"/   /relative-angle"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(chassis->relAngleName, "/%s/relative-angle", temp);
 	
-	//×¢²áÔ¶³Ìº¯Êı
+	//æ³¨å†Œè¿œç¨‹å‡½æ•°
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetSpeedCallback, chassis->speedName);
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetAccCallback, chassis->accName);
 	Bus_RegisterRemoteFunc(chassis, Chassis_SetRelativeAngleCallback, chassis->relAngleName);
@@ -148,13 +153,13 @@ void Chassis_Init(Chassis* chassis, ConfItem* dict)
 }
 
 
-//¸üĞÂĞ±ÆÂ¼ÆËãËÙ¶È
+//æ›´æ–°æ–œå¡è®¡ç®—é€Ÿåº¦
 void Chassis_UpdateSlope(Chassis* chassis)
 {
 	Slope_NextVal(&chassis->move.xSlope);
 	Slope_NextVal(&chassis->move.ySlope);
 }
-//ÉèÖÃµ×ÅÌËÙ¶È»Øµ÷
+//è®¾ç½®åº•ç›˜é€Ÿåº¦å›è°ƒ
 bool Chassis_SetSpeedCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;
@@ -177,7 +182,7 @@ bool Chassis_SetSpeedCallback(const char* name, SoftBusFrame* frame, void* bindD
 	}
 	return true;
 }
-//ÉèÖÃµ×ÅÌ¼ÓËÙ¶È»Øµ÷
+//è®¾ç½®åº•ç›˜åŠ é€Ÿåº¦å›è°ƒ
 bool Chassis_SetAccCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;
@@ -187,7 +192,7 @@ bool Chassis_SetAccCallback(const char* name, SoftBusFrame* frame, void* bindDat
 		Slope_SetStep(&chassis->move.ySlope, CHASSIS_ACC2SLOPE(chassis->taskInterval, *(float*)Bus_GetMapValue(frame, "ay")));
 	return true;
 }
-//ÉèÖÃµ×ÅÌ×ø±êÏµ·ÖÀë½Ç¶È»Øµ÷
+//è®¾ç½®åº•ç›˜åæ ‡ç³»åˆ†ç¦»è§’åº¦å›è°ƒ
 bool Chassis_SetRelativeAngleCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;
@@ -195,7 +200,7 @@ bool Chassis_SetRelativeAngleCallback(const char* name, SoftBusFrame* frame, voi
 		chassis->relativeAngle = *(float*)Bus_GetMapValue(frame, "angle");
 	return true;
 }
-//µ×ÅÌ¼±Í£»Øµ÷
+//åº•ç›˜æ€¥åœå›è°ƒ
 void Chassis_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Chassis* chassis = (Chassis*)bindData;

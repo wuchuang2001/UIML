@@ -10,7 +10,7 @@ typedef struct _Servo
 		uint8_t timX;
 		uint8_t	channelX;
 	}timInfo;
-	float  targetAngle;//Ä¿±ê½Ç¶È(µ¥Î»¶È)
+	float  targetAngle;//ç›®æ ‡è§’åº¦(å•ä½åº¦)
 	float  maxAngle;
 	float  maxDuty,minDuty;
 }Servo;
@@ -21,12 +21,12 @@ void Servo_SetTarget(Motor* motor,float targetValue);
 
 Motor* Servo_Init(ConfItem* dict)
 {
-	//·ÖÅä×ÓÀàÄÚ´æ¿Õ¼ä
+	//åˆ†é…å­ç±»å†…å­˜ç©ºé—´
 	Servo* servo = MOTOR_MALLOC_PORT(sizeof(Servo));
 	memset(servo,0,sizeof(Servo));
-	//×ÓÀà¶àÌ¬
+	//å­ç±»å¤šæ€
 	servo->motor.setTarget = Servo_SetTarget;
-	//³õÊ¼»¯µç»ú°ó¶¨TIMÐÅÏ¢
+	//åˆå§‹åŒ–ç”µæœºç»‘å®šTIMä¿¡æ¯
 	servo->timInfo.timX = Conf_GetValue(dict,"tim-x",uint8_t,0);
 	servo->timInfo.channelX = Conf_GetValue(dict,"channel-x",uint8_t,0);
 	servo->maxAngle = Conf_GetValue(dict,"max-angle",float,180);
@@ -36,11 +36,11 @@ Motor* Servo_Init(ConfItem* dict)
 	return (Motor*)servo;
 }
 
-//ÉèÖÃ¶æ»ú½Ç¶È
+//è®¾ç½®èˆµæœºè§’åº¦
 void Servo_SetTarget(Motor* motor,float targetValue)
 {
 	Servo* servo=(Servo*) motor;
-	servo->targetAngle = targetValue; //ÎÞÊµ¼ÊÓÃÍ¾£¬¿ÉÓÃÓÚdebug
+	servo->targetAngle = targetValue; //æ— å®žé™…ç”¨é€”ï¼Œå¯ç”¨äºŽdebug
 	float pwmDuty = servo->targetAngle / servo->maxAngle * (servo->maxDuty - servo->minDuty) + servo->minDuty;
 	Bus_RemoteCall("/tim/pwm/set-duty", {{"tim-x", &servo->timInfo.timX}, {"channel-x", &servo->timInfo.channelX}, {"duty", &pwmDuty}});
 }

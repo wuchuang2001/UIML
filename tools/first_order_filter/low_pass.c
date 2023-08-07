@@ -1,5 +1,5 @@
 #include "filter.h"
-//低通滤波结构体
+//浣庨�氭护娉㈢粨鏋勪綋
 typedef struct
 {
 	Filter filter;

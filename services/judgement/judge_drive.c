@@ -1,45 +1,45 @@
 #include "judge_drive.h"
 #include "string.h"
 #include "crc_dji.h"
-/**************²ÃÅĞÏµÍ³Êı¾İ¸¨Öú****************/
+/**************è£åˆ¤ç³»ç»Ÿæ•°æ®è¾…åŠ©****************/
 
 /**
-  * @brief  ¶ÁÈ¡²ÃÅĞÊı¾İ,ÖĞ¶ÏÖĞ¶ÁÈ¡±£Ö¤ËÙ¶È
-  * @param  »º´æÊı¾İ
-  * @retval ÊÇ·ñ¶ÔÕıÎóÅĞ¶Ï×ö´¦Àí
-  * @attention  ÔÚ´ËÅĞ¶ÏÖ¡Í·ºÍCRCĞ£Ñé,ÎŞÎóÔÙĞ´ÈëÊı¾İ£¬²»ÖØ¸´ÅĞ¶ÏÖ¡Í·
+  * @brief  è¯»å–è£åˆ¤æ•°æ®,ä¸­æ–­ä¸­è¯»å–ä¿è¯é€Ÿåº¦
+  * @param  ç¼“å­˜æ•°æ®
+  * @retval æ˜¯å¦å¯¹æ­£è¯¯åˆ¤æ–­åšå¤„ç†
+  * @attention  åœ¨æ­¤åˆ¤æ–­å¸§å¤´å’ŒCRCæ ¡éªŒ,æ— è¯¯å†å†™å…¥æ•°æ®ï¼Œä¸é‡å¤åˆ¤æ–­å¸§å¤´
   */
 bool JUDGE_Read_Data(JudgeRecInfo *judge,uint8_t *ReadFromUsart)
 {
-	uint16_t judge_length;//Í³¼ÆÒ»Ö¡Êı¾İ³¤¶È 
+	uint16_t judge_length;//ç»Ÿè®¡ä¸€å¸§æ•°æ®é•¿åº¦ 
 	
-	int CmdID = 0;//Êı¾İÃüÁîÂë½âÎö
+	int CmdID = 0;//æ•°æ®å‘½ä»¤ç è§£æ
 	
 	/***------------------*****/
-	//ÎŞÊı¾İ°ü£¬Ôò²»×÷ÈÎºÎ´¦Àí
+	//æ— æ•°æ®åŒ…ï¼Œåˆ™ä¸ä½œä»»ä½•å¤„ç†
 	if (ReadFromUsart == NULL)
 	{
 		return false;
 	}
 	
-	//Ğ´ÈëÖ¡Í·Êı¾İ,ÓÃÓÚÅĞ¶ÏÊÇ·ñ¿ªÊ¼´æ´¢²ÃÅĞÊı¾İ
+	//å†™å…¥å¸§å¤´æ•°æ®,ç”¨äºåˆ¤æ–­æ˜¯å¦å¼€å§‹å­˜å‚¨è£åˆ¤æ•°æ®
 	memcpy(&judge->FrameHeader, ReadFromUsart, LEN_HEADER);
 	
-	//ÅĞ¶ÏÖ¡Í·Êı¾İÊÇ·ñÎª0xA5
+	//åˆ¤æ–­å¸§å¤´æ•°æ®æ˜¯å¦ä¸º0xA5
 	if(ReadFromUsart[ SOF ] == JUDGE_FRAME_HEADER)
 	{
-		//Ö¡Í·CRC8Ğ£Ñé
+		//å¸§å¤´CRC8æ ¡éªŒ
 		if (!Verify_CRC8_Check_Sum( ReadFromUsart, LEN_HEADER ))
 			return false;
-		//Í³¼ÆÒ»Ö¡Êı¾İ³¤¶È,ÓÃÓÚCR16Ğ£Ñé
+		//ç»Ÿè®¡ä¸€å¸§æ•°æ®é•¿åº¦,ç”¨äºCR16æ ¡éªŒ
 		judge_length = ReadFromUsart[ DATA_LENGTH ] + LEN_HEADER + LEN_CMDID + LEN_TAIL;
 
-		//Ö¡Î²CRC16Ğ£Ñé
+		//å¸§å°¾CRC16æ ¡éªŒ
 		if(!Verify_CRC16_Check_Sum(ReadFromUsart,judge_length))
 			return false;
 		
 		CmdID = (ReadFromUsart[6] << 8 | ReadFromUsart[5]);
-		//½âÎöÊı¾İÃüÁîÂë,½«Êı¾İ¿½±´µ½ÏàÓ¦½á¹¹ÌåÖĞ(×¢Òâ¿½±´Êı¾İµÄ³¤¶È)
+		//è§£ææ•°æ®å‘½ä»¤ç ,å°†æ•°æ®æ‹·è´åˆ°ç›¸åº”ç»“æ„ä½“ä¸­(æ³¨æ„æ‹·è´æ•°æ®çš„é•¿åº¦)
 		switch(CmdID)
 		{
 			case ID_game_state:                 //0x0001
@@ -111,18 +111,18 @@ bool JUDGE_Read_Data(JudgeRecInfo *judge,uint8_t *ReadFromUsart)
 				memcpy(&judge->DartClientCmd, (ReadFromUsart + DATA), LEN_dart_client_cmd);
 			break;
 		}
-		//Ê×µØÖ·¼ÓÖ¡³¤¶È,Ö¸ÏòCRC16ÏÂÒ»×Ö½Ú,ÓÃÀ´ÅĞ¶ÏÊÇ·ñÎª0xA5,ÓÃÀ´ÅĞ¶ÏÒ»¸öÊı¾İ°üÊÇ·ñÓĞ¶àÖ¡Êı¾İ
+		//é¦–åœ°å€åŠ å¸§é•¿åº¦,æŒ‡å‘CRC16ä¸‹ä¸€å­—èŠ‚,ç”¨æ¥åˆ¤æ–­æ˜¯å¦ä¸º0xA5,ç”¨æ¥åˆ¤æ–­ä¸€ä¸ªæ•°æ®åŒ…æ˜¯å¦æœ‰å¤šå¸§æ•°æ®
 		if(*(ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + judge->FrameHeader.DataLength + LEN_TAIL) == 0xA5)
 		{
-			//Èç¹ûÒ»¸öÊı¾İ°ü³öÏÖÁË¶àÖ¡Êı¾İ,ÔòÔÙ´Î¶ÁÈ¡
+			//å¦‚æœä¸€ä¸ªæ•°æ®åŒ…å‡ºç°äº†å¤šå¸§æ•°æ®,åˆ™å†æ¬¡è¯»å–
 			JUDGE_Read_Data(judge,ReadFromUsart + sizeof(xFrameHeader) + LEN_CMDID + judge->FrameHeader.DataLength + LEN_TAIL);
 		}
-		return true;//¶¼Ğ£Ñé¹ıÁËÔòËµÃ÷Êı¾İ¿ÉÓÃ
+		return true;//éƒ½æ ¡éªŒè¿‡äº†åˆ™è¯´æ˜æ•°æ®å¯ç”¨
 	}	
-	return false;//Ö¡Í·ÓĞÎÊÌâ
+	return false;//å¸§å¤´æœ‰é—®é¢˜
 }
 
-//´ò°üÎÄ±¾Êı¾İ£¬ÎªÎÄ±¾Êı¾İÌí¼ÓÖ¡Í·£¬Ğ£ÑéÂëµÈĞÅÏ¢£¬ĞÎ³ÉÒ»¸öÍêÕûµÄÖ¡
+//æ‰“åŒ…æ–‡æœ¬æ•°æ®ï¼Œä¸ºæ–‡æœ¬æ•°æ®æ·»åŠ å¸§å¤´ï¼Œæ ¡éªŒç ç­‰ä¿¡æ¯ï¼Œå½¢æˆä¸€ä¸ªå®Œæ•´çš„å¸§
 JudgeTxFrame JUDGE_PackTextData(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *textConf,uint8_t text[30])
 {
 	JudgeTxFrame txFrame;
@@ -130,13 +130,13 @@ JudgeTxFrame JUDGE_PackTextData(uint8_t sendID,uint8_t receiveID,graphic_data_st
 	textData.txFrameHeader.SOF=0xA5;
 	textData.txFrameHeader.DataLength=sizeof(ext_student_interactive_header_data_t)+sizeof(ext_client_custom_character_t);
 	textData.txFrameHeader.Seq=0;
-	memcpy(txFrame.data, &textData.txFrameHeader, sizeof(xFrameHeader));//Ğ´ÈëÖ¡Í·Êı¾İ
-	Append_CRC8_Check_Sum(txFrame.data, sizeof(xFrameHeader));//Ğ´ÈëÖ¡Í·CRC8Ğ£ÑéÂë
+	memcpy(txFrame.data, &textData.txFrameHeader, sizeof(xFrameHeader));//å†™å…¥å¸§å¤´æ•°æ®
+	Append_CRC8_Check_Sum(txFrame.data, sizeof(xFrameHeader));//å†™å…¥å¸§å¤´CRC8æ ¡éªŒç 
 	
-	textData.CmdID=0x301;//Êı¾İÖ¡ID
-	textData.dataFrameHeader.data_cmd_id=0x0110;//Êı¾İ¶ÎID
-	textData.dataFrameHeader.send_ID 	 = sendID;//·¢ËÍÕßµÄID
-	textData.dataFrameHeader.receiver_ID = receiveID; //½ÓÊÕÕßµÄID
+	textData.CmdID=0x301;//æ•°æ®å¸§ID
+	textData.dataFrameHeader.data_cmd_id=0x0110;//æ•°æ®æ®µID
+	textData.dataFrameHeader.send_ID 	 = sendID;//å‘é€è€…çš„ID
+	textData.dataFrameHeader.receiver_ID = receiveID; //æ¥æ”¶è€…çš„ID
 	textData.textData.grapic_data_struct=*textConf;
 	memcpy(textData.textData.data,text,30);
 	
@@ -149,7 +149,7 @@ JudgeTxFrame JUDGE_PackTextData(uint8_t sendID,uint8_t receiveID,graphic_data_st
 	txFrame.frameLength=sizeof(textData);
   return txFrame;
 }
-//´ò°üÍ¼ÏñÊı¾İ£¬ÎªÍ¼ÏñÊı¾İÌí¼ÓÖ¡Í·£¬Ğ£ÑéÂëµÈĞÅÏ¢£¬ĞÎ³ÉÒ»¸öÍêÕûµÄÖ¡
+//æ‰“åŒ…å›¾åƒæ•°æ®ï¼Œä¸ºå›¾åƒæ•°æ®æ·»åŠ å¸§å¤´ï¼Œæ ¡éªŒç ç­‰ä¿¡æ¯ï¼Œå½¢æˆä¸€ä¸ªå®Œæ•´çš„å¸§
 JudgeTxFrame JUDGE_PackGraphData(uint8_t sendID,uint8_t receiveID,graphic_data_struct_t *data)
 {
 	JudgeTxFrame txFrame;
@@ -157,13 +157,13 @@ JudgeTxFrame JUDGE_PackGraphData(uint8_t sendID,uint8_t receiveID,graphic_data_s
 	graphData.txFrameHeader.SOF=0xA5;
 	graphData.txFrameHeader.DataLength=sizeof(ext_student_interactive_header_data_t)+sizeof(ext_client_custom_graphic_single_t);
 	graphData.txFrameHeader.Seq=0;
-	memcpy(txFrame.data, &graphData.txFrameHeader, sizeof(xFrameHeader));//Ğ´ÈëÖ¡Í·Êı¾İ
-	Append_CRC8_Check_Sum(txFrame.data, sizeof(xFrameHeader));//Ğ´ÈëÖ¡Í·CRC8Ğ£ÑéÂë
+	memcpy(txFrame.data, &graphData.txFrameHeader, sizeof(xFrameHeader));//å†™å…¥å¸§å¤´æ•°æ®
+	Append_CRC8_Check_Sum(txFrame.data, sizeof(xFrameHeader));//å†™å…¥å¸§å¤´CRC8æ ¡éªŒç 
 	
-	graphData.CmdID=0x301;//Êı¾İÖ¡ID
-	graphData.dataFrameHeader.data_cmd_id=0x0101;//Êı¾İ¶ÎID
-	graphData.dataFrameHeader.send_ID 	 = sendID;//·¢ËÍÕßµÄID
-	graphData.dataFrameHeader.receiver_ID = receiveID;//¿Í»§¶ËµÄID£¬Ö»ÄÜÎª·¢ËÍÕß»úÆ÷ÈË¶ÔÓ¦µÄ¿Í»§¶Ë
+	graphData.CmdID=0x301;//æ•°æ®å¸§ID
+	graphData.dataFrameHeader.data_cmd_id=0x0101;//æ•°æ®æ®µID
+	graphData.dataFrameHeader.send_ID 	 = sendID;//å‘é€è€…çš„ID
+	graphData.dataFrameHeader.receiver_ID = receiveID;//å®¢æˆ·ç«¯çš„IDï¼Œåªèƒ½ä¸ºå‘é€è€…æœºå™¨äººå¯¹åº”çš„å®¢æˆ·ç«¯
 	
 	graphData.graphData.grapic_data_struct=*data;
 	

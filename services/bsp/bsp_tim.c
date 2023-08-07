@@ -1,6 +1,8 @@
 #include "config.h"
 #include "softbus.h"
 #include "cmsis_os.h"
+#include <stdio.h>
+#include <string.h>
 
 #include "tim.h"
 
@@ -8,7 +10,7 @@
 #define LIMIT(x,min,max) (x)=(((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
 #endif
 
-//TIM¾ä±úĞÅÏ¢
+//TIMå¥æŸ„ä¿¡æ¯
 typedef struct 
 {
 	TIM_HandleTypeDef *htim;
@@ -16,7 +18,7 @@ typedef struct
 	SoftBusReceiverHandle fastHandle;
 }TIMInfo;
 
-//TIM·şÎñÊı¾İ
+//TIMæœåŠ¡æ•°æ®
 typedef struct 
 {
 	TIMInfo *timList;
@@ -24,7 +26,7 @@ typedef struct
 	uint8_t initFinished;
 }TIMService;
 
-//º¯ÊıÉùÃ÷
+//å‡½æ•°å£°æ˜
 void BSP_TIM_Init(ConfItem* dict);
 void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict);
 void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict);
@@ -38,7 +40,7 @@ void BSP_TIM_UpdateCallback(TIM_HandleTypeDef *htim)
 {
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
-		if(htim == timService.timList[num].htim) //ÕÒµ½¶ÔÓ¦µÄTIM
+		if(htim == timService.timList[num].htim) //æ‰¾åˆ°å¯¹åº”çš„TIM
 		{
 			TIMInfo* timInfo = &timService.timList[num];
 			Bus_FastBroadcastSend(timInfo->fastHandle,{""});
@@ -46,10 +48,10 @@ void BSP_TIM_UpdateCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-//TIMÈÎÎñ»Øµ÷º¯Êı
+//TIMä»»åŠ¡å›è°ƒå‡½æ•°
 void BSP_TIM_TaskCallback(void const * argument)
 {
-	//½øÈëÁÙ½çÇø
+	//è¿›å…¥ä¸´ç•ŒåŒº
 	portENTER_CRITICAL();
 	BSP_TIM_Init((ConfItem*)argument);
 	portEXIT_CRITICAL();
@@ -57,10 +59,10 @@ void BSP_TIM_TaskCallback(void const * argument)
 	vTaskDelete(NULL);
 }
 
-//TIM³õÊ¼»¯
+//TIMåˆå§‹åŒ–
 void BSP_TIM_Init(ConfItem* dict)
 {
-	//¼ÆËãÓÃ»§ÅäÖÃµÄtimÊıÁ¿
+	//è®¡ç®—ç”¨æˆ·é…ç½®çš„timæ•°é‡
 	timService.timNum = 0;
 	for(uint8_t num = 0; ; num++)
 	{
@@ -80,14 +82,14 @@ void BSP_TIM_Init(ConfItem* dict)
 		BSP_TIM_InitInfo(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
 		BSP_TIM_StartHardware(&timService.timList[num], Conf_GetPtr(dict, confName, ConfItem));
 	}
-	//×¢²áÔ¶³Ì·şÎñ
+	//æ³¨å†Œè¿œç¨‹æœåŠ¡
 	Bus_RegisterRemoteFunc(NULL,BSP_TIM_SettingCallback,"/tim/setting");
 	Bus_RegisterRemoteFunc(NULL,BSP_TIM_SetDutyCallback,"/tim/pwm/set-duty");
 	Bus_RegisterRemoteFunc(NULL,BSP_TIM_GetEncodeCallback,"/tim/encode");
 	timService.initFinished=1;
 }
 
-//³õÊ¼»¯TIMĞÅÏ¢
+//åˆå§‹åŒ–TIMä¿¡æ¯
 void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict)
 {
 	info->htim = Conf_GetPtr(dict,"htim",TIM_HandleTypeDef);
@@ -98,7 +100,7 @@ void BSP_TIM_InitInfo(TIMInfo* info,ConfItem* dict)
 	info->fastHandle=Bus_CreateReceiverHandle(name);
 }
 
-//¿ªÆôTIMÓ²¼ş
+//å¼€å¯TIMç¡¬ä»¶
 void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 {
 	if(!strcmp(Conf_GetPtr(dict,"mode",char),"encode"))
@@ -114,13 +116,13 @@ void BSP_TIM_StartHardware(TIMInfo* info,ConfItem* dict)
 	}
 	else if(!strcmp(Conf_GetPtr(dict,"mode",char),"update-interrupted"))
 	{
-		//Çå³ı¶¨Ê±Æ÷ÖĞ¶Ï±êÖ¾Î»£¬±ÜÃâÒ»¿ªÆô¾ÍÖĞ¶Ï
+		//æ¸…é™¤å®šæ—¶å™¨ä¸­æ–­æ ‡å¿—ä½ï¼Œé¿å…ä¸€å¼€å¯å°±ä¸­æ–­
 		__HAL_TIM_CLEAR_IT(info->htim, TIM_IT_UPDATE);
 		HAL_TIM_Base_Start_IT(info->htim);
 	}
 }
 
-//TIMÉèÖÃÅäÖÃÔ¶³Ìº¯Êı»Øµ÷
+//TIMè®¾ç½®é…ç½®è¿œç¨‹å‡½æ•°å›è°ƒ
 bool BSP_TIM_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_IsMapKeyExist(frame,"tim-x"))
@@ -129,7 +131,7 @@ bool BSP_TIM_SettingCallback(const char* name, SoftBusFrame* frame, void* bindDa
 	TIMInfo* timInfo = NULL;
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
-		if(timX==timService.timList[num].number) //ÕÒµ½¶ÔÓ¦µÄTIM
+		if(timX==timService.timList[num].number) //æ‰¾åˆ°å¯¹åº”çš„TIM
 		{
 			timInfo = &timService.timList[num];
 			break;
@@ -176,7 +178,7 @@ bool BSP_TIM_SettingCallback(const char* name, SoftBusFrame* frame, void* bindDa
 	return true;
 }
 
-//TIMÉèÖÃÕ¼¿Õ±ÈÔ¶³Ìº¯Êı»Øµ÷
+//TIMè®¾ç½®å ç©ºæ¯”è¿œç¨‹å‡½æ•°å›è°ƒ
 bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame,{"tim-x","channel-x","duty"}))
@@ -187,7 +189,7 @@ bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindDa
 	LIMIT(duty,0,1);
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
-		if(timX==timService.timList[num].number) //ÕÒµ½¶ÔÓ¦µÄTIM
+		if(timX==timService.timList[num].number) //æ‰¾åˆ°å¯¹åº”çš„TIM
 		{
 			uint32_t pwmValue = duty * __HAL_TIM_GetAutoreload(timService.timList[num].htim);
 			switch (channelX)
@@ -213,7 +215,7 @@ bool BSP_TIM_SetDutyCallback(const char* name, SoftBusFrame* frame, void* bindDa
 	return false;
 }
 
-//TIM»ñÈ¡±àÂëÆ÷ÖµÔ¶³Ì·şÎñ»Øµ÷
+//TIMè·å–ç¼–ç å™¨å€¼è¿œç¨‹æœåŠ¡å›è°ƒ
 bool BSP_TIM_GetEncodeCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame,{"tim-x","count"}))
@@ -225,11 +227,11 @@ bool BSP_TIM_GetEncodeCallback(const char* name, SoftBusFrame* frame, void* bind
 		autoReload = (uint32_t *)Bus_GetMapValue(frame,"auto-reload");
 	for(uint8_t num = 0;num<timService.timNum;num++)
 	{
-		if(timX==timService.timList[num].number) //ÕÒµ½¶ÔÓ¦µÄTIM
+		if(timX==timService.timList[num].number) //æ‰¾åˆ°å¯¹åº”çš„TIM
 		{
-			*count=__HAL_TIM_GetCounter(timService.timList[num].htim); //·µ»Ø¼ÆÊıÆ÷Öµ
+			*count=__HAL_TIM_GetCounter(timService.timList[num].htim); //è¿”å›è®¡æ•°å™¨å€¼
 			if(autoReload)
-				*autoReload=__HAL_TIM_GetAutoreload(timService.timList[num].htim); //Èç¹ûÌá¹©ÁË¸Ã±äÁ¿Ôò£¬·µ»Ø×Ô¶¯ÖØ×°ÔØÖµ
+				*autoReload=__HAL_TIM_GetAutoreload(timService.timList[num].htim); //å¦‚æœæä¾›äº†è¯¥å˜é‡åˆ™ï¼Œè¿”å›è‡ªåŠ¨é‡è£…è½½å€¼
 			return true;
 		}
 	}

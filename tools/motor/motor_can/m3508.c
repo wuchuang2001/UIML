@@ -3,8 +3,8 @@
 #include "pid.h"
 #include "config.h"
 
-//¸÷ÖÖµç»ú±àÂëÖµÓë½Ç¶ÈµÄ»»Ëã
-#define M3508_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //¼õËÙ±È*8191/360
+//å„ç§ç”µæœºç¼–ç å€¼ä¸Žè§’åº¦çš„æ¢ç®—
+#define M3508_DGR2CODE(dgr,rdcr) ((int32_t)((dgr)*22.7528f*(rdcr))) //å‡é€Ÿæ¯”*8191/360
 #define M3508_CODE2DGR(code,rdcr) ((float)((code)/(22.7528f*(rdcr))))
 
 typedef struct _M3508
@@ -22,16 +22,16 @@ typedef struct _M3508
 	
 	int16_t angle,speed,torque;
 	
-	int16_t lastAngle;//¼ÇÂ¼ÉÏÒ»´ÎµÃµ½µÄ½Ç¶È
+	int16_t lastAngle;//è®°å½•ä¸Šä¸€æ¬¡å¾—åˆ°çš„è§’åº¦
 	
-	int32_t totalAngle;//ÀÛ¼Æ×ª¹ýµÄ±àÂëÆ÷Öµ
+	int32_t totalAngle;//ç´¯è®¡è½¬è¿‡çš„ç¼–ç å™¨å€¼
 	
-	float  targetValue;//Ä¿±êÖµ(Êä³öÖáÅ¤¾Ø¾Ø/ËÙ¶È/½Ç¶È(µ¥Î»¶È))
+	float  targetValue;//ç›®æ ‡å€¼(è¾“å‡ºè½´æ‰­çŸ©çŸ©/é€Ÿåº¦/è§’åº¦(å•ä½åº¦))
 
-	uint16_t stallTime;//¶Â×ªÊ±¼ä
+	uint16_t stallTime;//å µè½¬æ—¶é—´
 	
-	PID speedPID;//ËÙ¶Èpid(µ¥¼¶)
-	CascadePID anglePID;//½Ç¶Èpid£¬´®¼¶
+	PID speedPID;//é€Ÿåº¦pid(å•çº§)
+	CascadePID anglePID;//è§’åº¦pidï¼Œä¸²çº§
 	
 	char* stallName;
 }M3508;
@@ -50,7 +50,7 @@ void M3508_PIDInit(M3508* m3508, ConfItem* dict);
 void M3508_StatAngle(M3508* m3508);
 void M3508_CtrlerCalc(M3508* m3508, float reference);
 
-//Èí¼þ¶¨Ê±Æ÷»Øµ÷º¯Êý
+//è½¯ä»¶å®šæ—¶å™¨å›žè°ƒå‡½æ•°
 void M3508_TimerCallback(void const *argument)
 {
 	M3508* m3508 = pvTimerGetTimerID((TimerHandle_t)argument); 
@@ -66,28 +66,28 @@ void M3508_TimerCallback(void const *argument)
 
 Motor* M3508_Init(ConfItem* dict)
 {
-	//·ÖÅä×ÓÀàÄÚ´æ¿Õ¼ä
+	//åˆ†é…å­ç±»å†…å­˜ç©ºé—´
 	M3508* m3508 = MOTOR_MALLOC_PORT(sizeof(M3508));
 	memset(m3508,0,sizeof(M3508));
-	//×ÓÀà¶àÌ¬
+	//å­ç±»å¤šæ€
 	m3508->motor.setTarget = M3508_SetTarget;
 	m3508->motor.changeMode = M3508_ChangeMode;
 	m3508->motor.initTotalAngle = M3508_InitTotalAngle;
 	m3508->motor.getData = M3508_GetData;
 	m3508->motor.stop = M3508_Stop;
-	//µç»ú¼õËÙ±È
-	m3508->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 19.2f);//Èç¹ûÎ´ÅäÖÃµç»ú¼õËÙ±È²ÎÊý£¬ÔòÊ¹ÓÃÔ­×°µç»úÄ¬ÈÏ¼õËÙ±È
-	//³õÊ¼»¯µç»ú°ó¶¨canÐÅÏ¢
+	//ç”µæœºå‡é€Ÿæ¯”
+	m3508->reductionRatio = Conf_GetValue(dict, "reduction-ratio", float, 19.2f);//å¦‚æžœæœªé…ç½®ç”µæœºå‡é€Ÿæ¯”å‚æ•°ï¼Œåˆ™ä½¿ç”¨åŽŸè£…ç”µæœºé»˜è®¤å‡é€Ÿæ¯”
+	//åˆå§‹åŒ–ç”µæœºç»‘å®šcanä¿¡æ¯
 	uint16_t id = Conf_GetValue(dict, "id", uint16_t, 0);
 	m3508->canInfo.recvID = id + 0x200;
 	m3508->canInfo.sendID = (id <= 4) ? 0x200 : 0x1FF;
 	m3508->canInfo.bufIndex =  ((id - 1)%4) * 2;
 	m3508->canInfo.canX = Conf_GetValue(dict, "can-x", uint8_t, 0);
-	//ÉèÖÃµç»úÄ¬ÈÏÄ£Ê½ÎªÅ¤¾ØÄ£Ê½
+	//è®¾ç½®ç”µæœºé»˜è®¤æ¨¡å¼ä¸ºæ‰­çŸ©æ¨¡å¼
 	m3508->mode = MOTOR_TORQUE_MODE;
-	//³õÊ¼»¯µç»úpid
+	//åˆå§‹åŒ–ç”µæœºpid
 	M3508_PIDInit(m3508, dict);
-	//¶©ÔÄcanÐÅÏ¢
+	//è®¢é˜…canä¿¡æ¯
 	char name[] = "/can_/recv";
 	name[4] = m3508->canInfo.canX + '0';
 	Bus_RegisterReceiver(m3508, M3508_SoftBusCallback, name);
@@ -95,23 +95,23 @@ Motor* M3508_Init(ConfItem* dict)
 	char* motorName = Conf_GetPtr(dict, "name", char);
 	motorName = motorName ? motorName : "motor";
 	uint8_t len = strlen(motorName);
-	m3508->stallName = MOTOR_MALLOC_PORT(len + 7+ 1); //7Îª"/   /stall"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	m3508->stallName = MOTOR_MALLOC_PORT(len + 7+ 1); //7ä¸º"/   /stall"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(m3508->stallName, "/%s/stall", motorName);
-	//¿ªÆôÈí¼þ¶¨Ê±Æ÷
+	//å¼€å¯è½¯ä»¶å®šæ—¶å™¨
 	osTimerDef(M3508, M3508_TimerCallback);
 	osTimerStart(osTimerCreate(osTimer(M3508), osTimerPeriodic, m3508), 2);
 
 	return (Motor*)m3508;
 }
-//³õÊ¼»¯pid
+//åˆå§‹åŒ–pid
 void M3508_PIDInit(M3508* m3508, ConfItem* dict)
 {
 	PID_Init(&m3508->speedPID, Conf_GetPtr(dict, "speed-pid", ConfItem));
 	PID_Init(&m3508->anglePID.inner, Conf_GetPtr(dict, "angle-pid/inner", ConfItem));
 	PID_Init(&m3508->anglePID.outer, Conf_GetPtr(dict, "angle-pid/outer", ConfItem));
-	PID_SetMaxOutput(&m3508->anglePID.outer, m3508->anglePID.outer.maxOutput*m3508->reductionRatio);//½«Êä³öÖáËÙ¶ÈÏÞ·ù·Å´óµ½×ª×ÓÉÏ
+	PID_SetMaxOutput(&m3508->anglePID.outer, m3508->anglePID.outer.maxOutput*m3508->reductionRatio);//å°†è¾“å‡ºè½´é€Ÿåº¦é™å¹…æ”¾å¤§åˆ°è½¬å­ä¸Š
 }
-//Èí×ÜÏß»Øµ÷º¯Êý
+//è½¯æ€»çº¿å›žè°ƒå‡½æ•°
 void M3508_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	M3508* m3508 = (M3508*)bindData;
@@ -125,7 +125,7 @@ void M3508_SoftBusCallback(const char* name, SoftBusFrame* frame, void* bindData
 		M3508_Update(m3508, data);
 }
 
-//µç»ú¼±Í£»Øµ÷º¯Êý
+//ç”µæœºæ€¥åœå›žè°ƒå‡½æ•°
 void M3508_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	M3508* m3508 = (M3508*)bindData;
@@ -133,7 +133,7 @@ void M3508_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 	m3508->mode = MOTOR_STOP_MODE;
 }
 
-//¿ªÊ¼Í³¼Æµç»úÀÛ¼Æ½Ç¶È
+//å¼€å§‹ç»Ÿè®¡ç”µæœºç´¯è®¡è§’åº¦
 void M3508_InitTotalAngle(Motor *motor, float startAngle)
 {
 	M3508* m3508 = (M3508*)motor;
@@ -142,7 +142,7 @@ void M3508_InitTotalAngle(Motor *motor, float startAngle)
 	m3508->lastAngle=m3508->angle;
 }
 
-//Í³¼Æµç»úÀÛ¼Æ×ª¹ýµÄÈ¦Êý
+//ç»Ÿè®¡ç”µæœºç´¯è®¡è½¬è¿‡çš„åœˆæ•°
 void M3508_StatAngle(M3508* m3508)
 {
 	int32_t dAngle=0;
@@ -152,12 +152,12 @@ void M3508_StatAngle(M3508* m3508)
 		dAngle=-m3508->lastAngle-(8191-m3508->angle);
 	else
 		dAngle=m3508->angle-m3508->lastAngle;
-	//½«½Ç¶ÈÔöÁ¿¼ÓÈë¼ÆÊýÆ÷
+	//å°†è§’åº¦å¢žé‡åŠ å…¥è®¡æ•°å™¨
 	m3508->totalAngle+=dAngle;
-	//¼ÇÂ¼½Ç¶È
+	//è®°å½•è§’åº¦
 	m3508->lastAngle=m3508->angle;
 }
-//¿ØÖÆÆ÷¸ù¾ÝÄ£Ê½¼ÆËãÊä³ö
+//æŽ§åˆ¶å™¨æ ¹æ®æ¨¡å¼è®¡ç®—è¾“å‡º
 void M3508_CtrlerCalc(M3508* m3508, float reference)
 {
 	int16_t output=0;
@@ -186,7 +186,7 @@ void M3508_CtrlerCalc(M3508* m3508, float reference)
 		{"data", buffer}
 	});
 }
-//ÉèÖÃµç»úÆÚÍûÖµ
+//è®¾ç½®ç”µæœºæœŸæœ›å€¼
 void M3508_SetTarget(Motor* motor, float targetValue)
 {
 	M3508* m3508 = (M3508*)motor;
@@ -203,11 +203,11 @@ void M3508_SetTarget(Motor* motor, float targetValue)
 		m3508->targetValue = targetValue;
 	}
 }
-//ÇÐ»»µç»úÄ£Ê½
+//åˆ‡æ¢ç”µæœºæ¨¡å¼
 void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode)
 {
 	M3508* m3508 = (M3508*)motor;
-	if(m3508->mode == MOTOR_STOP_MODE) //¼±Í£Ä£Ê½ÏÂ²»ÔÊÐíÇÐ»»Ä£Ê½
+	if(m3508->mode == MOTOR_STOP_MODE) //æ€¥åœæ¨¡å¼ä¸‹ä¸å…è®¸åˆ‡æ¢æ¨¡å¼
 		return;
 	
 	if(m3508->mode == MOTOR_SPEED_MODE)
@@ -222,7 +222,7 @@ void M3508_ChangeMode(Motor* motor, MotorCtrlMode mode)
 	m3508->mode = mode;
 }
 
-//»ñÈ¡µç»úÊý¾Ý
+//èŽ·å–ç”µæœºæ•°æ®
 float M3508_GetData(Motor* motor, const char* data)
 {
 	M3508* m3508 = (M3508*)motor;
@@ -238,7 +238,7 @@ float M3508_GetData(Motor* motor, const char* data)
 	return 0;
 }
 
-//µç»ú¼±Í£º¯Êý
+//ç”µæœºæ€¥åœå‡½æ•°
 void M3508_Stop(Motor* motor)
 {
 	M3508* m3508 = (M3508*)motor;
@@ -246,7 +246,7 @@ void M3508_Stop(Motor* motor)
 	m3508->mode = MOTOR_STOP_MODE;
 }
 
-//¸üÐÂµç»úÊý¾Ý(¿ÉÄÜ½øÐÐÂË²¨)
+//æ›´æ–°ç”µæœºæ•°æ®(å¯èƒ½è¿›è¡Œæ»¤æ³¢)
 void M3508_Update(M3508* m3508,uint8_t* data)
 {
 	m3508->angle = (data[0]<<8 | data[1]);

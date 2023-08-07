@@ -1,7 +1,7 @@
 #include "config.h"
 #include "softbus.h"
 #include "cmsis_os.h"
-
+#include <string.h>
 #include "usart.h"
 
 #define UART_IRQ \
@@ -16,10 +16,10 @@
 	
 #define UART_TOTAL_NUM 8
 
-//UART¾ä±úĞÅÏ¢
+//UARTå¥æŸ„ä¿¡æ¯
 typedef struct {
 	UART_HandleTypeDef* huart;
-	uint8_t number; //uartXÖĞµÄX
+	uint8_t number; //uartXä¸­çš„X
 	struct 
 	{
 		uint8_t *data;
@@ -29,7 +29,7 @@ typedef struct {
 	SoftBusReceiverHandle fastHandle;
 }UARTInfo;
 
-//UART·şÎñÊı¾İ
+//UARTæœåŠ¡æ•°æ®
 typedef struct {
 	UARTInfo uartList[UART_TOTAL_NUM];
 	uint8_t uartNum;
@@ -37,7 +37,7 @@ typedef struct {
 }UARTService;
 
 UARTService uartService = {0};
-//º¯ÊıÉùÃ÷
+//å‡½æ•°å£°æ˜
 void BSP_UART_Init(ConfItem* dict);
 void BSP_UART_InitInfo(UARTInfo* info, ConfItem* dict);
 void BSP_UART_Start_IT(UARTInfo* info);
@@ -46,12 +46,12 @@ bool BSP_UART_ItCallback(const char* name, SoftBusFrame* frame, void* bindData);
 bool BSP_UART_DMACallback(const char* name, SoftBusFrame* frame, void* bindData);
 void BSP_UART_InitRecvBuffer(UARTInfo* info);
 
-//uart½ÓÊÕÖĞ¶Ï»Øµ÷º¯Êı
+//uartæ¥æ”¶ä¸­æ–­å›è°ƒå‡½æ•°
 void BSP_UART_IRQCallback(uint8_t huartX)
 {
 	UARTInfo* uartInfo = &uartService.uartList[huartX - 1];
 	
-	if(!uartService.initFinished)//Èç¹û³õÊ¼»¯Î´Íê³ÉÔòÇå³ı±êÖ¾Î»
+	if(!uartService.initFinished)//å¦‚æœåˆå§‹åŒ–æœªå®Œæˆåˆ™æ¸…é™¤æ ‡å¿—ä½
 	{              
 		(void)uartInfo->huart->Instance->SR; 
 		(void)uartInfo->huart->Instance->DR;
@@ -60,7 +60,7 @@ void BSP_UART_IRQCallback(uint8_t huartX)
 	
 	if (__HAL_UART_GET_FLAG(uartInfo->huart, UART_FLAG_RXNE))
 	{
-		//·ÀÖ¹Êı×éÔ½½ç
+		//é˜²æ­¢æ•°ç»„è¶Šç•Œ
 		if(uartInfo->recvBuffer.pos < uartInfo->recvBuffer.maxBufSize)
 			uartInfo->recvBuffer.data[uartInfo->recvBuffer.pos++] = uartInfo->huart->Instance->DR;
 	}
@@ -69,16 +69,16 @@ void BSP_UART_IRQCallback(uint8_t huartX)
 	{
 		/* clear idle it flag avoid idle interrupt all the time */
 		__HAL_UART_CLEAR_IDLEFLAG(uartInfo->huart);
-		uint16_t recSize=uartInfo->recvBuffer.pos; //´ËÊ±posÖµÎªÒ»Ö¡Êı¾İµÄ³¤¶È
-		Bus_FastBroadcastSend(uartInfo->fastHandle, {uartInfo->recvBuffer.data, &recSize}); //¿ÕÏĞÖĞ¶ÏÎªÒ»Ö¡£¬·¢ËÍÒ»Ö¡Êı¾İ
+		uint16_t recSize=uartInfo->recvBuffer.pos; //æ­¤æ—¶poså€¼ä¸ºä¸€å¸§æ•°æ®çš„é•¿åº¦
+		Bus_FastBroadcastSend(uartInfo->fastHandle, {uartInfo->recvBuffer.data, &recSize}); //ç©ºé—²ä¸­æ–­ä¸ºä¸€å¸§ï¼Œå‘é€ä¸€å¸§æ•°æ®
 		uartInfo->recvBuffer.pos = 0;
 	}
 }
 
-//uartÈÎÎñ»Øµ÷º¯Êı
+//uartä»»åŠ¡å›è°ƒå‡½æ•°
 void BSP_UART_TaskCallback(void const * argument)
 {
-	//½øÈëÁÙ½çÇø
+	//è¿›å…¥ä¸´ç•ŒåŒº
 	portENTER_CRITICAL();
 	BSP_UART_Init((ConfItem*)argument);
 	portEXIT_CRITICAL();
@@ -88,7 +88,7 @@ void BSP_UART_TaskCallback(void const * argument)
 
 void BSP_UART_Init(ConfItem* dict)
 {
-	//¼ÆËãÓÃ»§ÅäÖÃµÄuartÊıÁ¿
+	//è®¡ç®—ç”¨æˆ·é…ç½®çš„uartæ•°é‡
 	uartService.uartNum = 0;
 	for(uint8_t num = 0; ; num++)
 	{
@@ -99,7 +99,7 @@ void BSP_UART_Init(ConfItem* dict)
 		else
 			break;
 	}
-	//³õÊ¼»¯¸÷uartĞÅÏ¢
+	//åˆå§‹åŒ–å„uartä¿¡æ¯
 	for(uint8_t num = 0; num < uartService.uartNum; num++)
 	{
 		char confName[] = "uarts/_";
@@ -107,14 +107,14 @@ void BSP_UART_Init(ConfItem* dict)
 		BSP_UART_InitInfo(uartService.uartList, Conf_GetPtr(dict, confName, ConfItem));
 	}
 
-	//×¢²áÔ¶³Ìº¯Êı
+	//æ³¨å†Œè¿œç¨‹å‡½æ•°
 	Bus_RegisterRemoteFunc(NULL, BSP_UART_BlockCallback, "/uart/trans/block");
 	Bus_RegisterRemoteFunc(NULL, BSP_UART_ItCallback, "/uart/trans/it");
 	Bus_RegisterRemoteFunc(NULL, BSP_UART_DMACallback, "/uart/trans/dma");
 	uartService.initFinished = 1;
 }
 
-//³õÊ¼»¯uartĞÅÏ¢
+//åˆå§‹åŒ–uartä¿¡æ¯
 void BSP_UART_InitInfo(UARTInfo* info, ConfItem* dict)
 {
 	uint8_t number = Conf_GetValue(dict, "number", uint8_t, 0);
@@ -124,19 +124,19 @@ void BSP_UART_InitInfo(UARTInfo* info, ConfItem* dict)
 	char name[] = "/uart_/recv";
 	name[5] = info[number-1].number + '0';
 	info[number-1].fastHandle = Bus_CreateReceiverHandle(name);
-	//³õÊ¼»¯½ÓÊÕ»º³åÇø
+	//åˆå§‹åŒ–æ¥æ”¶ç¼“å†²åŒº
 	BSP_UART_InitRecvBuffer(&info[number-1]);
-	//¿ªÆôuartÖĞ¶Ï
+	//å¼€å¯uartä¸­æ–­
 	BSP_UART_Start_IT(&info[number-1]);
 }
 
-//¿ªÆôuartÖĞ¶Ï
+//å¼€å¯uartä¸­æ–­
 void BSP_UART_Start_IT(UARTInfo* info)
 {
 	__HAL_UART_ENABLE_IT(info->huart, UART_IT_RXNE);
 	__HAL_UART_ENABLE_IT(info->huart, UART_IT_IDLE);
 }
-//³õÊ¼»¯½ÓÊÕ»º³åÇø
+//åˆå§‹åŒ–æ¥æ”¶ç¼“å†²åŒº
 void BSP_UART_InitRecvBuffer(UARTInfo* info)
 {
    	info->recvBuffer.pos=0;
@@ -144,7 +144,7 @@ void BSP_UART_InitRecvBuffer(UARTInfo* info)
     memset(info->recvBuffer.data,0,info->recvBuffer.maxBufSize);
 }
 
-//×èÈû»Øµ÷
+//é˜»å¡å›è°ƒ
 bool BSP_UART_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"uart-x", "data", "trans-size", "timeout"}))
@@ -158,7 +158,7 @@ bool BSP_UART_BlockCallback(const char* name, SoftBusFrame* frame, void* bindDat
 	return true;
 }
 
-//ÖĞ¶Ï·¢ËÍ»Øµ÷
+//ä¸­æ–­å‘é€å›è°ƒ
 bool BSP_UART_ItCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"uart-x","data","trans-size"}))
@@ -171,7 +171,7 @@ bool BSP_UART_ItCallback(const char* name, SoftBusFrame* frame, void* bindData)
 	return true;
 }
 
-//DMA·¢ËÍ»Øµ÷
+//DMAå‘é€å›è°ƒ
 bool BSP_UART_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	if(!Bus_CheckMapKeys(frame, {"uart-x","data","trans-size"}))
@@ -184,7 +184,7 @@ bool BSP_UART_DMACallback(const char* name, SoftBusFrame* frame, void* bindData)
 	return true;
 }
 
-//Éú³ÉÖĞ¶Ï·şÎñº¯Êı
+//ç”Ÿæˆä¸­æ–­æœåŠ¡å‡½æ•°
 #define IRQ_FUN(irq, number) \
 void irq(void) \
 { \

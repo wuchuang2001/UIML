@@ -5,6 +5,7 @@
 #include "AHRS.h"
 #include "pid.h"
 #include "filter.h"
+#include <stdio.h>
 
 typedef struct 
 {
@@ -26,7 +27,7 @@ typedef struct
 	PID tmpPID;
 	Filter *filter;
 
-	uint16_t taskInterval; //ÈÎÎñÖ´ĞĞ¼ä¸ô
+	uint16_t taskInterval; //ä»»åŠ¡æ‰§è¡Œé—´éš”
 
 	char* eulerAngleName;
 }INS;
@@ -42,7 +43,7 @@ void INS_TaskCallback(void const * argument)
 	osDelay(50);
 	INS_Init(&ins, (ConfItem*)argument);
 	AHRS_init(ins.imu.quat,ins.imu.accel,ins.imu.mag);
-	//Ğ£×¼ÁãÆ«
+	//æ ¡å‡†é›¶å
 	// for(int i=0;i<10000;i++)
 	// {
 	// 	BMI088_ReadData(ins.spiX, ins.imu.gyro,ins.imu.accel, &ins.imu.tmp);
@@ -55,7 +56,7 @@ void INS_TaskCallback(void const * argument)
 	// ins.imu.gyroOffset[1] = ins.imu.gyroOffset[1]/10000.0f;
 	// ins.imu.gyroOffset[2] = ins.imu.gyroOffset[2]/10000.0f;
 
-	ins.imu.gyroOffset[0] = -0.000767869;   //10´ÎĞ£×¼È¡¾ùÖµ
+	ins.imu.gyroOffset[0] = -0.000767869;   //10æ¬¡æ ¡å‡†å–å‡å€¼
 	ins.imu.gyroOffset[1] = 0.000771033;  
 	ins.imu.gyroOffset[2] = 0.001439746;
 	
@@ -66,16 +67,16 @@ void INS_TaskCallback(void const * argument)
 		for(uint8_t i=0;i<3;i++)
 			ins.imu.gyro[i] -= ins.imu.gyroOffset[i];
 
-		//ÂË²¨
+		//æ»¤æ³¢
 		// for(uint8_t i=0;i<3;i++)
 		// 	ins.imu.accel[i] = ins.filter->cala(ins.filter , ins.imu.accel[i]);
-		//Êı¾İÈÚºÏ	
+		//æ•°æ®èåˆ	
 		AHRS_update(ins.imu.quat,ins.taskInterval/1000.0f,ins.imu.gyro,ins.imu.accel,ins.imu.mag);
 		get_angle(ins.imu.quat,&ins.yaw,&ins.pitch,&ins.roll);
 		ins.yaw = ins.yaw/PI*180;
 		ins.pitch = ins.pitch/PI*180;
 		ins.roll = ins.roll/PI*180;
-		//·¢²¼Êı¾İ
+		//å‘å¸ƒæ•°æ®
 		Bus_BroadcastSend(ins.eulerAngleName, {{"yaw",&ins.yaw}, {"pitch",&ins.pitch}, {"roll",&ins.roll}});
 		osDelay(ins.taskInterval);
 	}
@@ -96,7 +97,7 @@ void INS_Init(INS* ins, ConfItem* dict)
 	char* temp = Conf_GetPtr(dict, "name", char);
 	temp = temp ? temp : "ins";
 	uint8_t len = strlen(temp);
-	ins->eulerAngleName = pvPortMalloc(len + 13+ 1); //13Îª"/   /euler-angle"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	ins->eulerAngleName = pvPortMalloc(len + 13+ 1); //13ä¸º"/   /euler-angle"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(ins->eulerAngleName, "/%s/euler-angle", temp);
 
 	while(BMI088_AccelInit(ins->spiX) || BMI088_GyroInit(ins->spiX))
@@ -106,12 +107,12 @@ void INS_Init(INS* ins, ConfItem* dict)
 
 	BMI088_ReadData(ins->spiX, ins->imu.gyro,ins->imu.accel, &ins->imu.tmp);
 
-	//´´½¨¶¨Ê±Æ÷½øĞĞÎÂ¶Èpid¿ØÖÆ
+	//åˆ›å»ºå®šæ—¶å™¨è¿›è¡Œæ¸©åº¦pidæ§åˆ¶
 	osTimerDef(tmp, INS_TmpPIDTimerCallback);
 	osTimerStart(osTimerCreate(osTimer(tmp), osTimerPeriodic, ins), 2);
 }
 
-//Èí¼ş¶¨Ê±Æ÷»Øµ÷º¯Êı
+//è½¯ä»¶å®šæ—¶å™¨å›è°ƒå‡½æ•°
 void INS_TmpPIDTimerCallback(void const *argument)
 {
 	INS* ins = pvTimerGetTimerID((TimerHandle_t)argument);

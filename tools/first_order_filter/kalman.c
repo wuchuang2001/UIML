@@ -1,17 +1,17 @@
 #include "filter.h"
 
-//Ò»½×¿¨¶ûÂüÂË²¨½á¹¹Ìå
+//ä¸€é˜¶å¡å°”æ›¼æ»¤æ³¢ç»“æž„ä½“
 typedef struct
 {
 	Filter filter;
 
-	float xLast; //ÉÏÒ»Ê±¿ÌµÄ×îÓÅ½á¹û  X(k|k-1)
-	float xPre;  //µ±Ç°Ê±¿ÌµÄÔ¤²â½á¹û  X(k|k-1)
-	float xNow;  //µ±Ç°Ê±¿ÌµÄ×îÓÅ½á¹û  X(k|k)
-	float pPre;  //µ±Ç°Ê±¿ÌÔ¤²â½á¹ûµÄÐ­·½²î  P(k|k-1)
-	float pNow;  //µ±Ç°Ê±¿Ì×îÓÅ½á¹ûµÄÐ­·½²î  P(k|k)
-	float pLast; //ÉÏÒ»Ê±¿Ì×îÓÅ½á¹ûµÄÐ­·½²î  P(k-1|k-1)
-	float kg;     //kalmanÔöÒæ
+	float xLast; //ä¸Šä¸€æ—¶åˆ»çš„æœ€ä¼˜ç»“æžœ  X(k|k-1)
+	float xPre;  //å½“å‰æ—¶åˆ»çš„é¢„æµ‹ç»“æžœ  X(k|k-1)
+	float xNow;  //å½“å‰æ—¶åˆ»çš„æœ€ä¼˜ç»“æžœ  X(k|k)
+	float pPre;  //å½“å‰æ—¶åˆ»é¢„æµ‹ç»“æžœçš„åæ–¹å·®  P(k|k-1)
+	float pNow;  //å½“å‰æ—¶åˆ»æœ€ä¼˜ç»“æžœçš„åæ–¹å·®  P(k|k)
+	float pLast; //ä¸Šä¸€æ—¶åˆ»æœ€ä¼˜ç»“æžœçš„åæ–¹å·®  P(k-1|k-1)
+	float kg;     //kalmanå¢žç›Š
 	float Q;
 	float R;
 }KalmanFilter;
@@ -21,13 +21,13 @@ Filter* Kalman_Init(ConfItem* dict);
 float Kalman_Cala(Filter* filter, float data);
 
 /**
-  * @brief  ³õÊ¼»¯Ò»¸ö¿¨¶ûÂüÂË²¨Æ÷
-  * @param  kalman:  ÂË²¨Æ÷
-  * @param  T_Q:ÏµÍ³ÔëÉùÐ­·½²î
-  * @param  T_R:²âÁ¿ÔëÉùÐ­·½²î
+  * @brief  åˆå§‹åŒ–ä¸€ä¸ªå¡å°”æ›¼æ»¤æ³¢å™¨
+  * @param  kalman:  æ»¤æ³¢å™¨
+  * @param  T_Q:ç³»ç»Ÿå™ªå£°åæ–¹å·®
+  * @param  T_R:æµ‹é‡å™ªå£°åæ–¹å·®
   * @retval None
-  * @attention R¹Ì¶¨£¬QÔ½´ó£¬´ú±íÔ½ÐÅÈÎ²àÁ¿Öµ£¬QÎÞÇî´ú±íÖ»ÓÃ²âÁ¿Öµ
-  *           ·´Ö®£¬QÔ½Ð¡´ú±íÔ½ÐÅÈÎÄ£ÐÍÔ¤²âÖµ£¬QÎªÁãÔòÊÇÖ»ÓÃÄ£ÐÍÔ¤²â
+  * @attention Rå›ºå®šï¼ŒQè¶Šå¤§ï¼Œä»£è¡¨è¶Šä¿¡ä»»ä¾§é‡å€¼ï¼ŒQæ— ç©·ä»£è¡¨åªç”¨æµ‹é‡å€¼
+  *           åä¹‹ï¼ŒQè¶Šå°ä»£è¡¨è¶Šä¿¡ä»»æ¨¡åž‹é¢„æµ‹å€¼ï¼ŒQä¸ºé›¶åˆ™æ˜¯åªç”¨æ¨¡åž‹é¢„æµ‹
   */
 Filter* Kalman_Init(ConfItem* dict)
 {
@@ -45,14 +45,14 @@ Filter* Kalman_Init(ConfItem* dict)
 
 
 /**
-  * @brief  ¿¨¶ûÂüÂË²¨Æ÷
-  * @param  kalman:  ÂË²¨Æ÷
-  * @param  data:´ýÂË²¨Êý¾Ý
-  * @retval ÂË²¨ºóµÄÊý¾Ý
-  * @attention Z(k)ÊÇÏµÍ³ÊäÈë,¼´²âÁ¿Öµ   X(k|k)ÊÇ¿¨¶ûÂüÂË²¨ºóµÄÖµ,¼´×îÖÕÊä³ö
-  *            A=1 B=0 H=1 I=1  W(K)  V(k)ÊÇ¸ßË¹°×ÔëÉù,µþ¼ÓÔÚ²âÁ¿ÖµÉÏÁË,¿ÉÒÔ²»ÓÃ¹Ü
-  *            ÒÔÏÂÊÇ¿¨¶ûÂüµÄ5¸öºËÐÄ¹«Ê½
-  *            Ò»½×H'¼´ÎªËü±¾Éí,·ñÔòÎª×ªÖÃ¾ØÕó
+  * @brief  å¡å°”æ›¼æ»¤æ³¢å™¨
+  * @param  kalman:  æ»¤æ³¢å™¨
+  * @param  data:å¾…æ»¤æ³¢æ•°æ®
+  * @retval æ»¤æ³¢åŽçš„æ•°æ®
+  * @attention Z(k)æ˜¯ç³»ç»Ÿè¾“å…¥,å³æµ‹é‡å€¼   X(k|k)æ˜¯å¡å°”æ›¼æ»¤æ³¢åŽçš„å€¼,å³æœ€ç»ˆè¾“å‡º
+  *            A=1 B=0 H=1 I=1  W(K)  V(k)æ˜¯é«˜æ–¯ç™½å™ªå£°,å åŠ åœ¨æµ‹é‡å€¼ä¸Šäº†,å¯ä»¥ä¸ç”¨ç®¡
+  *            ä»¥ä¸‹æ˜¯å¡å°”æ›¼çš„5ä¸ªæ ¸å¿ƒå…¬å¼
+  *            ä¸€é˜¶H'å³ä¸ºå®ƒæœ¬èº«,å¦åˆ™ä¸ºè½¬ç½®çŸ©é˜µ
   */
 float Kalman_Cala(Filter* filter, float data)
 {
@@ -63,7 +63,7 @@ float Kalman_Cala(Filter* filter, float data)
 	kalman->kg = kalman->pPre / (kalman->pPre + kalman->R);            //kg(k) = p(k|k-1)*H'/(H*p(k|k-1)*H'+R)
 	kalman->xNow = kalman->xPre + kalman->kg * (data - kalman->xPre);  //x(k|k) = X(k|k-1)+kg(k)*(Z(k)-H*X(k|k-1))
 	kalman->pNow = (1 - kalman->kg) * kalman->pPre;               //p(k|k) = (I-kg(k)*H)*P(k|k-1)
-	kalman->pLast = kalman->pNow;                            //×´Ì¬¸üÐÂ
-	kalman->xLast = kalman->xNow;                            //×´Ì¬¸üÐÂ
-	return kalman->xNow;                                 //Êä³öÔ¤²â½á¹ûx(k|k)
+	kalman->pLast = kalman->pNow;                            //çŠ¶æ€æ›´æ–°
+	kalman->xLast = kalman->xNow;                            //çŠ¶æ€æ›´æ–°
+	return kalman->xNow;                                 //è¾“å‡ºé¢„æµ‹ç»“æžœx(k|k)
 }

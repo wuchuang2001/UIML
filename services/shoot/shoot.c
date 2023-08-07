@@ -15,9 +15,9 @@ typedef struct
 {
 	Motor *fricMotors[2],*triggerMotor;
 	bool fricEnable;
-	float fricSpeed; //Ä¦²ÁÂÖËÙ¶È
-	float triggerAngle,targetTrigAngle; //²¦µ¯Ò»´Î½Ç¶È¼°ÀÛ¼Æ½Ç¶È
-	uint16_t intervalTime; //Á¬·¢¼ä¸ôms
+	float fricSpeed; //æ‘©æ“¦è½®é€Ÿåº¦
+	float triggerAngle,targetTrigAngle; //æ‹¨å¼¹ä¸€æ¬¡è§’åº¦åŠç´¯è®¡è§’åº¦
+	uint16_t intervalTime; //è¿å‘é—´éš”ms
 	uint8_t mode;
 	uint16_t taskInterval;
 
@@ -35,7 +35,7 @@ void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData);
 void Shooter_TaskCallback(void const * argument)
 {
 	portENTER_CRITICAL();
-	float totalAngle; //Îª½â¾öwarning£¬CÓïÑÔÖĞ±êÇ©µÄÏÂÒ»ÌõÓï¾ä²»ÄÜÊÇ¶¨Òå±äÁ¿µÄ±í´ïÊ½£¬¶øcaseÇ¡ºÃ¾ÍÊÇ±êÇ©
+	float totalAngle; //ä¸ºè§£å†³warningï¼ŒCè¯­è¨€ä¸­æ ‡ç­¾çš„ä¸‹ä¸€æ¡è¯­å¥ä¸èƒ½æ˜¯å®šä¹‰å˜é‡çš„è¡¨è¾¾å¼ï¼Œè€Œcaseæ°å¥½å°±æ˜¯æ ‡ç­¾
 	Shooter shooter={0};
 	Shooter_Init(&shooter, (ConfItem*)argument);
 	portEXIT_CRITICAL();
@@ -49,29 +49,29 @@ void Shooter_TaskCallback(void const * argument)
 				osDelay(shooter.taskInterval);
 				break;
 			case SHOOTER_MODE_BLOCK:
-				totalAngle = shooter.triggerMotor->getData(shooter.triggerMotor, "totalAngle"); //ÖØÖÃµç»ú½Ç¶ÈÎªµ±Ç°ÀÛ¼Æ½Ç¶È
-				shooter.targetTrigAngle = totalAngle - shooter.triggerAngle*0.5f;  //·´×ª
+				totalAngle = shooter.triggerMotor->getData(shooter.triggerMotor, "totalAngle"); //é‡ç½®ç”µæœºè§’åº¦ä¸ºå½“å‰ç´¯è®¡è§’åº¦
+				shooter.targetTrigAngle = totalAngle - shooter.triggerAngle*0.5f;  //åè½¬
 				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
-				osDelay(500);   //µÈ´ıµç»ú¶Â×ª»Ö¸´
+				osDelay(500);   //ç­‰å¾…ç”µæœºå µè½¬æ¢å¤
 				shooter.mode = SHOOTER_MODE_IDLE;
 				break;
-			case SHOOTER_MODE_ONCE:   //µ¥·¢
-				if(shooter.fricEnable == false)   //ÈôÄ¦²ÁÂÖÎ´¿ªÆôÔòÏÈ¿ªÆô
+			case SHOOTER_MODE_ONCE:   //å•å‘
+				if(shooter.fricEnable == false)   //è‹¥æ‘©æ“¦è½®æœªå¼€å¯åˆ™å…ˆå¼€å¯
 				{
 					Bus_RemoteCall("/shooter/setting",{"fric-enable",IM_PTR(bool,true)});
-					osDelay(200);     //µÈ´ıÄ¦²ÁÂÖ×ªËÙÎÈ¶¨
+					osDelay(200);     //ç­‰å¾…æ‘©æ“¦è½®è½¬é€Ÿç¨³å®š
 				}
 				shooter.targetTrigAngle += shooter.triggerAngle; 
 				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
 				shooter.mode = SHOOTER_MODE_IDLE;
 				break;
-			case SHOOTER_MODE_CONTINUE:  //ÒÔÒ»¶¨µÄÊ±¼ä¼ä¸ôÁ¬Ğø·¢Éä 
-				if(shooter.fricEnable == false)   //ÈôÄ¦²ÁÂÖÎ´¿ªÆôÔòÏÈ¿ªÆô
+			case SHOOTER_MODE_CONTINUE:  //ä»¥ä¸€å®šçš„æ—¶é—´é—´éš”è¿ç»­å‘å°„ 
+				if(shooter.fricEnable == false)   //è‹¥æ‘©æ“¦è½®æœªå¼€å¯åˆ™å…ˆå¼€å¯
 				{
 					Bus_RemoteCall("/shooter/setting",{"fric-enable",IM_PTR(bool,true)});
-					osDelay(200);   //µÈ´ıÄ¦²ÁÂÖ×ªËÙÎÈ¶¨
+					osDelay(200);   //ç­‰å¾…æ‘©æ“¦è½®è½¬é€Ÿç¨³å®š
 				}
-				shooter.targetTrigAngle += shooter.triggerAngle;  //Ôö¼Ó²¦µ¯µç»úÄ¿±ê½Ç¶È
+				shooter.targetTrigAngle += shooter.triggerAngle;  //å¢åŠ æ‹¨å¼¹ç”µæœºç›®æ ‡è§’åº¦
 				shooter.triggerMotor->setTarget(shooter.triggerMotor,shooter.targetTrigAngle);
 				osDelay(shooter.intervalTime);  
 				break;
@@ -83,17 +83,17 @@ void Shooter_TaskCallback(void const * argument)
 
 void Shooter_Init(Shooter* shooter, ConfItem* dict)
 {
-	//ÈÎÎñ¼ä¸ô
+	//ä»»åŠ¡é—´éš”
 	shooter->taskInterval = Conf_GetValue(dict, "task-interval", uint16_t, 20);
-	//³õÊ¼µ¯ËÙ
+	//åˆå§‹å¼¹é€Ÿ
 	shooter->fricSpeed = Conf_GetValue(dict,"fric-speed",float,5450);
-	//²¦µ¯ÂÖ²¦³öÒ»·¢µ¯Íè×ª½Ç
+	//æ‹¨å¼¹è½®æ‹¨å‡ºä¸€å‘å¼¹ä¸¸è½¬è§’
 	shooter->triggerAngle = Conf_GetValue(dict,"trigger-angle",float,1/7.0*360);
-	//·¢Éä»ú¹¹µç»ú³õÊ¼»¯
+	//å‘å°„æœºæ„ç”µæœºåˆå§‹åŒ–
 	shooter->fricMotors[0] = Motor_Init(Conf_GetPtr(dict, "fric-motor-left", ConfItem));
 	shooter->fricMotors[1] = Motor_Init(Conf_GetPtr(dict, "fric-motor-right", ConfItem));
 	shooter->triggerMotor = Motor_Init(Conf_GetPtr(dict, "trigger-motor", ConfItem));
-	//ÉèÖÃ·¢Éä»ú¹¹µç»úÄ£Ê½
+	//è®¾ç½®å‘å°„æœºæ„ç”µæœºæ¨¡å¼
 	for(uint8_t i = 0; i<2; i++)
 	{
 		shooter->fricMotors[i]->changeMode(shooter->fricMotors[i], MOTOR_SPEED_MODE);
@@ -103,26 +103,26 @@ void Shooter_Init(Shooter* shooter, ConfItem* dict)
 	char* temp = Conf_GetPtr(dict, "name", char);
 	temp = temp ? temp : "shooter";
 	uint8_t len = strlen(temp);
-	shooter->settingName = pvPortMalloc(len + 9+ 1); //9Îª"/   /setting"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	shooter->settingName = pvPortMalloc(len + 9+ 1); //9ä¸º"/   /setting"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(shooter->settingName, "/%s/setting", temp);
 
-	shooter->changeModeName = pvPortMalloc(len + 6+ 1); //6Îª"/   /mode"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	shooter->changeModeName = pvPortMalloc(len + 6+ 1); //6ä¸º"/   /mode"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(shooter->changeModeName, "/%s/mode", temp);
 	
 	temp = Conf_GetPtr(dict, "trigger-motor/name", char);
 	temp = temp ? temp : "trigger-motor";
 	len = strlen(temp);
-	shooter->triggerStallName = pvPortMalloc(len + 7+ 1); //7Îª"/   /stall"µÄ³¤¶È£¬1Îª'\0'µÄ³¤¶È
+	shooter->triggerStallName = pvPortMalloc(len + 7+ 1); //7ä¸º"/   /stall"çš„é•¿åº¦ï¼Œ1ä¸º'\0'çš„é•¿åº¦
 	sprintf(shooter->triggerStallName, "/%s/stall", temp);
 
-	//×¢²á»Øµ÷º¯Êı
+	//æ³¨å†Œå›è°ƒå‡½æ•°
 	Bus_RegisterRemoteFunc(shooter,Shooter_SettingCallback, shooter->settingName);
 	Bus_RegisterRemoteFunc(shooter,Shoot_ChangeModeCallback, shooter->changeModeName);
 	Bus_RegisterReceiver(shooter,Shoot_StopCallback,"/system/stop");
 	Bus_RegisterReceiver(shooter,Shooter_BlockCallback, shooter->triggerStallName);
 }
 
-//Éä»÷Ä£Ê½
+//å°„å‡»æ¨¡å¼
 bool Shooter_SettingCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData ;
@@ -158,7 +158,7 @@ bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindD
 	if(Bus_IsMapKeyExist(frame,"mode"))
 	{
 		char* mode = (char*)Bus_GetMapValue(frame,"mode");
-		if(!strcmp(mode,"once") && shooter->mode == SHOOTER_MODE_IDLE)  //¿ÕÏĞÊ±²ÅÔÊĞíĞŞ¸ÄÄ£Ê½
+		if(!strcmp(mode,"once") && shooter->mode == SHOOTER_MODE_IDLE)  //ç©ºé—²æ—¶æ‰å…è®¸ä¿®æ”¹æ¨¡å¼
 		{
 			shooter->mode = SHOOTER_MODE_ONCE;
 			return true;
@@ -180,13 +180,13 @@ bool Shoot_ChangeModeCallback(const char* name, SoftBusFrame* frame, void* bindD
 	return false;
 }
 
-//¶Â×ª
+//å µè½¬
 void Shooter_BlockCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData;
 	shooter->mode = SHOOTER_MODE_BLOCK;
 }
-//¼±Í£
+//æ€¥åœ
 void Shoot_StopCallback(const char* name, SoftBusFrame* frame, void* bindData)
 {
 	Shooter *shooter = (Shooter*)bindData;
